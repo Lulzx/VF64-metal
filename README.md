@@ -10,7 +10,7 @@ precision selection.
 - [Milestones M1-M8](docs/milestones/README.md)
 - [Current milestone status](docs/evidence/milestone-status.md)
 - [Reproducible results](results/summary.md)
-- [Technical report draft](docs/report/technical-report-draft.md)
+- [Technical report](docs/report/technical-report.md)
 
 ## Build and run
 

@@ -19,9 +19,9 @@ declares M1, M2, M3, and M4 Apple GPU runner labels, checks out the frozen
 CuMetal integration commit, reruns all three compiler modes, and preserves both
 verification logs.
 
-An evidence-linked [technical report draft](../report/technical-report-draft.md)
-summarizes the current architecture, methodology, results, and open gates. It
-does not publish the embargoed final claim.
+An evidence-linked [technical report](../report/technical-report.md) summarizes
+the current architecture, methodology, results, and open gates. It does not
+publish the embargoed final claim.
 
 VF64 v1's compiler/backend boundary is published as a versioned
 [C and standalone runner API/ABI](../release/api-abi.md) with compiled

@@ -1,7 +1,7 @@
-# Virtual FP64 for Apple GPUs — technical report draft
+# Virtual FP64 for Apple GPUs
 
 Date: 2026-08-29  
-Status: pre-release evidence draft; not a 1.0 claim
+Status: current technical report; not a 1.0 claim
 
 ## Abstract
 
@@ -10,14 +10,16 @@ ALUs. It provides three numerical modes: a finite-range FP32 pair (`fast48`), a
 scaled full-range pair (`wide48`), and a correctly rounded integer software
 runtime (`ieee64`). VF64 v1 exposes those modes through a source-independent
 virtual ISA, while a standalone typed frontend supports explicit policies and
-profile-guided automatic selection.
+profile-guided automatic selection. CuMetal lowers unchanged CUDA/PTX `double`
+through the same support architecture under all three explicit modes.
 
 On one 16-core Apple M4 Pro, the documented M1/M2 runtime and VF64 backend pass
 31,982,976 Berkeley TestFloat result-and-flag comparisons. A mixed automatic
 region satisfies a 40-bit accuracy contract at 1.18x the pure `ieee64` rate.
 Scientific pilots show large wins for some dense and batched workloads, while
 synchronous Krylov solvers and division-heavy N-body kernels remain slower than
-the scalar CPU baseline.
+the scalar CPU baseline. The evidence remains single-generation and has no
+authorized power measurement.
 
 ## Architecture
 
@@ -56,6 +58,10 @@ of exhaustive input enumeration.
 The M4 Pro mode corpus measures at least 47.19 p01 accuracy bits for `wide48`
 arithmetic. A resident 32-operation multiply chain measures 203,514 Mops/s for
 `fast48`, 48,851 Mops/s for `wide48`, and 13,388 Mops/s for `ieee64`.
+Nine representative pipelines report SIMD width 32, the full 1,024-thread
+single-threadgroup limit, and zero static threadgroup bytes. Public Metal does
+not expose physical-register, spill-byte, or resident-occupancy measurements on
+this device, and the report does not infer them from AIR.
 
 The automatic selector consumes measured exponent profiles, propagates range
 and error bounds, and falls back to `ieee64` when proof is absent. Its committed
@@ -93,6 +99,15 @@ CuMetal now executes the unchanged CUDA contract probe through `fast48`,
 `wide48`, and `ieee64`. The gate covers arithmetic, true fused FMA, square root,
 conversions, comparisons, min/max, remainder, rounding, shared memory, shuffle,
 reload, aliasing, cache hits, and mode-specific provenance.
+
+Two checksum-pinned NIST Matrix Market matrices add structural-engineering and
+power-network SpMV; exact `ieee64` results are bit-identical on both, though the
+small shapes do not amortize dispatch overhead. Unmodified HiGHS 1.15.1 PDLP on
+Netlib `afiro` passes its status/objective/residual gate under `wide48` and the
+mixed `ieee64` path with more than 2,600 Apple-GPU launches each. `fast48`
+reaches Optimal but misses the frozen dual-residual parity gate by 5%. The
+`ieee64` whole solve is not claimed exact because cuSPARSE SpMV remains an
+explicit reduced-precision library substitution.
 
 ## Open validity and release gates
 

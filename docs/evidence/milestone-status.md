@@ -14,7 +14,7 @@ The status labels below distinguish implemented source from exit evidence.
 | M5 compiler integration | Complete | CuMetal lowers unchanged CUDA `double` through fast48, wide48, and ieee64; arithmetic, conversions, comparisons, rounding, storage, shuffle, aliasing, cache, and provenance pass on M4 Pro | none within the declared source/PTX operation surface |
 | M6 automatic precision | Complete | profiled per-op selector; diagnostics; mixed fast48/wide48 region met 40-bit contract at 1.18x pure ieee64 | none within the declared VF64 accuracy-contract path |
 | M7 workloads | In progress | M4 Pro pilot covers CG, GMRES, synthetic and external CSR, GEMV/GEMM, structured LP, N-body, three-mode CuMetal CUDA, and unmodified HiGHS PDLP (`wide48`/mixed `ieee64` pass; `fast48` residual-parity failure documented) | energy and cross-device reproduction |
-| M8 1.0 | In progress | claim policy, expanded release gate, self-hosted M1-M4 workflow with pinned CuMetal integration, stable public C/runner ABI, technical-report draft, and checked operation-by-operation conformance data | zero runners currently registered; successful public cross-generation runs, all prior exits, stable release, and final technical report |
+| M8 1.0 | In progress | claim policy, expanded release gate, self-hosted M1-M4 workflow with pinned CuMetal integration, stable public C/runner ABI, current technical report, and checked operation-by-operation conformance data | zero runners currently registered; successful public cross-generation runs, all prior exits, stable release, and publication-time prior-art check |
 
 ## Evidence rules
 
