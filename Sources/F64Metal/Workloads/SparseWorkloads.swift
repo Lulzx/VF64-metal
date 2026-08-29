@@ -68,6 +68,50 @@ private func denseGEMVWorkload(rows: Int = 1024, columns: Int = 2048) -> CSRWork
     )
 }
 
+private func grid2DWorkload(
+    side: Int = 256, nonsymmetric: Bool
+) -> CSRWorkload {
+    let size = side * side
+    var rowOffsets: [UInt32] = [0]
+    var columns: [UInt32] = []
+    var values: [Double] = []
+    columns.reserveCapacity(size * 5)
+    values.reserveCapacity(size * 5)
+    for row in 0..<side {
+        for column in 0..<side {
+            let index = row * side + column
+            if row > 0 {
+                columns.append(UInt32(index - side))
+                values.append(-1.0)
+            }
+            if column > 0 {
+                columns.append(UInt32(index - 1))
+                values.append(nonsymmetric ? -1.25 : -1.0)
+            }
+            columns.append(UInt32(index))
+            values.append(4.5)
+            if column + 1 < side {
+                columns.append(UInt32(index + 1))
+                values.append(nonsymmetric ? -0.75 : -1.0)
+            }
+            if row + 1 < side {
+                columns.append(UInt32(index + side))
+                values.append(-1.0)
+            }
+            rowOffsets.append(UInt32(columns.count))
+        }
+    }
+    let x = (0..<size).map { index in
+        sin(Double(index % side) * 0.021) +
+            cos(Double(index / side) * 0.017)
+    }
+    return CSRWorkload(
+        name: nonsymmetric ? "spmv-convection-diffusion-2d" : "spmv-shifted-poisson-2d",
+        rows: size, columns: size, rowOffsets: rowOffsets,
+        columnIndices: columns, values: values, x: x
+    )
+}
+
 private func runCSRWorkload(
     _ harness: MetalHarness, workload: CSRWorkload
 ) throws {
@@ -489,6 +533,8 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
 func runScientificWorkloads(_ harness: MetalHarness) throws {
     print("Scientific workload pilot; GPU kernels have no CPU arithmetic fallback")
     try runCSRWorkload(harness, workload: sparseStencilWorkload())
+    try runCSRWorkload(harness, workload: grid2DWorkload(nonsymmetric: false))
+    try runCSRWorkload(harness, workload: grid2DWorkload(nonsymmetric: true))
     try runCSRWorkload(harness, workload: denseGEMVWorkload())
     try runCGWorkload(harness)
     try runGMRESWorkload(harness)
