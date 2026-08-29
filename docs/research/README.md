@@ -8,6 +8,7 @@ and update independently.
 
 - [Current VF64Metal evidence](../evidence/current-baseline.md)
 - [Upstream Metal libraries](upstreams/metal-libraries.md)
+- [Publication-time FP64 prior-art audit](prior-art-2026-08-29.md)
 - [Ozaki-II and FP8 paper](papers/arxiv-2606.06510.md)
 - [Apple Metal feasibility](../platform/apple-metal-capabilities.md)
 - [Precision-stack architecture](../architecture/precision-stack.md)
@@ -22,4 +23,3 @@ Evidence labels used throughout:
 - **Reported**: an upstream author claim.
 - **Projected**: produced by an analytic model, not measured silicon.
 - **Proposed**: a design or experiment that is not implemented.
-

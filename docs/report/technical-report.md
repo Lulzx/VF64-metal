@@ -114,15 +114,20 @@ explicit reduced-precision library substitution.
 - M3 needs a second Apple GPU generation and defensible register, occupancy,
   and spill evidence.
 - M7 needs authorized energy measurement and cross-device reproduction.
-- M8 needs successful public cross-generation runs, a stable external release,
-  and a publication-time prior-art search.
+- M8 needs successful public cross-generation runs and a stable external
+  release. The dated prior-art audit is complete, but does not establish
+  universal priority.
 
 The `powermetrics` GPU-power probe requires superuser access on the measured
 host, so energy is reported unavailable rather than estimated from runtime.
 
 ## Claim status
 
-The final “first complete virtual FP64 architecture” statement is embargoed.
+The final “first complete virtual FP64 architecture” statement is not supported
+by the bounded prior-art search. Public projects predate VF64Metal's exact Metal
+core, complete portable runtime, and compiler-lowered `double` as separate
+claims. The current evidence supports a descriptive “a complete virtual FP64
+architecture” statement once all remaining release gates close.
 The current evidence supports narrower claims: a complete documented M2
 software runtime under its declared TestFloat policy, a complete VF64 v1 ISA
 surface, an automatic accuracy-contract demonstration, and partial scientific

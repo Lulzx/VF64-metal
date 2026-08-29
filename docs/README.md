@@ -23,6 +23,7 @@ specific implementation, device, workload, and result artifact.
 - [Apple Metal capability boundary](platform/apple-metal-capabilities.md)
 - [Experiment roadmap](roadmap/experiments.md)
 - [Claim policy](policies/claims.md)
+- [Publication-time prior-art audit](research/prior-art-2026-08-29.md)
 - [Technical report](report/technical-report.md)
 - [VF64 public API and ABI](release/api-abi.md)
 

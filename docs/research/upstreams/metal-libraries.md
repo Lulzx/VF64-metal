@@ -10,18 +10,35 @@ Snapshots:
 - `zapccu/Metal64` at
   [`f8ab71d`](https://github.com/zapccu/Metal64/tree/f8ab71d7355fdc298a0e00810b343a83d3ae29a1),
   dated 2026-08-11.
+- `guyfischman/metal-softfloat` at
+  [`8b6c592`](https://github.com/guyfischman/metal-softfloat/tree/8b6c592e2e383040fe2778bed8dda7904df284b1),
+  dated 2026-05-08.
+- `yocontra/soft-fp` release 2.0.1 at
+  [`fd3b68a`](https://github.com/yocontra/soft-fp/tree/fd3b68a18552631ab29d501c8ceec6a72a3791e2),
+  released 2026-08-12.
+- `yocontra/AdaptiveCpp` Metal branch at
+  [`456ae69`](https://github.com/yocontra/AdaptiveCpp/tree/456ae6910720810f5fe59f160e6707d46bb8e5f0),
+  dated 2026-07-05.
+- `yukiny0811/EmulatedDouble` at
+  [`16283d1`](https://github.com/yukiny0811/EmulatedDouble/tree/16283d1055c41aaa7c4849c9ebfef4301e179d40),
+  dated 2026-06-19.
 
 ## Comparison
 
-| Dimension | VF64Metal | `metal-float64` | `Metal64` |
-| --- | --- | --- | --- |
-| Status | Runnable measured harness | README says planning stage | Header/package implementation |
-| Fast representation | Normalized FP32 pair | Planned `float32x2_t` | `float2` high/low |
-| Full-range path | Exact add/multiply prototype | Planned integer-backed types | None found |
-| Basic arithmetic | add/sub/mul/div/FMA | Storage stubs | add/sub/mul/div/sqrt |
-| Transcendentals | Not implemented | Planned | Broad real/complex surface |
-| Validation | Directed/random GPU-host corpus | Resource-presence test | No automated test target found |
-| Performance | GPU-timestamped M4 Pro results | Theoretical table | No benchmark evidence found |
+| Dimension | VF64Metal | `metal-softfloat` | `soft-fp` + AdaptiveCpp Metal | `metal-float64` | `Metal64` / `EmulatedDouble` |
+| --- | --- | --- | --- | --- | --- |
+| Status | Runnable measured stack | Released Metal/Rust package | Released portable runtime; experimental Metal compiler branch | README says planning stage | Header/package implementations |
+| Precision modes | `fast48`, `wide48`, `ieee64` | Exact plus unsafe unpacked fast path | Exact; optional FTZ compatibility ABI | Planned exact and FP32 pair | FP32-pair or word-backed manual APIs |
+| Full IEEE runtime | Documented M2 surface and per-lane flags | Exact core subset; no flags | Portable runtime yes; Metal integration disables flags | No | No published complete contract |
+| Source `double` lowering | Standalone frontend and CuMetal | No | Experimental SYCL lowering | Planned macro alias | No compiler pass |
+| Virtual ISA / auto selection | VF64 v1 / implemented | No / no | No / no | No / no | No / no |
+| Published validation | Direct GPU TestFloat result+flag corpus | Direct GPU TestFloat core corpus | TestFloat/MPFR portable corpus; small Metal integration test | Resource-presence test | Unit tests or no conformance target found |
+
+The dated [publication-time audit](../prior-art-2026-08-29.md) records the
+search method, source boundaries, and claim consequences. In particular,
+`metal-softfloat` predates VF64Metal's exact Metal core, while `soft-fp` plus
+AdaptiveCpp predates a complete portable runtime and source-level `double`
+lowering to Metal.
 
 ## Lessons from `metal-float64`
 
@@ -66,4 +83,3 @@ VF64Metal's own dependency-chain result favors explicit `fma()` residuals: the
 full residual multiply was about 1.5 times the throughput of its Dekker variant
 while retaining `lo*lo`. `Metal64` motivates a tested math/complex layer, not a
 replacement core multiply.
-

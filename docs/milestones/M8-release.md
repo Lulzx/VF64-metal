@@ -23,6 +23,13 @@ An evidence-linked [technical report](../report/technical-report.md) summarizes
 the current architecture, methodology, results, and open gates. It does not
 publish the embargoed final claim.
 
+The dated [prior-art audit](../research/prior-art-2026-08-29.md) closes the
+landscape-review task. It found earlier exact Metal arithmetic, a complete
+portable binary64 runtime, and experimental source-level SYCL `double` lowering
+to Metal. It found no inspected implementation of the complete three-mode
+virtual ISA plus automatic-selection stack, but does not treat search absence
+as proof of priority.
+
 VF64 v1's compiler/backend boundary is published as a versioned
 [C and standalone runner API/ABI](../release/api-abi.md) with compiled
 layout/constants and machine-readable version gates. Its named linkable Metal
@@ -48,11 +55,12 @@ so no run is presented as evidence.
 
 All prior milestone exits remain reproducible from a tagged release.
 
-Only then is the final claim supportable:
+Only then is this descriptive claim supportable:
 
-> **The first complete virtual FP64 architecture for Apple GPUs: correctly
+> **A complete virtual FP64 architecture for Apple GPUs: correctly
 > rounded IEEE-754 binary64, faster reduced-precision modes, a virtual FP64 ISA,
 > and compiler-managed precision selection.**
 
-“First” must be rechecked against the public landscape immediately before
-publication. “Complete” refers only to the documented runtime and ISA surface.
+“First” is not supported by the current bounded search and requires an
+independent publication-time review if reintroduced. “Complete” refers only to
+the documented runtime and ISA surface.
