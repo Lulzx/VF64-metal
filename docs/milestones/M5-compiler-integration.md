@@ -17,9 +17,15 @@ shared-memory, shuffle, reload, and call behavior are mandatory regression
 surfaces.
 
 Current progress: the standalone [`VF64 source compiler`](../compiler/source-language.md)
-lowers typed `double` kernels through each explicit policy and emits executable
-VF64 bytecode. CuMetal PTX integration and its observable-boundary regression
-suite remain required before M5 can close.
+lowers typed arithmetic, comparisons, selection, and all twelve VF64 conversion
+directions through executable bytecode. Arithmetic and comparison/selection are
+executed under each explicit precision policy; conversions validate result bits
+and exception flags. Evidence:
+[`results/m5/2026-08-29-m4-pro-typed-source-compiler.json`](../../results/m5/2026-08-29-m4-pro-typed-source-compiler.json).
+
+This remains a straight-line standalone frontend. CuMetal source/PTX
+integration and its observable-boundary regression suite remain required before
+M5 can close.
 
 ## Exit criterion
 

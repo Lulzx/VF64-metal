@@ -78,11 +78,16 @@ round trips. Evidence:
 
 Status: **in progress**.
 
-The standalone typed source frontend lowers `double` expressions under
-explicit `fast48`, `wide48`, and `ieee64` policies into executable VF64
-bytecode. It is not yet integrated into CuMetal's source/PTX path, so existing
-CUDA kernels cannot yet use virtual `double` without a separate compilation
-step. Observable-boundary regressions for `mov.b64`, `uint64_t`, shared memory,
+The standalone typed source frontend lowers arithmetic, all six comparisons,
+typed selection, and all twelve VF64 conversion directions into executable
+VF64 bytecode. `double` arithmetic and comparison/selection execute under
+explicit `fast48`, `wide48`, and `ieee64` policies; conversion result bits and
+exception flags are checked on Metal. Evidence:
+[`m5/2026-08-29-m4-pro-typed-source-compiler.json`](m5/2026-08-29-m4-pro-typed-source-compiler.json).
+
+It is not yet integrated into CuMetal's source/PTX path, so existing CUDA
+kernels cannot use VF64 `double` without a separate compilation step.
+Observable-boundary regressions for `mov.b64`, `uint64_t`, shared memory,
 shuffle, reload, and calls remain required.
 
 ## M6 automatic precision

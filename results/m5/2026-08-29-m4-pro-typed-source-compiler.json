@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "milestone": "M5",
+  "status": "partial_pass",
+  "source_commit": "fee9b9d36f71d2c99f567c9c8ef41bc00a4e7249",
+  "command": ".build/release/f64-metal validate",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "frontend": {
+    "input": "typed straight-line VF64 source language",
+    "output": "validated VF64 v1 bytecode",
+    "types": ["double", "bool", "uint32", "uint64", "int32", "int64", "float", "half"],
+    "explicit_policies": ["fast48", "wide48", "ieee64"],
+    "arithmetic": ["add", "subtract", "multiply", "divide", "sqrt", "fma", "remainder", "round-to-integer"],
+    "comparisons": ["eq", "le", "lt", "eq_signaling", "le_quiet", "lt_quiet"],
+    "selection": "typed select with bool condition and equal branch types",
+    "conversions": [
+      "uint32_to_double", "uint64_to_double", "int32_to_double", "int64_to_double",
+      "double_to_uint32", "double_to_uint64", "double_to_int32", "double_to_int64",
+      "double_to_float", "double_to_half", "float_to_double", "half_to_double"
+    ],
+    "automatic_policy": "profile-guided per-operation fast48/wide48/ieee64 selection for double arithmetic"
+  },
+  "validation": {
+    "lanes": 64,
+    "arithmetic_modes_executed": 3,
+    "comparison_selection_modes_executed": 3,
+    "conversion_directions_executed": 12,
+    "conversion_result_bits_checked": true,
+    "conversion_exception_flags_checked": true,
+    "negative_type_checks": [
+      "integer arithmetic rejected",
+      "mismatched kernel return rejected",
+      "mismatched select branches rejected",
+      "unknown values rejected"
+    ],
+    "result": "pass"
+  },
+  "storage_abi": "slot-major raw 64-bit VF64 slots; integer and binary16/binary32 values occupy low bits as defined by VF64 v1",
+  "limitations": [
+    "The source language is straight-line and has no loops, calls, pointer memory operations, atomics, or branches",
+    "CuMetal source/PTX double lowering does not call this frontend or emit VF64",
+    "CUDA-visible mov.b64, uint64_t, shared-memory, shuffle, reload, and call boundaries are not regression-tested through VF64",
+    "This artifact does not meet the M5 exit criterion"
+  ]
+}
