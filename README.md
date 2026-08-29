@@ -129,11 +129,11 @@ rounding boundaries, both signs, zeros, subnormals, maximum finite values,
 infinities, signaling/quiet NaNs, and 131,072 arbitrary bit-pattern pairs.
 Non-NaN results must match host binary64 bits exactly; NaNs must match class.
 This is a smoke oracle, not Berkeley TestFloat. The separate pinned TestFloat
-workflow currently validates generated result bits for add, subtract,
-multiply, divide, and square root in all five IEEE rounding directions while
-explicitly leaving exception-flag conformance open. True fused FMA uses an
-exact 106-bit product in a 128-bit aligned accumulator and rounds only after the
-addend has been combined.
+workflow validates M1 result bits for add, subtract, multiply, divide, square
+root, and true fused FMA in all five IEEE rounding directions. The consolidated
+M2 workflow additionally checks exception flags and the complete documented
+runtime surface. True fused FMA uses an exact 106-bit product in a 128-bit
+aligned accumulator and rounds only after the addend has been combined.
 
 M1 exact arithmetic and the documented M2 runtime surface are complete under
 their committed level-1 TestFloat policies. The consolidated M2 run covers
@@ -178,6 +178,13 @@ selection diagnostics, and has a safe `ieee64` fallback. Its committed mixed
 M4 Pro proof met 43.86 p01 bits for a 40-bit contract while running 1.18× faster
 than the identical pure software-binary64 region.
 
+The first scientific workload pilot covers CG, GMRES, SpMV, GEMV, GEMM,
+batched 2D LP, and N-body force evaluation. On the measured M4 Pro, `fast48`
+GEMM reached 7.38x the scalar CPU FP64 reference at 41.28 p01 accuracy bits;
+exact `ieee64` GEMM reached 4.30x with bit-identical outputs. M7 remains open
+for CuMetal CUDA workloads, energy, broader corpora, multi-step simulation,
+and cross-device evidence.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the
@@ -186,8 +193,8 @@ than the identical pure software-binary64 region.
 - NaNs remain NaNs, but binary64 payloads are reduced to the payload capacity of
   the FP32 leading limb and repacked as quiet NaNs.
 - The FP32-pair path is ~48-bit arithmetic, not correctly rounded binary64.
-- The exact runtime is a source-level Metal API; the stable virtual ISA and
-  compiler lowering belong to M4 and M5.
+- The exact runtime has a stable VF64 v1 virtual ISA and a standalone source
+  compiler; integration into CuMetal's source/PTX `double` path remains M5 work.
 - Transcendentals and FP64 atomics are outside this harness.
 
 See [the documentation index](docs/README.md) for the research record, milestone

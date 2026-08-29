@@ -74,6 +74,17 @@ covers every opcode, all three modes, negative programs, and standalone file
 round trips. Evidence:
 [`m4/2026-08-29-m4-pro-vf64-v1-level1.json`](m4/2026-08-29-m4-pro-vf64-v1-level1.json).
 
+## M5 compiler integration
+
+Status: **in progress**.
+
+The standalone typed source frontend lowers `double` expressions under
+explicit `fast48`, `wide48`, and `ieee64` policies into executable VF64
+bytecode. It is not yet integrated into CuMetal's source/PTX path, so existing
+CUDA kernels cannot yet use virtual `double` without a separate compilation
+step. Observable-boundary regressions for `mov.b64`, `uint64_t`, shared memory,
+shuffle, reload, and calls remain required.
+
 ## M6 automatic precision
 
 Status: **complete** for the VF64 compiler's declared accuracy-contract path.
@@ -87,3 +98,25 @@ against 5,876 Mops/s for pure `ieee64`, a 1.18× speedup on the M4 Pro.
 
 Evidence:
 [`m6/2026-08-29-m4-pro-auto-mixed-chain.json`](m6/2026-08-29-m4-pro-auto-mixed-chain.json).
+
+## M7 scientific workload proof
+
+Status: **in progress**.
+
+The first M4 Pro pilot covers CG, GMRES, SpMV, GEMV, GEMM, batched 2D LP, and
+N-body force evaluation. `fast48` GEMM measured 7.38x the scalar CPU FP64
+reference at 41.28 p01 accuracy bits; the batched LP workload measured 3.71x at
+46.43 p01 objective bits with zero infeasible outputs. Exact `ieee64` GEMM was
+bit-identical to the fused CPU reference and measured 4.30x CPU.
+
+CG matched the CPU iteration count and reached a 1.453e-12 relative residual;
+GMRES reached 2.712e-11. Both currently lose to CPU because every iteration
+synchronously returns scalar control data. Those host-control boundaries are
+reported rather than hidden.
+
+Evidence:
+[`m7/2026-08-29-m4-pro-workload-pilot.json`](m7/2026-08-29-m4-pro-workload-pilot.json).
+
+M7 remains open for CuMetal CUDA workloads, energy, a matched GMRES CPU timing
+baseline, multi-step simulation/conservation, broader LP and sparse corpora,
+and cross-device reproduction.
