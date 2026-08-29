@@ -69,7 +69,7 @@
   },
   "limitations": [
     "Only one Apple GPU generation is recorded; the M3 cross-device exit is not met",
-    "Metal public runtime APIs do not expose register count or spill count in this harness",
+    "Metal public runtime APIs do not expose physical register count or spill count in this benchmark harness; the separate checksum-bound Xcode trace supplies compiler spill events",
     "GPU frequency and contention make throughput measurements variable",
     "Streaming kernels are boundary and memory dominated and do not represent arithmetic throughput"
   ]
