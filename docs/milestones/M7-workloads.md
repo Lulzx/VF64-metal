@@ -33,6 +33,9 @@ Machine-readable evidence:
 [`results/m7/2026-08-29-m4-pro-workload-pilot.json`](../../results/m7/2026-08-29-m4-pro-workload-pilot.json).
 The device-resident scheduling follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-scheduling.json`](../../results/m7/2026-08-29-m4-pro-device-resident-scheduling.json).
+The cross-mode CSR corpus adds periodic, symmetric positive-definite, and
+nonsymmetric matrix structures:
+[`results/m7/2026-08-29-m4-pro-sparse-corpus.json`](../../results/m7/2026-08-29-m4-pro-sparse-corpus.json).
 
 The existing CuMetal CUDA `fp64_precision` workload also passes on the same
 device under `CUMETAL_FP64_MODE=emulate`, including pair round trips,
@@ -41,8 +44,8 @@ That is legacy reduced-pair compatibility evidence, not VF64 integration:
 [`results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json`](../../results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json).
 
 This is not the M7 exit. VF64-integrated CuMetal CUDA workloads, energy
-measurements, broader LP and sparse matrices, and cross-device reproduction
-remain open.
+measurements, external/application sparse matrices, broader LP corpora, and
+cross-device reproduction remain open.
 The non-privileged `powermetrics` GPU-power probe failed with its explicit
 superuser requirement; no runtime-derived energy estimate is substituted.
 

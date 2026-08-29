@@ -131,6 +131,12 @@ Evidence:
 Device-resident scheduling evidence:
 [`m7/2026-08-29-m4-pro-device-resident-scheduling.json`](m7/2026-08-29-m4-pro-device-resident-scheduling.json).
 
+The CSR SpMV corpus now covers a periodic nine-point stencil, a symmetric
+shifted 2D Poisson operator, and a nonsymmetric 2D convection-diffusion
+operator. `fast48` exceeds the scalar CPU baseline on all three while measuring
+44.66 or more p01 bits. Evidence:
+[`m7/2026-08-29-m4-pro-sparse-corpus.json`](m7/2026-08-29-m4-pro-sparse-corpus.json).
+
 CuMetal's existing CUDA `fp64_precision` probe also passed its reduced-pair
 contract on the M4 Pro, including shared memory, shuffle, reload, and aliasing
 boundaries. It is explicitly legacy `CUMETAL_FP64_MODE=emulate` evidence, not a
@@ -140,5 +146,6 @@ VF64-integrated compiler result. Evidence:
 The 16-step `fast48` N-body simulation matched the CPU trajectory to 4.109e-15
 relative state error and reproduced its 3.340e-6 energy drift.
 
-M7 remains open for VF64-integrated CuMetal CUDA workloads, energy, broader LP
-and sparse corpora, and cross-device reproduction.
+M7 remains open for VF64-integrated CuMetal CUDA workloads, energy,
+external/application sparse matrices, broader LP corpora, and cross-device
+reproduction.

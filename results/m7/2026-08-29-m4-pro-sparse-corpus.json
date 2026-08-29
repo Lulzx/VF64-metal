@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "status": "partial_pass",
+  "source_commit": "c3506868990c2448c0409dadc359682f93ca38bf",
+  "command": ".build/release/f64-metal workloads",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "format": "CSR with uint32 row offsets and column indices and packed binary64 values",
+  "timing": "median Metal GPU elapsed time over five trials; scalar Swift FP64 CPU wall time",
+  "matrices": [
+    {
+      "name": "cyclic-9",
+      "class": "periodic one-dimensional nine-point stencil",
+      "shape": [65536, 65536],
+      "nonzeros": 589824,
+      "cpu_fp64_ms": 0.321,
+      "fp32": {"ms": 0.207, "p01_accuracy_bits": 22.39, "cpu_speedup": 1.55},
+      "fast48": {"ms": 0.304, "p01_accuracy_bits": 46.83, "cpu_speedup": 1.06},
+      "wide48": {"ms": 0.281, "p01_accuracy_bits": 46.75, "cpu_speedup": 1.14},
+      "ieee64": {"ms": 0.355, "p01_accuracy_bits": 64.0, "cpu_speedup": 0.90}
+    },
+    {
+      "name": "shifted-poisson-2d",
+      "class": "symmetric positive-definite five-point grid operator with diagonal shift",
+      "shape": [65536, 65536],
+      "nonzeros": 326656,
+      "cpu_fp64_ms": 0.194,
+      "fp32": {"ms": 0.104, "p01_accuracy_bits": 20.28, "cpu_speedup": 1.88},
+      "fast48": {"ms": 0.179, "p01_accuracy_bits": 44.68, "cpu_speedup": 1.08},
+      "wide48": {"ms": 0.170, "p01_accuracy_bits": 44.43, "cpu_speedup": 1.14},
+      "ieee64": {"ms": 0.217, "p01_accuracy_bits": 64.0, "cpu_speedup": 0.90}
+    },
+    {
+      "name": "convection-diffusion-2d",
+      "class": "nonsymmetric five-point grid operator with unequal east-west coefficients",
+      "shape": [65536, 65536],
+      "nonzeros": 326656,
+      "cpu_fp64_ms": 0.191,
+      "fp32": {"ms": 0.103, "p01_accuracy_bits": 20.18, "cpu_speedup": 1.85},
+      "fast48": {"ms": 0.179, "p01_accuracy_bits": 44.66, "cpu_speedup": 1.06},
+      "wide48": {"ms": 0.172, "p01_accuracy_bits": 44.36, "cpu_speedup": 1.11},
+      "ieee64": {"ms": 0.215, "p01_accuracy_bits": 64.0, "cpu_speedup": 0.89}
+    }
+  ],
+  "limitations": [
+    "All matrices are deterministic generated structures rather than externally sourced application matrices",
+    "Only CSR is covered",
+    "Results are from one Apple GPU generation",
+    "This artifact does not close M7"
+  ]
+}
