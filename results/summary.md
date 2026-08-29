@@ -25,3 +25,15 @@ Machine-readable provenance and policy are in
 
 This is result-bit conformance with NaNs compared by class. It does not claim
 M2 exception-flag, signaling-NaN, or payload conformance.
+
+## M2 core exception state
+
+The same 31,599,360 operation/mode cases now pass result and exception-flag
+comparison at source commit `d856d8b`. This covers invalid, divide-by-zero,
+overflow, underflow with tininess detected after rounding, and inexact.
+
+Machine-readable evidence:
+[`m2/2026-08-29-m4-pro-core-flags-level1.json`](m2/2026-08-29-m4-pro-core-flags-level1.json).
+
+M2 remains incomplete: conversions, comparisons, remainder, round-to-integer,
+and the final NaN payload/signaling contract are still open.

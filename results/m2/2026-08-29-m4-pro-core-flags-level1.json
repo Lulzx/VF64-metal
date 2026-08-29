@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "milestone": "M2",
+  "result_scope": "M1 core result bits and IEEE exception flags",
+  "status": "pass",
+  "unexplained_mismatches": 0,
+  "source_commit": "d856d8b",
+  "command": "scripts/run-testfloat-m1.sh",
+  "oracle": {
+    "name": "Berkeley TestFloat Release 3e with SoftFloat",
+    "testfloat_commit": "a9c849f1b0eb0264b626d9686ffae167d996e3be",
+    "softfloat_commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "level": 1,
+    "seed": 1
+  },
+  "policy": {
+    "rounding_modes": [
+      "near_even",
+      "min_magnitude",
+      "minimum",
+      "maximum",
+      "near_max_magnitude"
+    ],
+    "tininess": "after_rounding",
+    "nan_comparison": "class_only",
+    "exception_flags_checked": true,
+    "exception_flag_bits": {
+      "inexact": 1,
+      "underflow": 2,
+      "overflow": 4,
+      "divide_by_zero": 8,
+      "invalid": 16
+    }
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "operations": {
+    "f64_add": {"cases_per_mode": 46464, "modes": 5, "mismatches": 0},
+    "f64_sub": {"cases_per_mode": 46464, "modes": 5, "mismatches": 0},
+    "f64_mul": {"cases_per_mode": 46464, "modes": 5, "mismatches": 0},
+    "f64_div": {"cases_per_mode": 46464, "modes": 5, "mismatches": 0},
+    "f64_sqrt": {"cases_per_mode": 768, "modes": 5, "mismatches": 0},
+    "f64_mulAdd": {"cases_per_mode": 6133248, "modes": 5, "mismatches": 0}
+  },
+  "total_result_and_flag_comparisons": 31599360,
+  "limitations": [
+    "NaN payload and signaling-result bits are compared by class only",
+    "Conversions, comparisons, remainder, and round-to-integer are not part of this artifact",
+    "This artifact records TestFloat level 1, not level 2"
+  ]
+}
