@@ -1,7 +1,7 @@
 import Foundation
 import Metal
 
-private struct CSRWorkload {
+struct CSRWorkload {
     let name: String
     let rows: Int
     let columns: Int
@@ -155,6 +155,116 @@ private func runCSRWorkload(
             (name as NSString).utf8String!, seconds * 1.0e3,
             percentile(scores, 0.01), cpuSeconds / seconds
         ))
+    }
+}
+
+private struct MatrixMarketEntry {
+    let row: Int
+    let column: Int
+    let value: Double
+}
+
+private func loadMatrixMarket(_ path: String) throws -> CSRWorkload {
+    let text = try String(contentsOfFile: path, encoding: .utf8)
+    let lines = text.split(whereSeparator: \.isNewline).map(String.init)
+    guard let header = lines.first?.lowercased(),
+          header.hasPrefix("%%matrixmarket matrix coordinate real ") else {
+        throw HarnessError.commandEncoding(
+            "\(path) must be a Matrix Market coordinate real matrix"
+        )
+    }
+    let symmetric = header.hasSuffix(" symmetric")
+    let general = header.hasSuffix(" general")
+    guard symmetric || general else {
+        throw HarnessError.commandEncoding(
+            "\(path) must use general or symmetric Matrix Market storage"
+        )
+    }
+    let records = lines.dropFirst().filter { !$0.hasPrefix("%") }
+    guard let dimensions = records.first?.split(whereSeparator: \.isWhitespace),
+          dimensions.count == 3,
+          let rows = Int(dimensions[0]),
+          let columns = Int(dimensions[1]),
+          let declaredEntries = Int(dimensions[2]),
+          rows > 0, columns > 0 else {
+        throw HarnessError.commandEncoding("\(path) has invalid dimensions")
+    }
+
+    var entries: [MatrixMarketEntry] = []
+    entries.reserveCapacity(symmetric ? declaredEntries * 2 : declaredEntries)
+    for record in records.dropFirst() {
+        let fields = record.split(whereSeparator: \.isWhitespace)
+        guard fields.count == 3,
+              let row = Int(fields[0]), let column = Int(fields[1]),
+              let value = Double(fields[2]),
+              (1...rows).contains(row), (1...columns).contains(column) else {
+            throw HarnessError.commandEncoding(
+                "\(path) contains an invalid coordinate record"
+            )
+        }
+        entries.append(MatrixMarketEntry(
+            row: row - 1, column: column - 1, value: value
+        ))
+        if symmetric && row != column {
+            entries.append(MatrixMarketEntry(
+                row: column - 1, column: row - 1, value: value
+            ))
+        }
+    }
+    guard records.count - 1 == declaredEntries else {
+        throw HarnessError.commandEncoding(
+            "\(path) declares \(declaredEntries) entries but contains \(records.count - 1)"
+        )
+    }
+    entries.sort {
+        $0.row == $1.row ? $0.column < $1.column : $0.row < $1.row
+    }
+
+    var rowOffsets = [UInt32](repeating: 0, count: rows + 1)
+    var columnIndices: [UInt32] = []
+    var values: [Double] = []
+    var currentRow = 0
+    var index = 0
+    while index < entries.count {
+        let entry = entries[index]
+        while currentRow < entry.row {
+            currentRow += 1
+            rowOffsets[currentRow] = UInt32(values.count)
+        }
+        var sum = entry.value
+        index += 1
+        while index < entries.count && entries[index].row == entry.row &&
+                entries[index].column == entry.column {
+            sum += entries[index].value
+            index += 1
+        }
+        columnIndices.append(UInt32(entry.column))
+        values.append(sum)
+    }
+    while currentRow < rows {
+        currentRow += 1
+        rowOffsets[currentRow] = UInt32(values.count)
+    }
+
+    let x = (0..<columns).map {
+        sin(Double($0 + 1) * 0.013) + cos(Double($0 + 1) * 0.007)
+    }
+    return CSRWorkload(
+        name: "matrix-market/" + URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent,
+        rows: rows, columns: columns, rowOffsets: rowOffsets,
+        columnIndices: columnIndices, values: values, x: x
+    )
+}
+
+func runMatrixMarketWorkloads(
+    _ harness: MetalHarness, paths: [String]
+) throws {
+    guard !paths.isEmpty else {
+        throw HarnessError.commandEncoding("matrix-market requires at least one .mtx file")
+    }
+    print("External Matrix Market SpMV; GPU kernels have no CPU arithmetic fallback")
+    for path in paths {
+        try runCSRWorkload(harness, workload: loadMatrixMarket(path))
     }
 }
 

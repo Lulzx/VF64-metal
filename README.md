@@ -92,6 +92,7 @@ scientific corpora, or release proof is still required. The
   linkable Metal support module.
 - `check-vf64-abi.sh`, `check-cli-api.sh` - freeze public ABI/API surfaces.
 - `check-cumetal-integration.sh` - verify all three CuMetal FP64 modes.
+- `fetch-matrix-market.sh` - fetch the checksum-pinned external sparse corpus.
 - `check-conformance-data.sh` - reconcile published conformance artifacts.
 - `verify-release.sh` - run the consolidated local release gate.
 

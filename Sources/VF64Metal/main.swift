@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
+    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|matrix-market FILE...|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
 }
 
 do {
@@ -97,6 +97,10 @@ do {
         )
     case "workloads":
         try runScientificWorkloads(harness)
+    case "matrix-market":
+        try runMatrixMarketWorkloads(
+            harness, paths: Array(CommandLine.arguments.dropFirst(2))
+        )
     case "lp":
         try runLPWorkload(harness)
     case "all":
