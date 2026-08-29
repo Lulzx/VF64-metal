@@ -142,6 +142,101 @@ kernel void scalar_div_fast48_kernel(
     ));
 }
 
+kernel void gmres_initialize_fast48_kernel(
+    device const ulong *normSquared [[buffer(0)]],
+    device ulong *inverseNorm [[buffer(1)]],
+    device ulong *g [[buffer(2)]])
+{
+    bool ignored;
+    emu_f64 norm = sqrt_ff(unpack_binary64(normSquared[0], ignored));
+    inverseNorm[0] = pack_binary64(div_ff(make_emu(1.0f, 0.0f), norm));
+    g[0] = pack_binary64(norm);
+}
+
+kernel void gmres_orthogonalize_fast48_kernel(
+    device const ulong *coefficient [[buffer(0)]],
+    device const ulong *basis [[buffer(1)]],
+    device ulong *work [[buffer(2)]],
+    constant uint &count [[buffer(3)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    emu_f64 h = unpack_binary64(coefficient[0], ignored);
+    emu_f64 q = unpack_binary64(basis[gid], ignored);
+    emu_f64 w = unpack_binary64(work[gid], ignored);
+    work[gid] = pack_binary64(fma_ff(neg_ff(h), q, w));
+}
+
+kernel void gmres_finalize_column_fast48_kernel(
+    device ulong *h [[buffer(0)]],
+    device const ulong *normSquared [[buffer(1)]],
+    device ulong *cosine [[buffer(2)]],
+    device ulong *sine [[buffer(3)]],
+    device ulong *g [[buffer(4)]],
+    device ulong *inverseNorm [[buffer(5)]],
+    constant uint &column [[buffer(6)]],
+    constant uint &stride [[buffer(7)]])
+{
+    bool ignored;
+    emu_f64 norm = sqrt_ff(unpack_binary64(normSquared[0], ignored));
+    h[(column + 1u) * stride + column] = pack_binary64(norm);
+    inverseNorm[0] = pack_binary64(div_ff(make_emu(1.0f, 0.0f), norm));
+
+    for (uint row = 0; row < column; ++row) {
+        uint upperIndex = row * stride + column;
+        uint lowerIndex = (row + 1u) * stride + column;
+        emu_f64 upper = unpack_binary64(h[upperIndex], ignored);
+        emu_f64 lower = unpack_binary64(h[lowerIndex], ignored);
+        emu_f64 c = unpack_binary64(cosine[row], ignored);
+        emu_f64 s = unpack_binary64(sine[row], ignored);
+        h[upperIndex] = pack_binary64(add_ff(mul_ff(c, upper), mul_ff(s, lower)));
+        h[lowerIndex] = pack_binary64(add_ff(mul_ff(neg_ff(s), upper), mul_ff(c, lower)));
+    }
+
+    uint diagonalIndex = column * stride + column;
+    uint subdiagonalIndex = (column + 1u) * stride + column;
+    emu_f64 diagonal = unpack_binary64(h[diagonalIndex], ignored);
+    emu_f64 subdiagonal = unpack_binary64(h[subdiagonalIndex], ignored);
+    emu_f64 magnitude = sqrt_ff(add_ff(
+        mul_ff(diagonal, diagonal), mul_ff(subdiagonal, subdiagonal)
+    ));
+    emu_f64 c = div_ff(diagonal, magnitude);
+    emu_f64 s = div_ff(subdiagonal, magnitude);
+    cosine[column] = pack_binary64(c);
+    sine[column] = pack_binary64(s);
+    h[diagonalIndex] = pack_binary64(magnitude);
+    h[subdiagonalIndex] = 0ul;
+
+    emu_f64 previousG = unpack_binary64(g[column], ignored);
+    g[column] = pack_binary64(mul_ff(c, previousG));
+    g[column + 1u] = pack_binary64(mul_ff(neg_ff(s), previousG));
+}
+
+kernel void gmres_backsolve_fast48_kernel(
+    device const ulong *h [[buffer(0)]],
+    device const ulong *g [[buffer(1)]],
+    device ulong *y [[buffer(2)]],
+    constant uint &completed [[buffer(3)]],
+    constant uint &stride [[buffer(4)]])
+{
+    bool ignored;
+    for (int row = int(completed) - 1; row >= 0; --row) {
+        emu_f64 rhs = unpack_binary64(g[uint(row)], ignored);
+        for (uint column = uint(row) + 1u; column < completed; ++column) {
+            emu_f64 coefficient = unpack_binary64(
+                h[uint(row) * stride + column], ignored
+            );
+            rhs = sub_ff(rhs, mul_ff(
+                coefficient, unpack_binary64(y[column], ignored)
+            ));
+        }
+        y[uint(row)] = pack_binary64(div_ff(
+            rhs, unpack_binary64(h[uint(row) * stride + uint(row)], ignored)
+        ));
+    }
+}
+
 kernel void gemm_fp32_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &dimension [[buffer(3)]],

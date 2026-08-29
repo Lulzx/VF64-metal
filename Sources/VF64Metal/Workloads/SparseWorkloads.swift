@@ -614,6 +614,10 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
     let gpu = try gpuFast48GMRES(
         harness, workload: system, b: b, tolerance: tolerance, restart: 32
     )
+    let fused = try harness.fixedFast48GMRES(
+        rowOffsets: system.rowOffsets, columns: system.columnIndices,
+        values: system.values, b: b, iterations: cpu.iterations
+    )
     let gpuError = relativeSolutionError(gpu.x, expected)
     let observedSystem = CSRWorkload(
         name: system.name, rows: system.rows, columns: system.columns,
@@ -624,6 +628,18 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
     guard trueResidual <= tolerance, gpuError <= 1.0e-9 else {
         throw HarnessError.commandEncoding(
             "fast48 GMRES failed convergence contract: residual \(trueResidual), error \(gpuError)"
+        )
+    }
+    let fusedError = relativeSolutionError(fused.x, expected)
+    let fusedSystem = CSRWorkload(
+        name: system.name, rows: system.rows, columns: system.columns,
+        rowOffsets: system.rowOffsets, columnIndices: system.columnIndices,
+        values: system.values, x: fused.x
+    )
+    let fusedTrueResidual = l2Norm(zip(b, fusedSystem.cpuReference()).map(-)) / l2Norm(b)
+    guard fusedTrueResidual <= tolerance, fusedError <= 1.0e-9 else {
+        throw HarnessError.commandEncoding(
+            "fused fast48 GMRES failed convergence contract: residual \(fusedTrueResidual), error \(fusedError)"
         )
     }
     print("\ngmres-cyclic-9: \(workload.rows) unknowns; restart 32; tolerance \(tolerance)")
@@ -637,7 +653,13 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
         gpu.iterations, trueResidual, gpuError, gpu.seconds * 1.0e3,
         cpu.seconds / gpu.seconds
     ))
+    print(String(
+        format: "fast48-fused %2d iterations; residual %.3e; estimate %.3e; solution error %.3e; %8.3f ms; %.2fx CPU",
+        cpu.iterations, fusedTrueResidual, fused.residualEstimate, fusedError,
+        fused.seconds * 1.0e3, cpu.seconds / fused.seconds
+    ))
     print("gmres control: CPU updates Hessenberg/Givens scalars and validates final residual; solver O(n) arithmetic is GPU")
+    print("gmres fused: one command buffer; Arnoldi, Givens, normalization, backsolve, and vector assembly are GPU; CPU validates final state")
 }
 
 func runScientificWorkloads(_ harness: MetalHarness) throws {
