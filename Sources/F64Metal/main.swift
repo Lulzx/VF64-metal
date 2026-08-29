@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: f64-metal [validate|bench|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
+    print("Usage: f64-metal [validate|bench|workloads|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
 }
 
 do {
@@ -73,6 +73,8 @@ do {
         try runValidation(harness)
     case "bench":
         try runBenchmarks(harness)
+    case "workloads":
+        try runScientificWorkloads(harness)
     case "all":
         try runValidation(harness)
         try runBenchmarks(harness)

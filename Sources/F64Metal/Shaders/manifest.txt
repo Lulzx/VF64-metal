@@ -11,3 +11,4 @@ Kernels/Pair.metal
 Kernels/BoundaryOperations.metal
 Kernels/Reduction.metal
 Kernels/Wide.metal
+Kernels/Workloads.metal
