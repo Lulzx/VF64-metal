@@ -10,8 +10,9 @@ Implement correctly rounded binary64:
 
 The current integer prototype covers add, subtract, multiply, divide, square
 root, and true fused FMA result bits in all five IEEE rounding directions. The
-complete release operation-by-mode TestFloat matrix and reproducible artifacts
-remain. Existing differential results are a foundation, not completion of M1.
+committed level-1 operation-by-mode TestFloat matrix has zero result mismatches
+and reproducible provenance. Broader release corpus policy and the boundary
+between M1 result conformance and M2 flags/NaN semantics remain to be frozen.
 The reproducible TestFloat workflow and its current result-only limitations are
 documented in [the conformance guide](../conformance/testfloat.md). Host
 `Double` differential tests are smoke coverage and must not be reported as
