@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "status": "partial_pass",
+  "source_commit": "961b8f190127014cf3c35c687c55a97766b32932",
+  "command": "for run in 1 2 3 4 5; do .build/release/vf64-metal workloads; done",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "gmres": {
+    "matrix": "cyclic nine-point stencil",
+    "unknowns": 8192,
+    "restart": 32,
+    "fixed_iterations": 10,
+    "tolerance": 1e-10,
+    "true_relative_residual": 2.712e-11,
+    "device_residual_estimate": 2.712e-11,
+    "relative_solution_error": 2.261e-11,
+    "samples_ms": {
+      "cpu_fp64": [1.104, 1.124, 1.114, 1.518, 1.114],
+      "synchronized_fast48_gpu": [62.431, 48.885, 69.777, 64.157, 32.443],
+      "single_command_buffer_fast48_gpu": [2.088, 1.683, 1.590, 1.584, 1.706]
+    },
+    "median_ms": {
+      "cpu_fp64": 1.114,
+      "synchronized_fast48_gpu": 62.431,
+      "single_command_buffer_fast48_gpu": 1.683
+    },
+    "single_command_buffer_cpu_speedup": 0.66,
+    "scheduling_speedup": 37.10,
+    "device_resident_work": "SpMV, Arnoldi dot reductions and orthogonalization, normalization, Hessenberg and Givens scalar updates, back-substitution, and solution-vector assembly",
+    "host_work": "fixed iteration count selection before dispatch and final-state validation after completion"
+  },
+  "limitations": [
+    "The fixed iteration count is selected from the matched CPU reference before dispatch.",
+    "Device-side convergence and early termination are not implemented.",
+    "The single-command-buffer path remains slower than the scalar CPU baseline for this shape.",
+    "Results are from one Apple GPU generation."
+  ]
+}

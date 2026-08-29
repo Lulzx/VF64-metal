@@ -142,14 +142,20 @@ bit-identical to the fused CPU reference and measured 4.61x CPU.
 CG matched the CPU iteration count and reached a 1.453e-12 relative residual;
 GMRES reached 2.712e-11 with an identical matched CPU FP64 result. A follow-up
 single-command-buffer CG schedule keeps reductions and alpha/beta on GPU and
-measures 0.989 ms versus 1.048 ms CPU, a 1.06x time-to-solution win. GMRES still
-synchronously returns scalar control data; that boundary is reported rather
-than hidden.
+measures 0.989 ms versus 1.048 ms CPU, a 1.06x time-to-solution win. The original
+GMRES path synchronously returns scalar control data. A new fixed
+10-iteration, single-command-buffer schedule keeps Arnoldi reductions,
+Hessenberg/Givens updates, normalization, back-substitution, and vector assembly
+on Metal. Across five runs it preserves the 2.712e-11 true residual and improves
+the synchronized GPU median from 62.431 ms to 1.683 ms (37.10x), but remains
+0.66x the 1.114 ms scalar CPU median.
 
 Evidence:
 [`m7/2026-08-29-m4-pro-workload-pilot.json`](m7/2026-08-29-m4-pro-workload-pilot.json).
 Device-resident scheduling evidence:
 [`m7/2026-08-29-m4-pro-device-resident-scheduling.json`](m7/2026-08-29-m4-pro-device-resident-scheduling.json).
+GMRES scheduling evidence:
+[`m7/2026-08-29-m4-pro-device-resident-gmres.json`](m7/2026-08-29-m4-pro-device-resident-gmres.json).
 
 The CSR SpMV corpus now covers a periodic nine-point stencil, a symmetric
 shifted 2D Poisson operator, and a nonsymmetric 2D convection-diffusion

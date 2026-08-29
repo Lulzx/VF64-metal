@@ -79,6 +79,13 @@ median Metal elapsed time over five kernel trials; solver entries use host wall
 time including synchronous control. CPU references are scalar Swift FP64 and
 are workload baselines, not tuned BLAS comparisons.
 
+A separate five-run GMRES scheduling experiment fixes the matched 10-iteration
+count before dispatch, then performs Arnoldi, Hessenberg/Givens updates,
+normalization, back-substitution, and vector assembly in one Metal command
+buffer. It preserves the 2.712e-11 true residual and reduces the synchronized
+GPU median from 62.431 ms to 1.683 ms (37.10x). At 0.66x the scalar CPU median,
+it is scheduling evidence rather than an acceleration claim.
+
 | Workload and mode | Accuracy or convergence | Speed versus CPU FP64 |
 | --- | --- | ---: |
 | SpMV `wide48` | 46.75 p01 bits | 1.02x |

@@ -26,13 +26,18 @@ The measured corpus demonstrates practical wins for the current shapes,
 including 7.89x CPU for `fast48` GEMM at 41.28 p01 accuracy bits and 4.36x CPU
 for the `fast48` LP batch at 46.43 p01 objective bits. CG and GMRES meet their
 declared convergence tolerances. A later single-command-buffer CG schedule
-moves reductions and alpha/beta to GPU, preserves the 1.453e-12 residual, and
-measures 1.06x CPU; GMRES remains slowed by synchronous scalar readback.
+moves reductions and alpha/beta to GPU and preserves the 1.453e-12 residual.
+The matching GMRES schedule moves Arnoldi reductions, Hessenberg/Givens scalar
+updates, normalization, back-substitution, and vector assembly onto Metal. Its
+five-run median improves 37.10x over the synchronized GPU path while preserving
+the 2.712e-11 residual, though it remains 0.66x the scalar CPU baseline.
 
 Machine-readable evidence:
 [`results/m7/2026-08-29-m4-pro-workload-pilot.json`](../../results/m7/2026-08-29-m4-pro-workload-pilot.json).
 The device-resident scheduling follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-scheduling.json`](../../results/m7/2026-08-29-m4-pro-device-resident-scheduling.json).
+The device-resident GMRES follow-up is
+[`results/m7/2026-08-29-m4-pro-device-resident-gmres.json`](../../results/m7/2026-08-29-m4-pro-device-resident-gmres.json).
 The cross-mode CSR corpus adds periodic, symmetric positive-definite, and
 nonsymmetric matrix structures:
 [`results/m7/2026-08-29-m4-pro-sparse-corpus.json`](../../results/m7/2026-08-29-m4-pro-sparse-corpus.json).
