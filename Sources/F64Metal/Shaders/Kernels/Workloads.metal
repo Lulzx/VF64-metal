@@ -205,3 +205,124 @@ kernel void gemm_ieee64_kernel(
     }
     output[gid] = accumulator;
 }
+
+kernel void nbody_fp32_kernel(
+    device const ulong *px [[buffer(0)]], device const ulong *py [[buffer(1)]],
+    device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
+    device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
+    device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
+    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    float xi = unpack_binary64(px[gid], ignored).hi;
+    float yi = unpack_binary64(py[gid], ignored).hi;
+    float zi = unpack_binary64(pz[gid], ignored).hi;
+    float epsilon2 = unpack_binary64(softening[0], ignored).hi;
+    float ax = 0.0f, ay = 0.0f, az = 0.0f;
+    for (uint j = 0; j < count; ++j) {
+        float dx = unpack_binary64(px[j], ignored).hi - xi;
+        float dy = unpack_binary64(py[j], ignored).hi - yi;
+        float dz = unpack_binary64(pz[j], ignored).hi - zi;
+        float r2 = fma(dx, dx, fma(dy, dy, fma(dz, dz, epsilon2)));
+        float scale = unpack_binary64(mass[j], ignored).hi / (r2 * sqrt(r2));
+        ax = fma(dx, scale, ax);
+        ay = fma(dy, scale, ay);
+        az = fma(dz, scale, az);
+    }
+    axOut[gid] = pack_binary64(make_emu(ax, 0.0f));
+    ayOut[gid] = pack_binary64(make_emu(ay, 0.0f));
+    azOut[gid] = pack_binary64(make_emu(az, 0.0f));
+}
+
+kernel void nbody_fast48_kernel(
+    device const ulong *px [[buffer(0)]], device const ulong *py [[buffer(1)]],
+    device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
+    device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
+    device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
+    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    emu_f64 xi = unpack_binary64(px[gid], ignored);
+    emu_f64 yi = unpack_binary64(py[gid], ignored);
+    emu_f64 zi = unpack_binary64(pz[gid], ignored);
+    emu_f64 epsilon2 = unpack_binary64(softening[0], ignored);
+    emu_f64 ax = make_emu(0.0f, 0.0f);
+    emu_f64 ay = make_emu(0.0f, 0.0f);
+    emu_f64 az = make_emu(0.0f, 0.0f);
+    for (uint j = 0; j < count; ++j) {
+        emu_f64 dx = sub_ff(unpack_binary64(px[j], ignored), xi);
+        emu_f64 dy = sub_ff(unpack_binary64(py[j], ignored), yi);
+        emu_f64 dz = sub_ff(unpack_binary64(pz[j], ignored), zi);
+        emu_f64 r2 = fma_ff(dx, dx, fma_ff(dy, dy, fma_ff(dz, dz, epsilon2)));
+        emu_f64 scale = div_ff(
+            unpack_binary64(mass[j], ignored), mul_ff(r2, sqrt_ff(r2))
+        );
+        ax = fma_ff(dx, scale, ax);
+        ay = fma_ff(dy, scale, ay);
+        az = fma_ff(dz, scale, az);
+    }
+    axOut[gid] = pack_binary64(ax);
+    ayOut[gid] = pack_binary64(ay);
+    azOut[gid] = pack_binary64(az);
+}
+
+kernel void nbody_wide48_kernel(
+    device const ulong *px [[buffer(0)]], device const ulong *py [[buffer(1)]],
+    device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
+    device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
+    device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
+    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    wide_f64 xi = wide_unpack64(px[gid]);
+    wide_f64 yi = wide_unpack64(py[gid]);
+    wide_f64 zi = wide_unpack64(pz[gid]);
+    wide_f64 epsilon2 = wide_unpack64(softening[0]);
+    wide_f64 ax = wide_unpack64(0ul), ay = wide_unpack64(0ul), az = wide_unpack64(0ul);
+    for (uint j = 0; j < count; ++j) {
+        wide_f64 dx = wide_sub(wide_unpack64(px[j]), xi);
+        wide_f64 dy = wide_sub(wide_unpack64(py[j]), yi);
+        wide_f64 dz = wide_sub(wide_unpack64(pz[j]), zi);
+        wide_f64 r2 = wide_fma(dx, dx, wide_fma(dy, dy, wide_fma(dz, dz, epsilon2)));
+        wide_f64 scale = wide_div(
+            wide_unpack64(mass[j]), wide_mul(r2, wide_sqrt(r2))
+        );
+        ax = wide_fma(dx, scale, ax);
+        ay = wide_fma(dy, scale, ay);
+        az = wide_fma(dz, scale, az);
+    }
+    axOut[gid] = wide_pack64(ax);
+    ayOut[gid] = wide_pack64(ay);
+    azOut[gid] = wide_pack64(az);
+}
+
+kernel void nbody_ieee64_kernel(
+    device const ulong *px [[buffer(0)]], device const ulong *py [[buffer(1)]],
+    device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
+    device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
+    device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
+    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint flags = 0;
+    ulong ax = 0ul, ay = 0ul, az = 0ul;
+    for (uint j = 0; j < count; ++j) {
+        ulong dx = soft_sub64_status(px[j], px[gid], soft_round_near_even, flags);
+        ulong dy = soft_sub64_status(py[j], py[gid], soft_round_near_even, flags);
+        ulong dz = soft_sub64_status(pz[j], pz[gid], soft_round_near_even, flags);
+        ulong r2 = soft_fma64_status(dz, dz, softening[0], soft_round_near_even, flags);
+        r2 = soft_fma64_status(dy, dy, r2, soft_round_near_even, flags);
+        r2 = soft_fma64_status(dx, dx, r2, soft_round_near_even, flags);
+        ulong root = soft_sqrt64_status(r2, soft_round_near_even, flags);
+        ulong denominator = soft_mul64_status(r2, root, soft_round_near_even, flags);
+        ulong scale = soft_div64_status(mass[j], denominator, soft_round_near_even, flags);
+        ax = soft_fma64_status(dx, scale, ax, soft_round_near_even, flags);
+        ay = soft_fma64_status(dy, scale, ay, soft_round_near_even, flags);
+        az = soft_fma64_status(dz, scale, az, soft_round_near_even, flags);
+    }
+    axOut[gid] = ax;
+    ayOut[gid] = ay;
+    azOut[gid] = az;
+}
