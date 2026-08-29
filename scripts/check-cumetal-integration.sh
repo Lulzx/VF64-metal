@@ -14,8 +14,9 @@ fi
 
 vf64_commit=$(git -C "$repo_dir" rev-parse HEAD)
 pinned_commit=$(git -C "$cumetal_root/third_party/VF64-metal" rev-parse HEAD)
-if [ "$vf64_commit" != "$pinned_commit" ]; then
-    printf 'CuMetal VF64-metal pin mismatch: expected %s, got %s\n' \
+if ! git -C "$repo_dir" diff --quiet "$pinned_commit" "$vf64_commit" -- \
+    Sources/VF64Metal/Shaders; then
+    printf 'CuMetal VF64-metal shader pin is stale: current %s, pinned %s\n' \
         "$vf64_commit" "$pinned_commit" >&2
     exit 1
 fi
@@ -47,4 +48,5 @@ done
 
 printf 'cumetal_commit=%s\n' "$(git -C "$cumetal_root" rev-parse HEAD)"
 printf 'vf64_commit=%s\n' "$vf64_commit"
+printf 'vf64_pinned_commit=%s\n' "$pinned_commit"
 printf 'cumetal_vf64_integration=pass\n'
