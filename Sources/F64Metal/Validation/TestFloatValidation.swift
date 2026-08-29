@@ -12,17 +12,6 @@ private func parseHex<T: FixedWidthInteger>(_ text: Substring, as: T.Type) -> T?
     T(text, radix: 16)
 }
 
-private func resultsMatch(
-    observed: UInt64, expected: UInt64, exactNaNs: Bool = false
-) -> Bool {
-    if !exactNaNs && Double(bitPattern: expected).isNaN {
-        // M1 compares NaNs by class. Payload, signaling, and invalid-flag
-        // semantics remain an explicit M2 gate.
-        return Double(bitPattern: observed).isNaN
-    }
-    return observed == expected
-}
-
 func runTestFloatResultConformance(
     _ harness: MetalHarness,
     function: String,
@@ -89,13 +78,6 @@ func runTestFloatResultConformance(
     let roundingBuffer = try harness.buffer([roundingMode])
     let exactBuffer = try harness.buffer([UInt32(exact ? 1 : 0)])
     let flagsCovered = true
-    let exactNaNs = [
-        "f64_add", "f64_sub", "f64_mul", "f64_div", "f64_sqrt",
-        "f64_mulAdd", "f64_rem", "f64_roundToInt",
-        "ui32_to_f64", "ui64_to_f64", "i32_to_f64", "i64_to_f64",
-        "f64_to_f32", "f64_to_f16", "f32_to_f64", "f16_to_f64",
-    ].contains(function)
-
     var batch: [TestFloatCase] = []
     batch.reserveCapacity(batchSize)
     var total = 0
@@ -125,10 +107,8 @@ func runTestFloatResultConformance(
             flagsOutput, count: cases.count
         )
         for index in cases.indices where
-            !resultsMatch(
-                observed: observed[index], expected: cases[index].expected,
-                exactNaNs: exactNaNs
-            ) || (flagsCovered && observedFlags[index] != UInt32(cases[index].expectedFlags))
+            observed[index] != cases[index].expected ||
+            (flagsCovered && observedFlags[index] != UInt32(cases[index].expectedFlags))
         {
             if mismatches.count < 20 {
                 mismatches.append(String(
@@ -202,7 +182,7 @@ func runTestFloatResultConformance(
     print(
         "\(function) \(rounding) \(exact ? "exact" : "notexact") " +
         "TestFloat result conformance passed over \(total) cases; " +
-        "NaNs compared \(exactNaNs ? "bitwise" : "by class"); " +
+        "result bits compared exactly; " +
         "exception flags checked " +
         "(\(expectedFlagged) oracle cases raised flags)"
     )
