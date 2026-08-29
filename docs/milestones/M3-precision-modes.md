@@ -20,10 +20,15 @@ nine representative arithmetic, reduction, and GEMM kernels:
 [`results/m3/2026-08-29-m4-pro-metal-resources.json`](../../results/m3/2026-08-29-m4-pro-metal-resources.json).
 Every measured pipeline reports SIMD width 32, the full 1,024-thread
 single-threadgroup limit, and zero static threadgroup memory.
+The companion Xcode trace resolves all 207 labeled benchmark encoder instances.
+Only `vf64_interpreter_kernel` reports spills: 560 compiler spill bytes on each
+of 13 instances. The directly dispatched arithmetic and reduction pipelines
+report no spill events:
+[`results/m3/2026-08-29-m4-pro-metal-trace.json`](../../results/m3/2026-08-29-m4-pro-metal-trace.json).
 
-Current status: **in progress**. The M4 Pro artifact is reproducible, but a
-second Apple GPU generation and compiler register/spill evidence are still
-required by the cross-device exit criterion.
+Current status: **in progress**. The M4 Pro artifacts are reproducible, but a
+second Apple GPU generation plus physical-register and resident-occupancy
+evidence are still required by the cross-device exit criterion.
 
 The standalone source compiler now performs last-use allocation to the VF64
 register file; its 96-operation dependency-chain regression uses two virtual

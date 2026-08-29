@@ -95,6 +95,7 @@ result = {
     "limitations": [
         "The standard command-line Metal System Trace template did not select a GPU counter set.",
         "The trace exposes compiler spill events but not physical register allocation.",
+        "Summed spill-event bytes are repeated compiler allocation reports, not measured memory traffic.",
         "Raw .trace bundles are local build artifacts; the published JSON is checksum-bound to one.",
     ],
 }

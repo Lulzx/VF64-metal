@@ -62,12 +62,19 @@ comparative microkernel rates. The machine-readable single-device artifact is
 The resource probe covers nine representative arithmetic, reduction, and GEMM
 pipelines. Each reports SIMD width 32, a 1,024-thread single-threadgroup limit,
 and zero static threadgroup bytes. The device exposes only the public
-`timestamp` counter set. Physical registers, spill bytes, and resident
-occupancy are not exposed and are not inferred from AIR. Evidence:
+`timestamp` counter set. Physical registers and resident occupancy are not
+exposed and are not inferred from AIR. Evidence:
 [`m3/2026-08-29-m4-pro-metal-resources.json`](m3/2026-08-29-m4-pro-metal-resources.json).
 
-M3 remains in progress: cross-generation evidence and physical-register,
-spill, and resident-occupancy measurements are still unavailable.
+An Xcode Metal System Trace mapped all 207 benchmark encoder instances to
+stable labels. The VF64 interpreter reported 560 compiler spill bytes on each
+of 13 instances; all directly dispatched arithmetic and reduction pipelines
+reported no spill events. The summed event bytes are repeated compiler
+allocation reports, not measured memory traffic. Evidence:
+[`m3/2026-08-29-m4-pro-metal-trace.json`](m3/2026-08-29-m4-pro-metal-trace.json).
+
+M3 remains in progress: cross-generation evidence and physical-register and
+resident-occupancy measurements are still unavailable.
 
 ## M4 VF64 virtual ISA
 

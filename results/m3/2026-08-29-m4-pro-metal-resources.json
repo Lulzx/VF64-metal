@@ -31,13 +31,17 @@
   ],
   "unavailable": {
     "physical_registers_per_thread": "not exposed by public Metal pipeline reflection or the device's public counter sets",
-    "spill_bytes": "not exposed by public Metal pipeline reflection or the device's public counter sets",
     "resident_occupancy": "not exposed by public Metal pipeline reflection or the device's public counter sets"
+  },
+  "trace_companion": {
+    "artifact": "2026-08-29-m4-pro-metal-trace.json",
+    "compiler_spill_events": "available through Xcode Metal System Trace, outside public MTLComputePipelineState reflection"
   },
   "interpretation": [
     "All measured pipelines retain the device's full 1024-thread single-threadgroup capacity",
     "All measured pipelines report zero statically allocated threadgroup memory",
     "Maximum threads per threadgroup is a pipeline resource limit and must not be reported as resident occupancy",
-    "AIR disassembly is compiler intermediate representation and is not evidence of physical Apple GPU register allocation or spills"
+    "AIR disassembly is compiler intermediate representation and is not evidence of physical Apple GPU register allocation or spills",
+    "The companion Xcode trace is the spill evidence; this reflection artifact does not contain spill data"
   ]
 }

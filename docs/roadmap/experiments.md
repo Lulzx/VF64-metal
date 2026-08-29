@@ -14,7 +14,9 @@ sequence](../milestones/README.md); they do not replace its exit criteria.
 
 - Count split/pack/materialization sequences in emitted CuMetal IR.
 - Keep pairs resident through straight-line FP64 SSA chains.
-- Measure registers, occupancy, spills, chain runtime, and solver behavior.
+- Measure physical registers, resident occupancy, compiler spill events, chain
+  runtime, and solver behavior. The M4 Pro spill trace is complete; the other
+  hardware counters remain open.
 - Prove every observable boundary retains the current bits and warning.
 
 Acceptance: identical stored results, fewer codecs, and a measured kernel gain

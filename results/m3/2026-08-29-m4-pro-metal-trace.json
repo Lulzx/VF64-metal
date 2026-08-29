@@ -1,0 +1,266 @@
+{
+  "capture": {
+    "counter_set": "none",
+    "raw_trace_content_tree_sha256": "5268435dc0f2f6117baa64db8a2b4915abae2ad343610262771ad84eb7acbd2b",
+    "raw_trace_path": ".build/vf64-traces/2026-08-29-m4-pro-resource.trace",
+    "template": "Metal System Trace",
+    "tool": "xctrace",
+    "workload": "vf64-metal bench"
+  },
+  "captured_at_utc": "2026-08-29T09:43:15Z",
+  "compiler_spills": {
+    "labeled_encoder_instances": 207,
+    "pipelines": [
+      {
+        "encoder_instances": 6,
+        "label": "vf64:add_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:axpy_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:codec_roundtrip",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:div_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:div_one_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:dot_partial_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:dot_partial_serial_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:fma_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:mul_dekker_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:mul_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:mul_short_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 12,
+        "label": "vf64:pack_partial_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 4,
+        "label": "vf64:pair_add_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:pair_add_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:pair_div_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:pair_div_one_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 8,
+        "label": "vf64:pair_mul_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 4,
+        "label": "vf64:pair_mul_dekker_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:pair_mul_dekker_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:pair_mul_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 4,
+        "label": "vf64:pair_mul_short_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:pair_mul_short_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 12,
+        "label": "vf64:reduce_partial_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 4,
+        "label": "vf64:soft_add_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:soft_add_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 4,
+        "label": "vf64:soft_mul_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:soft_mul_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 13,
+        "label": "vf64:vf64_interpreter_kernel",
+        "maximum_spilled_bytes": 560,
+        "spill_event_count": 13,
+        "total_spilled_bytes_across_dispatches": 7280
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:wide_add_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:wide_div_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:wide_fma_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 4,
+        "label": "vf64:wide_mul_chain_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      },
+      {
+        "encoder_instances": 6,
+        "label": "vf64:wide_mul_kernel",
+        "maximum_spilled_bytes": 0,
+        "spill_event_count": 0,
+        "total_spilled_bytes_across_dispatches": 0
+      }
+    ],
+    "target_spill_event_count": 13,
+    "unmapped_spill_event_count": 0
+  },
+  "device": "Apple M4 Pro",
+  "limitations": [
+    "The standard command-line Metal System Trace template did not select a GPU counter set.",
+    "The trace exposes compiler spill events but not physical register allocation.",
+    "Summed spill-event bytes are repeated compiler allocation reports, not measured memory traffic.",
+    "Raw .trace bundles are local build artifacts; the published JSON is checksum-bound to one."
+  ],
+  "os_version": "26.7",
+  "physical_registers": {
+    "available": false
+  },
+  "resident_occupancy": {
+    "available": false
+  },
+  "schema": "vf64-metal-resource-trace-v1",
+  "source_commit": "c650062686c885ddee56d7c01fd0140a30055f41",
+  "xcode_version": "Xcode 26.6 Build version 17F113"
+}

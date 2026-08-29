@@ -60,8 +60,11 @@ arithmetic. A resident 32-operation multiply chain measures 203,514 Mops/s for
 `fast48`, 48,851 Mops/s for `wide48`, and 13,388 Mops/s for `ieee64`.
 Nine representative pipelines report SIMD width 32, the full 1,024-thread
 single-threadgroup limit, and zero static threadgroup bytes. Public Metal does
-not expose physical-register, spill-byte, or resident-occupancy measurements on
-this device, and the report does not infer them from AIR.
+not expose physical-register or resident-occupancy measurements on this device,
+and the report does not infer them from AIR. A labeled Xcode Metal System Trace
+resolves 207 encoder instances: only the VF64 interpreter reports compiler
+spills, at 560 bytes on each of 13 instances. The summed event bytes are not
+interpreted as measured memory traffic.
 
 The automatic selector consumes measured exponent profiles, propagates range
 and error bounds, and falls back to `ieee64` when proof is absent. Its committed
@@ -111,8 +114,8 @@ explicit reduced-precision library substitution.
 
 ## Open validity and release gates
 
-- M3 needs a second Apple GPU generation and defensible register, occupancy,
-  and spill evidence.
+- M3 needs a second Apple GPU generation and defensible physical-register and
+  resident-occupancy evidence. Compiler spill events are measured on M4 Pro.
 - M7 needs authorized energy measurement and cross-device reproduction.
 - M8 needs successful public cross-generation runs and a stable external
   release. The dated prior-art audit is complete, but does not establish

@@ -9,7 +9,7 @@ The status labels below distinguish implemented source from exit evidence.
 | --- | --- | --- | --- |
 | M1 exact core | Complete | 31,599,360 level-1 GPU TestFloat result comparisons; zero mismatches; all core ops/modes; machine-readable provenance | none within documented result-bit boundary |
 | M2 IEEE runtime | Complete | 31,982,976 level-1 TestFloat result/flag comparisons; exact floating NaN bits; documented source/storage/exception ABI | none within the documented M2 surface |
-| M3 precision modes | In progress | frozen contracts; implemented wide48; M4 Pro accuracy/mode benchmarks; public pipeline resource limits for nine representative kernels | second Apple GPU generation plus physical-register/spill/resident-occupancy evidence unavailable from the public Metal surface |
+| M3 precision modes | In progress | frozen contracts; implemented wide48; M4 Pro accuracy/mode benchmarks; public pipeline limits; labeled Xcode trace with interpreter-only 560-byte compiler spill events | second Apple GPU generation plus physical-register and resident-occupancy evidence |
 | M4 virtual ISA | Complete | frozen VF64 v1 JSON/binary ABI; standalone Metal interpreter; 31,982,976 TestFloat comparisons through bytecode | none within VF64 v1's declared feature boundary |
 | M5 compiler integration | Complete | CuMetal lowers unchanged CUDA `double` through fast48, wide48, and ieee64; arithmetic, conversions, comparisons, rounding, storage, shuffle, aliasing, cache, and provenance pass on M4 Pro | none within the declared source/PTX operation surface |
 | M6 automatic precision | Complete | profiled per-op selector; diagnostics; mixed fast48/wide48 region met 40-bit contract at 1.18x pure ieee64 | none within the declared VF64 accuracy-contract path |
