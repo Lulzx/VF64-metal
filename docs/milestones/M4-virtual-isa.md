@@ -15,12 +15,21 @@ mechanism. Mode-specific instructions must not blur their contracts.
 Version the ISA and provide machine-readable operation definitions plus
 positive and negative conformance tests.
 
-VF64 v1.0 is now frozen in [`isa/vf64-v1.md`](../isa/vf64-v1.md), with the
+Status: **complete**. VF64 v1.0 is frozen in
+[`isa/vf64-v1.md`](../isa/vf64-v1.md), with the
 normative machine-readable table in
-[`isa/vf64-v1.json`](../isa/vf64-v1.json). Backend execution and conformance
-tests are the remaining M4 work.
+[`isa/vf64-v1.json`](../isa/vf64-v1.json). The standalone Metal interpreter
+executes binary program/input files without a source frontend. Its full
+`ieee64` surface passed 31,982,976 level-1 TestFloat result/flag comparisons;
+the directed suite covers all 36 opcodes, all three precision modes, sticky
+flags, vector/storage operations, and negative validation.
+
+Machine-readable exit evidence:
+[`results/m4/2026-08-29-m4-pro-vf64-v1-level1.json`](../../results/m4/2026-08-29-m4-pro-vf64-v1-level1.json).
 
 ## Exit criterion
 
 The Metal backend executes the complete virtual ISA independently of source
 language.
+
+Exit: **met** for VF64 v1.0 and its declared feature boundary.

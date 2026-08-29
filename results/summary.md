@@ -57,3 +57,19 @@ comparative microkernel rates. The machine-readable single-device artifact is
 
 M3 remains in progress: cross-generation evidence and register/spill reporting
 are not available from this run.
+
+## M4 VF64 virtual ISA
+
+Status: **complete** for VF64 v1.0.
+
+VF64 defines a fixed little-endian header/instruction encoding, 36 opcodes,
+32 raw vector registers, packed storage, three precision modes, and sticky
+per-lane exception state. The standalone Metal interpreter accepts binary
+program/input files independently of a source-language frontend.
+
+At source commit `2827f2d`, all 119 M2 operation/policy cells were regenerated
+and executed through VF64 bytecode. The resulting 31,982,976 exact result-bit
+and flag comparisons passed with zero mismatches. Directed validation also
+covers every opcode, all three modes, negative programs, and standalone file
+round trips. Evidence:
+[`m4/2026-08-29-m4-pro-vf64-v1-level1.json`](m4/2026-08-29-m4-pro-vf64-v1-level1.json).

@@ -18,6 +18,8 @@ swift build -c release
 .build/release/f64-metal bench
 .build/release/f64-metal all
 scripts/run-testfloat-m1.sh
+scripts/run-testfloat-m2.sh
+scripts/run-testfloat-m4.sh
 ```
 
 The Metal library is compiled at runtime with safe floating-point semantics.
@@ -163,6 +165,11 @@ saturation values; 40 TestFloat cells pass with zero result/flag mismatches.
 Binary16 and binary32 interchange with binary64 is implemented. Narrowing
 supports every rounding mode and flags; widening is exact. Cross-format NaN
 payloads are compared bit-for-bit against the pinned SoftFloat policy.
+
+VF64 v1 is a source-independent virtual instruction format with 36 arithmetic,
+rounding, comparison, conversion, exception, vector, and storage opcodes. Its
+standalone Metal bytecode backend passes the complete 31,982,976-case M2
+TestFloat matrix through the ISA with exact results and flags.
 
 ## Deliberate limitations
 

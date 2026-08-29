@@ -10,7 +10,7 @@ The status labels below distinguish implemented source from exit evidence.
 | M1 exact core | Complete | 31,599,360 level-1 GPU TestFloat result comparisons; zero mismatches; all core ops/modes; machine-readable provenance | none within documented result-bit boundary |
 | M2 IEEE runtime | Complete | 31,982,976 level-1 TestFloat result/flag comparisons; exact floating NaN bits; documented source/storage/exception ABI | none within the documented M2 surface |
 | M3 precision modes | In progress | frozen contracts; implemented wide48; M4 Pro accuracy and mode benchmarks | second Apple GPU generation plus register/occupancy/spill evidence |
-| M4 virtual ISA | Designed only | semantic scope documented | versioned machine-readable ISA and independent backend tests |
+| M4 virtual ISA | Complete | frozen VF64 v1 JSON/binary ABI; standalone Metal interpreter; 31,982,976 TestFloat comparisons through bytecode | none within VF64 v1's declared feature boundary |
 | M5 compiler integration | Designed only | CuMetal boundary and residency plan | source `double` lowering through each declared policy |
 | M6 automatic precision | Proposed | policy shape documented | implemented selector, diagnostics, accuracy contract and speedup proof |
 | M7 workloads | Proposed | workload matrix documented | reproducible delivered-device workload corpus and CPU baselines |
