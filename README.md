@@ -102,7 +102,9 @@ proof is still required. The
 
 - [M8 release criteria](docs/milestones/M8-release.md)
 - [Public API and ABI](docs/release/api-abi.md)
+- [Supported-device and feature matrix](docs/release/support-matrix.md)
 - [Apple GPU release workflow](.github/workflows/apple-gpu-release.yml)
 
 The 1.0 claim remains embargoed until every milestone exit is reproduced and
-the public priority claim is rechecked.
+the release is tagged. The bounded prior-art review does not support “first”;
+the publication-safe claim is descriptive.

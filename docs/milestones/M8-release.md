@@ -46,6 +46,12 @@ direct-runtime and M4 VF64-ISA runs. Its consistency check is part of release
 verification. This closes the data-publication item, not the cross-generation
 or release gates.
 
+The [supported-device and feature matrix](../release/support-matrix.md) marks
+only the measured M4 Pro as a development candidate, keeps unmeasured M1-M4
+targets explicitly unvalidated, and records unsupported runtime, compiler, ISA,
+and observability features. It must be regenerated from successful runner
+artifacts before 1.0.
+
 Workflow source is not CI evidence. No runner availability or successful
 cross-generation run is claimed until public run artifacts exist. M3 and M7
 exits also remain open, so tagging 1.0 and publishing the final claim are

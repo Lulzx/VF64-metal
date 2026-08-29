@@ -27,6 +27,7 @@ specific implementation, device, workload, and result artifact.
 - [Technical report](report/technical-report.md)
 - [VF64 public API and ABI](release/api-abi.md)
 - [Cross-generation evidence contract](release/cross-generation-evidence.md)
+- [Supported-device and feature matrix](release/support-matrix.md)
 
 ## Integration
 
