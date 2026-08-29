@@ -21,6 +21,8 @@ extension MetalHarness {
                   let encoder = command.makeComputeCommandEncoder() else {
                 throw HarnessError.commandEncoding("could not encode dot partials")
             }
+            command.label = "vf64:\(firstKernel)"
+            encoder.label = "vf64:\(firstKernel)"
             encoder.setComputePipelineState(pipeline)
             encoder.setBuffer(a, offset: 0, index: 0)
             encoder.setBuffer(b, offset: 0, index: 1)
@@ -50,6 +52,8 @@ extension MetalHarness {
                   let encoder = command.makeComputeCommandEncoder() else {
                 throw HarnessError.commandEncoding("could not encode dot reduction")
             }
+            command.label = "vf64:reduce_partial_kernel"
+            encoder.label = "vf64:reduce_partial_kernel"
             encoder.setComputePipelineState(pipeline)
             encoder.setBuffer(firstOutput, offset: 0, index: 0)
             encoder.setBuffer(nextOutput, offset: 0, index: 1)
@@ -78,6 +82,8 @@ extension MetalHarness {
               let encoder = command.makeComputeCommandEncoder() else {
             throw HarnessError.commandEncoding("could not encode dot pack")
         }
+        command.label = "vf64:pack_partial_kernel"
+        encoder.label = "vf64:pack_partial_kernel"
         encoder.setComputePipelineState(pipeline)
         encoder.setBuffer(firstOutput, offset: 0, index: 0)
         encoder.setBuffer(packed, offset: 0, index: 1)
@@ -95,4 +101,3 @@ extension MetalHarness {
         return (Double(bitPattern: bits), start.duration(to: .now).seconds)
     }
 }
-

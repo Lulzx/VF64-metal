@@ -67,6 +67,8 @@ final class MetalHarness {
               let encoder = command.makeComputeCommandEncoder() else {
             throw HarnessError.commandEncoding("could not create command encoder")
         }
+        command.label = "vf64:\(name)"
+        encoder.label = "vf64:\(name)"
         encoder.setComputePipelineState(pipeline)
         for (index, buffer) in buffers { encoder.setBuffer(buffer, offset: 0, index: index) }
         var n = UInt32(count)
@@ -92,4 +94,3 @@ final class MetalHarness {
         return gpuElapsed > 0 ? gpuElapsed : start.duration(to: .now).seconds
     }
 }
-

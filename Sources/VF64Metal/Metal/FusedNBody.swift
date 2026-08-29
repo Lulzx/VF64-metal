@@ -13,6 +13,8 @@ extension MetalHarness {
               let encoder = command.makeComputeCommandEncoder() else {
             throw HarnessError.commandEncoding("could not encode fused N-body steps")
         }
+        command.label = "vf64:fused_nbody"
+        encoder.label = "vf64:fused_nbody"
         func dispatch(
             _ name: String, buffers: [(Int, MTLBuffer)], countIndex: Int
         ) throws {

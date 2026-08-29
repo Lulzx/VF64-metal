@@ -28,6 +28,8 @@ extension MetalHarness {
               let encoder = command.makeComputeCommandEncoder() else {
             throw HarnessError.commandEncoding("could not encode fused CG")
         }
+        command.label = "vf64:fused_cg"
+        encoder.label = "vf64:fused_cg"
         func barrier() {
             encoder.memoryBarrier(scope: .buffers)
         }
