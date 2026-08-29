@@ -33,6 +33,8 @@ Machine-readable evidence:
 
 This is not the M7 exit. CuMetal CUDA workloads, energy measurements, broader
 LP and sparse matrices, and cross-device reproduction remain open.
+The non-privileged `powermetrics` GPU-power probe failed with its explicit
+superuser requirement; no runtime-derived energy estimate is substituted.
 
 ## Exit criterion
 

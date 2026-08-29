@@ -16,6 +16,12 @@
     "cpu_metric": "host wall time for scalar Swift FP64 reference",
     "warning": "single-run pilot; frequency, compiler, and contention variance remain"
   },
+  "energy_measurement": {
+    "status": "unavailable",
+    "probe": "/usr/bin/powermetrics --samplers gpu_power --sample-rate 100 --sample-count 1 --format plist",
+    "result": "powermetrics must be invoked as the superuser",
+    "root_access_requested": false
+  },
   "workloads": {
     "spmv_cyclic_9": {
       "shape": {"rows": 65536, "columns": 65536, "nonzeros": 589824},
@@ -83,7 +89,7 @@
     }
   },
   "limitations": [
-    "Energy was not measured; no non-privileged per-process Apple GPU energy counter was available in this run",
+    "Energy was not measured; the documented powermetrics GPU-power probe requires superuser access",
     "CuMetal CUDA workloads were not run from this repository",
     "The LP corpus is batched two-variable vertex enumeration, not a general sparse LP solver",
     "Only one Apple GPU generation is represented",
