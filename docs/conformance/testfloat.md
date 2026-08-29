@@ -6,7 +6,11 @@ generator and verifier locally under the ignored `.deps/` directory.
 
 ```bash
 scripts/run-testfloat-m1.sh
+scripts/run-testfloat-m2.sh
 ```
+
+The first command is the frozen M1 arithmetic gate. The second runs that gate
+and then the complete M2 operation surface.
 
 The current committed artifact is summarized in
 [`results/summary.md`](../../results/summary.md), with machine-readable device,
