@@ -12,18 +12,18 @@ for function in \
     f64_eq f64_le f64_lt f64_eq_signaling f64_le_quiet f64_lt_quiet f64_rem
 do
     "$tools_dir/testfloat_gen" -seed 1 -level 1 "$function" |
-        "$repo_dir/.build/release/f64-metal" "$runner" "$function" rnear_even
+        "$repo_dir/.build/release/vf64-metal" "$runner" "$function" rnear_even
 done
 
 for rounding in rnear_even rminMag rmin rmax rnear_maxMag
 do
     "$tools_dir/testfloat_gen" \
         -seed 1 -level 1 "-$rounding" -notexact f64_roundToInt |
-        "$repo_dir/.build/release/f64-metal" \
+        "$repo_dir/.build/release/vf64-metal" \
             "$runner" f64_roundToInt "$rounding"
     "$tools_dir/testfloat_gen" \
         -seed 1 -level 1 "-$rounding" -exact f64_roundToInt |
-        "$repo_dir/.build/release/f64-metal" \
+        "$repo_dir/.build/release/vf64-metal" \
             "$runner" f64_roundToInt "$rounding" exact
 done
 
@@ -32,7 +32,7 @@ do
     for function in ui32_to_f64 ui64_to_f64 i32_to_f64 i64_to_f64
     do
         "$tools_dir/testfloat_gen" -seed 1 -level 1 "-$rounding" "$function" |
-            "$repo_dir/.build/release/f64-metal" \
+            "$repo_dir/.build/release/vf64-metal" \
                 "$runner" "$function" "$rounding"
     done
 done
@@ -43,11 +43,11 @@ do
     do
         "$tools_dir/testfloat_gen" \
             -seed 1 -level 1 "-$rounding" -notexact "$function" |
-            "$repo_dir/.build/release/f64-metal" \
+            "$repo_dir/.build/release/vf64-metal" \
                 "$runner" "$function" "$rounding"
         "$tools_dir/testfloat_gen" \
             -seed 1 -level 1 "-$rounding" -exact "$function" |
-            "$repo_dir/.build/release/f64-metal" \
+            "$repo_dir/.build/release/vf64-metal" \
                 "$runner" "$function" "$rounding" exact
     done
 done
@@ -57,7 +57,7 @@ do
     for function in f64_to_f32 f64_to_f16
     do
         "$tools_dir/testfloat_gen" -seed 1 -level 1 "-$rounding" "$function" |
-            "$repo_dir/.build/release/f64-metal" \
+            "$repo_dir/.build/release/vf64-metal" \
                 "$runner" "$function" "$rounding"
     done
 done
@@ -65,5 +65,5 @@ done
 for function in f32_to_f64 f16_to_f64
 do
     "$tools_dir/testfloat_gen" -seed 1 -level 1 "$function" |
-        "$repo_dir/.build/release/f64-metal" "$runner" "$function" rnear_even
+        "$repo_dir/.build/release/vf64-metal" "$runner" "$function" rnear_even
 done

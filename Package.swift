@@ -2,9 +2,10 @@
 import PackageDescription
 
 let package = Package(
-    name: "f64-metal",
+    name: "VF64-metal",
     platforms: [.macOS(.v15)],
     products: [
+        .executable(name: "vf64-metal", targets: ["F64Metal"]),
         .executable(name: "f64-metal", targets: ["F64Metal"]),
     ],
     targets: [

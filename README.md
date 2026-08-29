@@ -1,4 +1,4 @@
-# f64-metal
+# VF64-metal
 
 A runnable research harness for efficient emulated FP64 on Apple Metal.
 
@@ -14,9 +14,9 @@ Requirements: macOS 15 or newer, Swift 6, and a Metal-capable Apple GPU.
 
 ```bash
 swift build -c release
-.build/release/f64-metal validate
-.build/release/f64-metal bench
-.build/release/f64-metal all
+.build/release/vf64-metal validate
+.build/release/vf64-metal bench
+.build/release/vf64-metal all
 scripts/run-testfloat-m1.sh
 scripts/run-testfloat-m2.sh
 scripts/run-testfloat-m4.sh

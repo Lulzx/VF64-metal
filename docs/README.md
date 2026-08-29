@@ -1,4 +1,4 @@
-# F64Metal documentation
+# VF64-metal documentation
 
 This directory records the evidence, design decisions, and open experiments
 behind F64Metal. Performance claims belong here only when they can be tied to a

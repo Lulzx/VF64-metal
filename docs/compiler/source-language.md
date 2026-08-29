@@ -14,7 +14,7 @@ kernel axpy(double alpha, double x, double y) -> double {
 Compile one vector program with an explicit numerical policy:
 
 ```bash
-.build/release/f64-metal vf64-compile --fp64=fast48 --lanes=1024 \
+.build/release/vf64-metal vf64-compile --fp64=fast48 --lanes=1024 \
     examples/axpy.vf64 axpy.vf64.bin
 ```
 
@@ -58,9 +58,9 @@ Create a measured exponent profile from slot-major packed inputs, then compile
 with a declared accumulated accuracy floor:
 
 ```bash
-.build/release/f64-metal vf64-profile --slots=3 --lanes=1024 \
+.build/release/vf64-metal vf64-profile --slots=3 --lanes=1024 \
     input.bin profile.json
-.build/release/f64-metal vf64-compile --fp64=auto --lanes=1024 \
+.build/release/vf64-metal vf64-compile --fp64=auto --lanes=1024 \
     --accuracy-bits=40 --profile=profile.json \
     --diagnostics=selection.json examples/axpy.vf64 axpy-auto.bin
 ```

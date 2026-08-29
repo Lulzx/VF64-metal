@@ -34,7 +34,7 @@ clone_at_commit \
     "$testfloat_dir" "$testfloat_commit"
 
 make -C "$softfloat_dir/build/$platform" -j8
-opts_stamp="$testfloat_dir/build/$platform/.f64-metal-opts"
+opts_stamp="$testfloat_dir/build/$platform/.vf64-metal-opts"
 if [ ! -f "$opts_stamp" ] || [ "$(cat "$opts_stamp")" != "$testfloat_opts" ]; then
     make -C "$testfloat_dir/build/$platform" clean
     printf '%s\n' "$testfloat_opts" > "$opts_stamp"

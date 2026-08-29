@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: f64-metal [version [--json]|validate|bench|workloads|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
+    print("Usage: vf64-metal [version [--json]|validate|bench|workloads|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
 }
 
 do {
@@ -16,7 +16,7 @@ do {
         if CommandLine.arguments.count == 3 {
             print("{\"tool\":\"\(F64MetalVersion.tool)\",\"vf64_abi\":\"\(F64MetalVersion.vf64ABI)\",\"vf64_binary_version\":\"0x\(String(F64MetalVersion.vf64BinaryVersion, radix: 16))\"}")
         } else {
-            print("f64-metal \(F64MetalVersion.tool) (VF64 ABI \(F64MetalVersion.vf64ABI))")
+            print("vf64-metal \(F64MetalVersion.tool) (VF64 ABI \(F64MetalVersion.vf64ABI))")
         }
     } else if command == "vf64-compile" {
         let arguments = Array(CommandLine.arguments.dropFirst(2))

@@ -52,7 +52,7 @@ arithmetic, comparison, and conversion probes on the GPU.
 
 ## Standalone runner API
 
-`f64-metal version --json` reports the tool and VF64 ABI versions without
+`vf64-metal version --json` reports the tool and VF64 ABI versions without
 creating a Metal device. VF64 ABI 1.0 stabilizes these standalone commands:
 
 ```text
