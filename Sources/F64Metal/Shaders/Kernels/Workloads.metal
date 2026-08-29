@@ -114,3 +114,18 @@ kernel void cg_update_p_fast48_kernel(
     emu_f64 pv = unpack_binary64(p[gid], ignored);
     p[gid] = pack_binary64(fma_ff(scale, pv, rv));
 }
+
+kernel void vector_scale_fast48_kernel(
+    device const ulong *scale [[buffer(0)]],
+    device const ulong *input [[buffer(1)]],
+    device ulong *output [[buffer(2)]],
+    constant uint &count [[buffer(3)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    output[gid] = pack_binary64(mul_ff(
+        unpack_binary64(scale[0], ignored),
+        unpack_binary64(input[gid], ignored)
+    ));
+}

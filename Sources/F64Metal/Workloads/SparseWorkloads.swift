@@ -254,9 +254,143 @@ private func runCGWorkload(_ harness: MetalHarness) throws {
     print("cg control: CPU computes alpha/beta and checks residual; all O(n) arithmetic is GPU")
 }
 
+private func gpuFast48GMRES(
+    _ harness: MetalHarness, workload: CSRWorkload, b: [Double],
+    tolerance: Double, restart: Int
+) throws -> CGResult {
+    let rowBuffer = try harness.buffer(workload.rowOffsets)
+    let columnBuffer = try harness.buffer(workload.columnIndices)
+    let valueBuffer = try harness.buffer(bitsOf(workload.values))
+    let bBuffer = try harness.buffer(bitsOf(b))
+    let scalar = try harness.buffer([UInt64(0)])
+    let work = try harness.emptyBuffer(count: workload.rows, of: UInt64.self)
+    let x = try harness.buffer(bitsOf([Double](repeating: 0, count: workload.rows)))
+    let bNorm = sqrt(try harness.dot(a: bBuffer, b: bBuffer, count: workload.rows).0)
+    scalar.contents().bindMemory(to: UInt64.self, capacity: 1).pointee =
+        (1.0 / bNorm).bitPattern
+    var basis = [try harness.emptyBuffer(count: workload.rows, of: UInt64.self)]
+    try harness.run("vector_scale_fast48_kernel", count: workload.rows, buffers: [
+        (0, scalar), (1, bBuffer), (2, basis[0]),
+    ], countIndex: 3)
+
+    var h = Array(
+        repeating: Array(repeating: 0.0, count: restart), count: restart + 1
+    )
+    var cosine = [Double](repeating: 0, count: restart)
+    var sine = [Double](repeating: 0, count: restart)
+    var g = [Double](repeating: 0, count: restart + 1)
+    g[0] = bNorm
+    var completed = 0
+    var relativeResidual = 1.0
+    let start = ContinuousClock.now
+
+    for column in 0..<restart {
+        try harness.run("spmv_fast48_kernel", count: workload.rows, buffers: [
+            (0, rowBuffer), (1, columnBuffer), (2, valueBuffer),
+            (3, basis[column]), (4, work),
+        ], countIndex: 5)
+        for row in 0...column {
+            h[row][column] = try harness.dot(
+                a: basis[row], b: work, count: workload.rows
+            ).0
+            scalar.contents().bindMemory(to: UInt64.self, capacity: 1).pointee =
+                (-h[row][column]).bitPattern
+            try harness.run("axpy_kernel", count: workload.rows, buffers: [
+                (0, scalar), (1, basis[row]), (2, work), (3, work),
+            ], countIndex: 4)
+        }
+        let arnoldiNorm = sqrt(
+            max(0, try harness.dot(a: work, b: work, count: workload.rows).0)
+        )
+        h[column + 1][column] = arnoldiNorm
+        for row in 0..<column {
+            let upper = cosine[row] * h[row][column] +
+                sine[row] * h[row + 1][column]
+            h[row + 1][column] = -sine[row] * h[row][column] +
+                cosine[row] * h[row + 1][column]
+            h[row][column] = upper
+        }
+        let magnitude = hypot(h[column][column], h[column + 1][column])
+        cosine[column] = h[column][column] / magnitude
+        sine[column] = h[column + 1][column] / magnitude
+        h[column][column] = magnitude
+        h[column + 1][column] = 0
+        g[column + 1] = -sine[column] * g[column]
+        g[column] *= cosine[column]
+        completed = column + 1
+        relativeResidual = abs(g[column + 1]) / bNorm
+        if relativeResidual <= tolerance { break }
+
+        scalar.contents().bindMemory(to: UInt64.self, capacity: 1).pointee =
+            (1.0 / arnoldiNorm).bitPattern
+        let next = try harness.emptyBuffer(count: workload.rows, of: UInt64.self)
+        try harness.run("vector_scale_fast48_kernel", count: workload.rows, buffers: [
+            (0, scalar), (1, work), (2, next),
+        ], countIndex: 3)
+        basis.append(next)
+    }
+
+    var y = [Double](repeating: 0, count: completed)
+    for row in stride(from: completed - 1, through: 0, by: -1) {
+        var rhs = g[row]
+        if row + 1 < completed {
+            for column in (row + 1)..<completed { rhs -= h[row][column] * y[column] }
+        }
+        y[row] = rhs / h[row][row]
+    }
+    for index in 0..<completed {
+        scalar.contents().bindMemory(to: UInt64.self, capacity: 1).pointee = y[index].bitPattern
+        try harness.run("axpy_kernel", count: workload.rows, buffers: [
+            (0, scalar), (1, basis[index]), (2, x), (3, x),
+        ], countIndex: 4)
+    }
+    let observed: [UInt64] = harness.read(x, count: workload.rows)
+    return CGResult(
+        x: observed.map(Double.init(bitPattern:)), iterations: completed,
+        relativeResidual: relativeResidual,
+        seconds: start.duration(to: .now).seconds
+    )
+}
+
+private func runGMRESWorkload(_ harness: MetalHarness) throws {
+    let workload = sparseStencilWorkload(size: 8_192)
+    let expected = (0..<workload.rows).map {
+        cos(Double($0) * 0.019) - 0.125 * sin(Double($0) * 0.007)
+    }
+    let system = CSRWorkload(
+        name: workload.name, rows: workload.rows, columns: workload.columns,
+        rowOffsets: workload.rowOffsets, columnIndices: workload.columnIndices,
+        values: workload.values, x: expected
+    )
+    let b = system.cpuReference()
+    let tolerance = 1.0e-10
+    let gpu = try gpuFast48GMRES(
+        harness, workload: system, b: b, tolerance: tolerance, restart: 32
+    )
+    let gpuError = relativeSolutionError(gpu.x, expected)
+    let observedSystem = CSRWorkload(
+        name: system.name, rows: system.rows, columns: system.columns,
+        rowOffsets: system.rowOffsets, columnIndices: system.columnIndices,
+        values: system.values, x: gpu.x
+    )
+    let trueResidual = l2Norm(zip(b, observedSystem.cpuReference()).map(-)) / l2Norm(b)
+    guard trueResidual <= tolerance, gpuError <= 1.0e-9 else {
+        throw HarnessError.commandEncoding(
+            "fast48 GMRES failed convergence contract: residual \(trueResidual), error \(gpuError)"
+        )
+    }
+    print("\ngmres-cyclic-9: \(workload.rows) unknowns; restart 32; tolerance \(tolerance)")
+    print(String(
+        format: "fast48-gpu  %3d iterations; residual %.3e; solution error %.3e; %8.3f ms",
+        gpu.iterations, trueResidual, gpuError, gpu.seconds * 1.0e3
+    ))
+    print("gmres control: CPU updates Hessenberg/Givens scalars and validates final residual; solver O(n) arithmetic is GPU")
+}
+
 func runScientificWorkloads(_ harness: MetalHarness) throws {
     print("Scientific workload pilot; GPU kernels have no CPU arithmetic fallback")
     try runCSRWorkload(harness, workload: sparseStencilWorkload())
     try runCSRWorkload(harness, workload: denseGEMVWorkload())
     try runCGWorkload(harness)
+    try runGMRESWorkload(harness)
 }
