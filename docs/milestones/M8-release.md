@@ -22,9 +22,10 @@ summarizes the current architecture, methodology, results, and open gates. It
 does not publish the embargoed final claim.
 
 VF64 v1's compiler/backend boundary is published as a versioned
-[C API and ABI](../release/api-abi.md) with a compiled layout/constants gate.
-The CLI, internal Swift/Metal helpers, and CuMetal integration surface are not
-yet declared stable.
+[C and standalone runner API/ABI](../release/api-abi.md) with compiled
+layout/constants and machine-readable version gates. Internal Swift/Metal
+helpers, benchmark commands, and the CuMetal integration surface are not yet
+declared stable.
 
 Workflow source is not CI evidence. No runner availability or successful
 cross-generation run is claimed until public run artifacts exist. M3, M5, and

@@ -27,6 +27,24 @@ write/read explicit little-endian words when the host is not little-endian.
 Run `scripts/check-vf64-abi.sh` to compile and execute the C layout/constants
 gate. `scripts/verify-release.sh` includes this check before device validation.
 
-This stabilizes the VF64 compiler/backend ABI. It does not declare the
-standalone CLI, internal Swift types, Metal helper functions, or CuMetal
-integration hooks stable for 1.0.
+## Standalone runner API
+
+`f64-metal version --json` reports the tool and VF64 ABI versions without
+creating a Metal device. VF64 ABI 1.0 stabilizes these standalone commands:
+
+```text
+vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N ... SOURCE PROGRAM
+vf64-profile --slots=N --lanes=N INPUT PROFILE
+vf64-run PROGRAM INPUT OUTPUT FLAGS
+```
+
+The binary layouts of `PROGRAM`, `INPUT`, `OUTPUT`, and `FLAGS`, validation
+rules, and exit convention (zero success, nonzero error) are part of this
+compiler/backend API. Additive diagnostic text is not stable. New required
+arguments, changed file layouts, or changed semantics require a new API/ABI
+version. `scripts/check-cli-api.sh` freezes the machine-readable version
+response and runs inside the release gate.
+
+This stabilizes the VF64 compiler/backend C and standalone file/command API.
+Internal Swift types, Metal helper functions, benchmark commands, and CuMetal
+integration hooks are not stable for 1.0.
