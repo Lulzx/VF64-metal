@@ -2,7 +2,7 @@
   "schema_version": 1,
   "milestone": "M5",
   "status": "partial_pass",
-  "source_commit": "fee9b9d36f71d2c99f567c9c8ef41bc00a4e7249",
+  "source_commit": "a95aadc25191339c8439a12be67bdd181b93d775",
   "command": ".build/release/f64-metal validate",
   "device": {
     "name": "Apple M4 Pro",
@@ -25,6 +25,14 @@
     ],
     "automatic_policy": "profile-guided per-operation fast48/wide48/ieee64 selection for double arithmetic"
   },
+  "register_allocation": {
+    "strategy": "last-use physical allocation after virtual SSA-like lowering",
+    "physical_limit": 32,
+    "long_chain_operations": 96,
+    "long_chain_physical_registers": 2,
+    "long_chain_result_bits": "bit-exact CPU binary64 operation order",
+    "long_chain_flags": "sticky inexact matched"
+  },
   "validation": {
     "lanes": 64,
     "arithmetic_modes_executed": 3,
@@ -43,6 +51,7 @@
   "storage_abi": "slot-major raw 64-bit VF64 slots; integer and binary16/binary32 values occupy low bits as defined by VF64 v1",
   "limitations": [
     "The source language is straight-line and has no loops, calls, pointer memory operations, atomics, or branches",
+    "Physical VF64 allocation is measured, but Metal hardware register count, occupancy, and spills are not exposed by this artifact",
     "CuMetal source/PTX double lowering does not call this frontend or emit VF64",
     "CUDA-visible mov.b64, uint64_t, shared-memory, shuffle, reload, and call boundaries are not regression-tested through VF64",
     "This artifact does not meet the M5 exit criterion"

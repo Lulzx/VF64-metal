@@ -20,6 +20,12 @@ Current status: **in progress**. The M4 Pro artifact is reproducible, but a
 second Apple GPU generation and compiler register/spill evidence are still
 required by the cross-device exit criterion.
 
+The standalone source compiler now performs last-use allocation to the VF64
+register file; its 96-operation dependency-chain regression uses two virtual
+ISA registers. This is compiler/ISA residency evidence only. Metal hardware
+register allocation, occupancy, and spills remain unmeasured and are still part
+of the M3 exit.
+
 ## Exit criterion
 
 Each mode has a frozen numerical contract and reproducible cross-device

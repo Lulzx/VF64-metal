@@ -85,6 +85,11 @@ explicit `fast48`, `wide48`, and `ieee64` policies; conversion result bits and
 exception flags are checked on Metal. Evidence:
 [`m5/2026-08-29-m4-pro-typed-source-compiler.json`](m5/2026-08-29-m4-pro-typed-source-compiler.json).
 
+Last-use allocation removes dead virtual values after lowering. A 96-operation
+dependency chain executes with two physical VF64 registers, bit-exact results,
+and the expected sticky inexact flag. This does not substitute for Metal
+hardware register, occupancy, or spill counters.
+
 It is not yet integrated into CuMetal's source/PTX path, so existing CUDA
 kernels cannot use VF64 `double` without a separate compilation step.
 Observable-boundary regressions for `mov.b64`, `uint64_t`, shared memory,

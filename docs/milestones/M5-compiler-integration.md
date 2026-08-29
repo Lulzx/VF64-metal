@@ -20,7 +20,9 @@ Current progress: the standalone [`VF64 source compiler`](../compiler/source-lan
 lowers typed arithmetic, comparisons, selection, and all twelve VF64 conversion
 directions through executable bytecode. Arithmetic and comparison/selection are
 executed under each explicit precision policy; conversions validate result bits
-and exception flags. Evidence:
+and exception flags. Last-use allocation reduces a 96-operation source chain to
+two physical VF64 registers while preserving exact results and sticky flags.
+Evidence:
 [`results/m5/2026-08-29-m4-pro-typed-source-compiler.json`](../../results/m5/2026-08-29-m4-pro-typed-source-compiler.json).
 
 This remains a straight-line standalone frontend. CuMetal source/PTX
