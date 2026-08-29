@@ -36,7 +36,7 @@ explicit `fma()` where fusion is required.
 - Pair-resident multi-stage dot reduction using transient `float2` buffers.
 - NaN, infinity, signed-zero, and exponent-envelope tests.
 - Binary64-boundary, pair-streaming, and compute-bound microbenchmarks.
-- Integer software-binary64 add, multiply, and divide with full
+- Integer software-binary64 add, multiply, divide, and square root with full
   exponent/subnormal range.
 - Integer software-binary64 subtraction through the exact add core.
 - Exact 53x53-bit products using `mulhi(ulong, ulong)` and 128-bit rounding.
@@ -57,7 +57,8 @@ exact add   bit-exact RNE against the host over 215,172 directed/random cases
 exact sub   bit-exact RNE against the host over 215,172 directed/random cases
 exact mul   bit-exact RNE against the host over 215,172 directed/random cases
 exact div   bit-exact RNE against the host over 215,172 directed/random cases
-TestFloat   add/sub/mul/div result bits passed 46,464 cases in each of 5 rounding modes
+exact sqrt  bit-exact RNE against the host over 215,172 directed/random cases
+TestFloat   add/sub/mul/div passed 46,464 cases/mode; sqrt passed 768/mode
 ```
 
 In a compute-bound 32-multiplication dependency chain, the same run measured:
@@ -109,8 +110,8 @@ arithmetic cost and is the relevant comparison for pair-resident CuMetal code.
 
 ## Integer soft-binary64 prototype
 
-`soft_add64`, `soft_sub64`, `soft_mul64`, and `soft_div64` operate directly on
-IEEE binary64 bit patterns.
+`soft_add64`, `soft_sub64`, `soft_mul64`, `soft_div64`, and `soft_sqrt64`
+operate directly on IEEE binary64 bit patterns.
 They implement:
 
 - All 53 significand bits.
@@ -126,10 +127,10 @@ infinities, signaling/quiet NaNs, and 131,072 arbitrary bit-pattern pairs.
 Non-NaN results must match host binary64 bits exactly; NaNs must match class.
 This is a smoke oracle, not Berkeley TestFloat. The separate pinned TestFloat
 workflow currently validates generated result bits for add, subtract,
-multiply, and divide in all five IEEE rounding directions while explicitly
-leaving exception-flag conformance open.
+multiply, divide, and square root in all five IEEE rounding directions while
+explicitly leaving exception-flag conformance open.
 
-This is not yet a complete soft-FP64 mode: square root, FMA, conversions,
+This is not yet a complete soft-FP64 mode: true fused FMA, conversions,
 comparisons, exception flags, and rounding support for the remaining operations
 are absent.
 

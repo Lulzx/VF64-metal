@@ -27,15 +27,17 @@ func runTestFloatResultConformance(
     batchSize: Int = 65_536
 ) throws {
     let kernel: String
+    let unary: Bool
     switch function {
-    case "f64_add": kernel = "soft_add_round_kernel"
-    case "f64_sub": kernel = "soft_sub_round_kernel"
-    case "f64_mul": kernel = "soft_mul_round_kernel"
-    case "f64_div": kernel = "soft_div_round_kernel"
+    case "f64_add": kernel = "soft_add_round_kernel"; unary = false
+    case "f64_sub": kernel = "soft_sub_round_kernel"; unary = false
+    case "f64_mul": kernel = "soft_mul_round_kernel"; unary = false
+    case "f64_div": kernel = "soft_div_round_kernel"; unary = false
+    case "f64_sqrt": kernel = "soft_sqrt_round_kernel"; unary = true
     default:
         throw HarnessError.validation(
             "TestFloat function \(function) is not implemented; supported: " +
-            "f64_add, f64_sub, f64_mul, f64_div"
+            "f64_add, f64_sub, f64_mul, f64_div, f64_sqrt"
         )
     }
     let roundingModes: [String: UInt32] = [
@@ -91,11 +93,21 @@ func runTestFloatResultConformance(
 
     while let line = readLine() {
         let fields = line.split(whereSeparator: \.isWhitespace)
-        guard fields.count == 4,
+        let expectedField = unary ? 1 : 2
+        let flagsField = unary ? 2 : 3
+        guard fields.count == (unary ? 3 : 4),
               let a = parseHex(fields[0], as: UInt64.self),
-              let b = parseHex(fields[1], as: UInt64.self),
-              let expected = parseHex(fields[2], as: UInt64.self),
-              let flags = parseHex(fields[3], as: UInt8.self) else {
+              let expected = parseHex(fields[expectedField], as: UInt64.self),
+              let flags = parseHex(fields[flagsField], as: UInt8.self) else {
+            malformed += 1
+            continue
+        }
+        let b: UInt64
+        if unary {
+            b = 0
+        } else if let parsed = parseHex(fields[1], as: UInt64.self) {
+            b = parsed
+        } else {
             malformed += 1
             continue
         }

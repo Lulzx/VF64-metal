@@ -316,3 +316,51 @@ inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
 inline ulong soft_div64(ulong a, ulong b) {
     return soft_div64_mode(a, b, soft_round_near_even);
 }
+
+inline ulong soft_sqrt64_mode(ulong a, uint roundingMode) {
+    uint exponentField = uint((a >> 52) & 0x7fful);
+    ulong fraction = a & 0x000ffffffffffffful;
+    bool sign = (a >> 63) != 0;
+
+    if (soft_is_nan(a)) return a | 0x0008000000000000ul;
+    if (soft_is_inf(a)) {
+        return sign ? 0x7ff8000000000000ul : a;
+    }
+    if (exponentField == 0 && fraction == 0) return a;
+    if (sign) return 0x7ff8000000000000ul;
+
+    soft_normalized operand = soft_normalize_operand(exponentField, fraction);
+    int unbiasedExponent = operand.exponent - 1023;
+    ulong adjustedSignificand = operand.significand;
+    if ((unbiasedExponent & 1) != 0) {
+        adjustedSignificand <<= 1;
+        unbiasedExponent -= 1;
+    }
+
+    // Compute floor(sqrt(adjustedSignificand << 58)). This is the normalized
+    // 53-bit result plus three rounding bits. Feeding two radicand bits per
+    // iteration keeps the partial remainder below 2^59, so ulong is enough.
+    ulong rootWithRound = 0;
+    ulong remainder = 0;
+    for (uint pairIndex = 0; pairIndex < 56; ++pairIndex) {
+        int radicandBit = 110 - int(pairIndex * 2);
+        ulong pair = 0;
+        if (radicandBit >= 58) {
+            pair = (adjustedSignificand >> uint(radicandBit - 58)) & 3ul;
+        }
+        remainder = (remainder << 2) | pair;
+        rootWithRound <<= 1;
+        ulong trial = (rootWithRound << 1) | 1ul;
+        if (remainder >= trial) {
+            remainder -= trial;
+            rootWithRound |= 1ul;
+        }
+    }
+    if (remainder != 0) rootWithRound |= 1ul;
+    int resultExponent = unbiasedExponent / 2 + 1023;
+    return soft_round_pack(false, resultExponent, rootWithRound, roundingMode);
+}
+
+inline ulong soft_sqrt64(ulong a) {
+    return soft_sqrt64_mode(a, soft_round_near_even);
+}
