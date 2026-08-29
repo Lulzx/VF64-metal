@@ -327,6 +327,32 @@ kernel void nbody_ieee64_kernel(
     azOut[gid] = az;
 }
 
+kernel void nbody_integrate_fast48_kernel(
+    device const ulong *dtBuffer [[buffer(0)]],
+    device const ulong *ax [[buffer(1)]], device const ulong *ay [[buffer(2)]],
+    device const ulong *az [[buffer(3)]], device ulong *px [[buffer(4)]],
+    device ulong *py [[buffer(5)]], device ulong *pz [[buffer(6)]],
+    device ulong *vx [[buffer(7)]], device ulong *vy [[buffer(8)]],
+    device ulong *vz [[buffer(9)]], constant uint &count [[buffer(10)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    emu_f64 dt = unpack_binary64(dtBuffer[0], ignored);
+    emu_f64 nextVX = fma_ff(dt, unpack_binary64(ax[gid], ignored),
+                            unpack_binary64(vx[gid], ignored));
+    emu_f64 nextVY = fma_ff(dt, unpack_binary64(ay[gid], ignored),
+                            unpack_binary64(vy[gid], ignored));
+    emu_f64 nextVZ = fma_ff(dt, unpack_binary64(az[gid], ignored),
+                            unpack_binary64(vz[gid], ignored));
+    vx[gid] = pack_binary64(nextVX);
+    vy[gid] = pack_binary64(nextVY);
+    vz[gid] = pack_binary64(nextVZ);
+    px[gid] = pack_binary64(fma_ff(dt, nextVX, unpack_binary64(px[gid], ignored)));
+    py[gid] = pack_binary64(fma_ff(dt, nextVY, unpack_binary64(py[gid], ignored)));
+    pz[gid] = pack_binary64(fma_ff(dt, nextVZ, unpack_binary64(pz[gid], ignored)));
+}
+
 inline bool lp_fast48_leq(emu_f64 a, emu_f64 b) {
     uint flags = 0;
     return soft_less64_status(
