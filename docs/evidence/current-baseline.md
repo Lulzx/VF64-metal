@@ -24,19 +24,19 @@ precision or range.
 
 ## Integer binary64 track
 
-`soft_add64`, `soft_sub64`, and `soft_mul64` matched the host's
+`soft_add64`, `soft_sub64`, `soft_mul64`, and `soft_div64` matched the host's
 round-to-nearest-even result in 215,172 directed and random cases per operation,
 with NaNs compared by class. This host-oracle smoke corpus is evidence for those
-three operations only and is not Berkeley TestFloat conformance. A separate
+four operations only and is not Berkeley TestFloat conformance. A separate
 pinned TestFloat result bridge
-now covers add, subtract, and multiply; its exception flags are not yet checked.
-Division, square root, FMA, conversions, comparisons, rounding support for the
+now covers add, subtract, multiply, and divide; its exception flags are not yet
+checked. Square root, FMA, conversions, comparisons, rounding support for the
 remaining operations, exception state, and complete TestFloat coverage remain
 absent.
 
 On the same M4 Pro on 2026-08-29, Berkeley TestFloat Release 3e level 1
-generated 46,464 cases for each add/subtract/multiply and rounding-mode cell.
-All 15 cells passed result-bit comparison with zero mismatches. The covered
+generated 46,464 cases for each add/subtract/multiply/divide and rounding-mode
+cell. All 20 cells passed result-bit comparison with zero mismatches. The covered
 rounding directions were nearest-even, toward zero, toward negative, toward
 positive, and nearest-away. NaNs were compared by class and exception flags
 were parsed but not checked, so this is not the M1 exit artifact.

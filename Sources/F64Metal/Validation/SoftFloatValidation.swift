@@ -52,6 +52,7 @@ func validateExactHostOracle(_ harness: MetalHarness) throws {
         ("exact-add", "soft_add_kernel", +),
         ("exact-sub", "soft_sub_kernel", -),
         ("exact-mul", "soft_mul_kernel", *),
+        ("exact-div", "soft_div_kernel", /),
     ]
     for (label, kernel, operation) in cases {
         let output = try harness.emptyBuffer(count: aBits.count, of: UInt64.self)

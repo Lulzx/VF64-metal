@@ -267,3 +267,52 @@ inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
 inline ulong soft_mul64(ulong a, ulong b) {
     return soft_mul64_mode(a, b, soft_round_near_even);
 }
+
+inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
+    bool sign = ((a ^ b) >> 63) != 0;
+    uint expAField = uint((a >> 52) & 0x7fful);
+    uint expBField = uint((b >> 52) & 0x7fful);
+    ulong fracA = a & 0x000ffffffffffffful;
+    ulong fracB = b & 0x000ffffffffffffful;
+    bool zeroA = expAField == 0 && fracA == 0;
+    bool zeroB = expBField == 0 && fracB == 0;
+
+    if (soft_is_nan(a) || soft_is_nan(b)) return soft_propagate_nan(a, b);
+    if (soft_is_inf(a)) {
+        if (soft_is_inf(b)) return 0x7ff8000000000000ul;
+        return (ulong(sign) << 63) | 0x7ff0000000000000ul;
+    }
+    if (soft_is_inf(b)) return ulong(sign) << 63;
+    if (zeroB) {
+        if (zeroA) return 0x7ff8000000000000ul;
+        return (ulong(sign) << 63) | 0x7ff0000000000000ul;
+    }
+    if (zeroA) return ulong(sign) << 63;
+
+    soft_normalized na = soft_normalize_operand(expAField, fracA);
+    soft_normalized nb = soft_normalize_operand(expBField, fracB);
+    int exponent = na.exponent - nb.exponent + 1023;
+    ulong remainder = na.significand;
+    if (remainder < nb.significand) {
+        remainder <<= 1;
+        exponent -= 1;
+    }
+
+    // Generate the hidden bit, 52 stored significand bits, and three rounding
+    // bits. The residual is then jammed into the low bit as sticky state.
+    ulong quotientWithRound = 0;
+    for (uint bit = 0; bit < 56; ++bit) {
+        quotientWithRound <<= 1;
+        if (remainder >= nb.significand) {
+            quotientWithRound |= 1ul;
+            remainder -= nb.significand;
+        }
+        remainder <<= 1;
+    }
+    if (remainder != 0) quotientWithRound |= 1ul;
+    return soft_round_pack(sign, exponent, quotientWithRound, roundingMode);
+}
+
+inline ulong soft_div64(ulong a, ulong b) {
+    return soft_div64_mode(a, b, soft_round_near_even);
+}

@@ -31,9 +31,11 @@ func runTestFloatResultConformance(
     case "f64_add": kernel = "soft_add_round_kernel"
     case "f64_sub": kernel = "soft_sub_round_kernel"
     case "f64_mul": kernel = "soft_mul_round_kernel"
+    case "f64_div": kernel = "soft_div_round_kernel"
     default:
         throw HarnessError.validation(
-            "TestFloat function \(function) is not implemented; supported: f64_add, f64_sub, f64_mul"
+            "TestFloat function \(function) is not implemented; supported: " +
+            "f64_add, f64_sub, f64_mul, f64_div"
         )
     }
     let roundingModes: [String: UInt32] = [

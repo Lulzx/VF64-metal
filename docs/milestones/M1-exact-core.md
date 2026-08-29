@@ -8,8 +8,8 @@ Implement correctly rounded binary64:
 - true fused FMA with one final rounding;
 - all IEEE rounding modes.
 
-The current integer prototype covers add, subtract, and multiply result bits in
-all five IEEE rounding directions. Division, square root, fused FMA, and the
+The current integer prototype covers add, subtract, multiply, and divide result
+bits in all five IEEE rounding directions. Square root, fused FMA, and the
 complete operation-by-mode TestFloat matrix remain. Existing differential
 results are a foundation, not completion of M1.
 The reproducible TestFloat workflow and its current result-only limitations are

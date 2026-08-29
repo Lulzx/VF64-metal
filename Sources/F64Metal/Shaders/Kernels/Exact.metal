@@ -22,6 +22,14 @@ kernel void soft_mul_kernel(
     if (gid < count) output[gid] = soft_mul64(a[gid], b[gid]);
 }
 
+kernel void soft_div_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) output[gid] = soft_div64(a[gid], b[gid]);
+}
+
 kernel void soft_add_round_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
@@ -47,6 +55,15 @@ kernel void soft_mul_round_kernel(
     uint gid [[thread_position_in_grid]])
 {
     if (gid < count) output[gid] = soft_mul64_mode(a[gid], b[gid], roundingMode);
+}
+
+kernel void soft_div_round_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) output[gid] = soft_div64_mode(a[gid], b[gid], roundingMode);
 }
 
 kernel void soft_add_chain_kernel(
