@@ -150,6 +150,10 @@ cases each.
 All ten TestFloat cells pass, including signed zero, infinities, NaNs, and
 conditional inexact flags.
 
+IEEE remainder uses exact integer long division and nearest-even quotient
+selection. Its 46,464-case TestFloat result/invalid-flag corpus passes with zero
+mismatches.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the

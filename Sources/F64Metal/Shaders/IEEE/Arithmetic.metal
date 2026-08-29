@@ -826,3 +826,69 @@ inline ulong soft_round_to_int64_status(
     if (increment) truncated += 1ul << fractionalBits;
     return (ulong(sign) << 63) | truncated;
 }
+
+inline ulong soft_pack_exact64(bool sign, int exponent, ulong magnitude) {
+    if (magnitude == 0) return ulong(sign) << 63;
+    int leading = 63 - int(clz(magnitude));
+    int left = 52 - leading;
+    ulong significand = magnitude << uint(left);
+    return soft_round_pack(
+        sign, exponent - left, significand << 3, soft_round_near_even
+    );
+}
+
+inline ulong soft_remainder64_status(
+    ulong a, ulong b, thread uint &flags
+) {
+    uint expAField = uint((a >> 52) & 0x7fful);
+    uint expBField = uint((b >> 52) & 0x7fful);
+    ulong fracA = a & 0x000ffffffffffffful;
+    ulong fracB = b & 0x000ffffffffffffful;
+    bool signA = (a >> 63) != 0;
+
+    if (soft_is_nan(a) || soft_is_nan(b)) {
+        if (soft_is_signaling_nan(a) || soft_is_signaling_nan(b)) {
+            flags |= soft_flag_invalid;
+        }
+        return soft_propagate_nan(a, b);
+    }
+    if (soft_is_inf(a) || (expBField == 0 && fracB == 0)) {
+        flags |= soft_flag_invalid;
+        return 0x7ff8000000000000ul;
+    }
+    if (soft_is_inf(b) || (expAField == 0 && fracA == 0)) return a;
+
+    soft_normalized na = soft_normalize_operand(expAField, fracA);
+    soft_normalized nb = soft_normalize_operand(expBField, fracB);
+    int exponentDifference = na.exponent - nb.exponent;
+    if (exponentDifference < -1) return a;
+
+    if (exponentDifference == -1) {
+        // |a / b| is below one. A tie chooses quotient zero (even).
+        if (na.significand <= nb.significand) return a;
+        ulong magnitude = (nb.significand << 1) - na.significand;
+        return soft_pack_exact64(!signA, nb.exponent - 1, magnitude);
+    }
+
+    ulong remainder = na.significand;
+    bool quotientOdd = false;
+    for (int bit = 0; bit <= exponentDifference; ++bit) {
+        bool quotientBit = remainder >= nb.significand;
+        if (quotientBit) remainder -= nb.significand;
+        if (bit == exponentDifference) {
+            quotientOdd = quotientBit;
+        } else {
+            remainder <<= 1;
+        }
+    }
+
+    ulong twiceRemainder = remainder << 1;
+    bool chooseUpper = twiceRemainder > nb.significand ||
+        (twiceRemainder == nb.significand && quotientOdd);
+    bool signResult = signA;
+    if (chooseUpper) {
+        remainder = nb.significand - remainder;
+        signResult = !signResult;
+    }
+    return soft_pack_exact64(signResult, nb.exponent, remainder);
+}

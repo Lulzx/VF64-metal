@@ -215,6 +215,18 @@ kernel void soft_round_to_int_kernel(
     }
 }
 
+kernel void soft_remainder_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_remainder64_status(a[gid], b[gid], raised);
+        flags[gid] = raised;
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

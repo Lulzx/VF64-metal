@@ -28,7 +28,7 @@ do
 done
 
 for function in \
-    f64_eq f64_le f64_lt f64_eq_signaling f64_le_quiet f64_lt_quiet
+    f64_eq f64_le f64_lt f64_eq_signaling f64_le_quiet f64_lt_quiet f64_rem
 do
     "$tools_dir/testfloat_gen" -seed 1 -level 1 "$function" |
         "$repo_dir/.build/release/f64-metal" testfloat "$function" rnear_even

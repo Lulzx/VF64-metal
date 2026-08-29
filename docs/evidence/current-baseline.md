@@ -55,6 +55,10 @@ zero and quiet/signaling NaN cases.
 both `exact` and `notexact` policies. All 7,680 result/flag comparisons matched;
 the exact policy raises inexact when fractional bits are discarded.
 
+`f64_rem` passed 46,464 TestFloat result/flag cases. The implementation computes
+the modulus exactly, selects the nearest quotient with ties-to-even, and
+preserves the dividend sign on an exact-zero remainder.
+
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
 
