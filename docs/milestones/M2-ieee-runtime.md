@@ -10,9 +10,10 @@ Add the runtime surface around M1:
 - exception flags;
 - a documented tininess policy.
 
-Current progress: M1 core exception flags and the complete six-operation
-TestFloat comparison family pass on the Metal GPU. Conversions, remainder,
-round-to-integer, and the final NaN payload policy remain.
+Current progress: M1 core exception flags, the complete six-operation TestFloat
+comparison family, and round-to-integer under every rounding/exactness policy
+pass on the Metal GPU. Conversions, remainder, and the final NaN payload policy
+remain.
 
 Operation availability must be explicit. An unsupported exact operation may
 fail compilation or dispatch to an exact implementation, but must never

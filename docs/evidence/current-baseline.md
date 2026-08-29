@@ -51,6 +51,10 @@ The M2 comparison surface passed 46,464 TestFloat cases for each of `f64_eq`,
 Results and invalid flags matched in all 278,784 comparisons, including signed
 zero and quiet/signaling NaN cases.
 
+`f64_roundToInt` passed 768 TestFloat cases in each rounding direction under
+both `exact` and `notexact` policies. All 7,680 result/flag comparisons matched;
+the exact policy raises inexact when fractional bits are discarded.
+
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
 

@@ -15,6 +15,18 @@ for rounding in rnear_even rminMag rmin rmax rnear_maxMag; do
     done
 done
 
+for rounding in rnear_even rminMag rmin rmax rnear_maxMag
+do
+    "$tools_dir/testfloat_gen" \
+        -seed 1 -level 1 "-$rounding" -notexact f64_roundToInt |
+        "$repo_dir/.build/release/f64-metal" \
+            testfloat f64_roundToInt "$rounding"
+    "$tools_dir/testfloat_gen" \
+        -seed 1 -level 1 "-$rounding" -exact f64_roundToInt |
+        "$repo_dir/.build/release/f64-metal" \
+            testfloat f64_roundToInt "$rounding" exact
+done
+
 for function in \
     f64_eq f64_le f64_lt f64_eq_signaling f64_le_quiet f64_lt_quiet
 do

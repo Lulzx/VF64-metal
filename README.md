@@ -146,6 +146,10 @@ equality, signaling equality, ordered less-than/less-or-equal, and quiet ordered
 variants. All six operations match result and invalid-flag behavior over 46,464
 cases each.
 
+`roundToInt` supports all five rounding directions and both exactness policies.
+All ten TestFloat cells pass, including signed zero, infinities, NaNs, and
+conditional inexact flags.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the

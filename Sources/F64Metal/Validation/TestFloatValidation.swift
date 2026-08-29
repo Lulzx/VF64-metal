@@ -25,6 +25,7 @@ func runTestFloatResultConformance(
     _ harness: MetalHarness,
     function: String,
     rounding: String,
+    exact: Bool = false,
     batchSize: Int = 65_536
 ) throws {
     let kernel: String
@@ -42,12 +43,13 @@ func runTestFloatResultConformance(
     case "f64_eq_signaling": kernel = "soft_eq_signaling_kernel"; arity = 2
     case "f64_le_quiet": kernel = "soft_le_quiet_kernel"; arity = 2
     case "f64_lt_quiet": kernel = "soft_lt_quiet_kernel"; arity = 2
+    case "f64_roundToInt": kernel = "soft_round_to_int_kernel"; arity = 1
     default:
         throw HarnessError.validation(
             "TestFloat function \(function) is not implemented; supported: " +
             "f64_add, f64_sub, f64_mul, f64_div, f64_sqrt, f64_mulAdd, " +
             "f64_eq, f64_le, f64_lt, f64_eq_signaling, f64_le_quiet, " +
-            "f64_lt_quiet"
+            "f64_lt_quiet, f64_roundToInt"
         )
     }
     let roundingModes: [String: UInt32] = [
@@ -64,6 +66,7 @@ func runTestFloatResultConformance(
         )
     }
     let roundingBuffer = try harness.buffer([roundingMode])
+    let exactBuffer = try harness.buffer([UInt32(exact ? 1 : 0)])
     let flagsCovered = true
 
     var batch: [TestFloatCase] = []
@@ -86,6 +89,7 @@ func runTestFloatResultConformance(
             buffers: [
                 (0, aBuffer), (1, bBuffer), (2, output),
                 (4, roundingBuffer), (5, cBuffer), (6, flagsOutput),
+                (7, exactBuffer),
             ],
             countIndex: 3
         )
@@ -168,7 +172,8 @@ func runTestFloatResultConformance(
         )
     }
     print(
-        "\(function) \(rounding) TestFloat result conformance passed over \(total) cases; " +
+        "\(function) \(rounding) \(exact ? "exact" : "notexact") " +
+        "TestFloat result conformance passed over \(total) cases; " +
         "NaNs compared by class; exception flags checked " +
         "(\(expectedFlagged) oracle cases raised flags)"
     )

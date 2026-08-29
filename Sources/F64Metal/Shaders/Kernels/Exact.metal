@@ -199,6 +199,22 @@ kernel void soft_le_quiet_kernel(
     }
 }
 
+kernel void soft_round_to_int_kernel(
+    device const ulong *a [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], constant uint &exact [[buffer(7)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_round_to_int64_status(
+            a[gid], roundingMode, exact != 0, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

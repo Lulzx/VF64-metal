@@ -767,3 +767,62 @@ inline bool soft_less64_status(
     if (signA != signB) return signA;
     return signA ? a > b : a < b;
 }
+
+inline ulong soft_round_to_int64_status(
+    ulong a, uint roundingMode, bool exact, thread uint &flags
+) {
+    uint exponentField = uint((a >> 52) & 0x7fful);
+    ulong fraction = a & 0x000ffffffffffffful;
+    bool sign = (a >> 63) != 0;
+
+    if (exponentField == 0x7ffu) {
+        if (fraction != 0) {
+            if (soft_is_signaling_nan(a)) flags |= soft_flag_invalid;
+            return a | 0x0008000000000000ul;
+        }
+        return a;
+    }
+    ulong magnitude = a & 0x7ffffffffffffffful;
+    if (magnitude == 0 || exponentField >= 1075u) return a;
+
+    if (exponentField < 1023u) {
+        if (exact) flags |= soft_flag_inexact;
+        bool toOne = false;
+        ulong halfValue = 0x3fe0000000000000ul;
+        if (roundingMode == soft_round_near_even) {
+            toOne = magnitude > halfValue;
+        } else if (roundingMode == soft_round_near_max_mag) {
+            toOne = magnitude >= halfValue;
+        } else if (roundingMode == soft_round_min) {
+            toOne = sign;
+        } else if (roundingMode == soft_round_max) {
+            toOne = !sign;
+        }
+        return toOne
+            ? (ulong(sign) << 63) | 0x3ff0000000000000ul
+            : ulong(sign) << 63;
+    }
+
+    uint fractionalBits = 1075u - exponentField;
+    ulong mask = (1ul << fractionalBits) - 1ul;
+    ulong discarded = magnitude & mask;
+    if (discarded == 0) return a;
+    if (exact) flags |= soft_flag_inexact;
+
+    ulong truncated = magnitude & ~mask;
+    ulong halfValue = 1ul << (fractionalBits - 1u);
+    bool increment = false;
+    if (roundingMode == soft_round_near_even) {
+        increment = discarded > halfValue ||
+            (discarded == halfValue &&
+             ((truncated >> fractionalBits) & 1ul) != 0);
+    } else if (roundingMode == soft_round_near_max_mag) {
+        increment = discarded >= halfValue;
+    } else if (roundingMode == soft_round_min) {
+        increment = sign;
+    } else if (roundingMode == soft_round_max) {
+        increment = !sign;
+    }
+    if (increment) truncated += 1ul << fractionalBits;
+    return (ulong(sign) << 63) | truncated;
+}

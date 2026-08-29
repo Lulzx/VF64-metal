@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: f64-metal [validate|bench|all|testfloat <function> <rounding>]")
+    print("Usage: f64-metal [validate|bench|all|testfloat <function> <rounding> [exact]]")
 }
 
 do {
@@ -23,7 +23,9 @@ do {
         try runTestFloatResultConformance(
             harness,
             function: CommandLine.arguments[2],
-            rounding: CommandLine.arguments[3]
+            rounding: CommandLine.arguments[3],
+            exact: CommandLine.arguments.count >= 5 &&
+                CommandLine.arguments[4] == "exact"
         )
     default:
         usage()
