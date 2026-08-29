@@ -7,6 +7,10 @@ inline bool soft_is_inf(ulong a) {
     return (a & 0x7ffffffffffffffful) == 0x7ff0000000000000ul;
 }
 
+inline bool soft_is_signaling_nan(ulong a) {
+    return soft_is_nan(a) && (a & 0x0008000000000000ul) == 0;
+}
+
 inline ulong soft_propagate_nan(ulong a, ulong b) {
     ulong source = soft_is_nan(a) ? a : b;
     return source | 0x0008000000000000ul;
@@ -26,6 +30,11 @@ constant uint soft_round_min_mag = 1;
 constant uint soft_round_min = 2;
 constant uint soft_round_max = 3;
 constant uint soft_round_near_max_mag = 4;
+constant uint soft_flag_inexact = 1;
+constant uint soft_flag_underflow = 2;
+constant uint soft_flag_overflow = 4;
+constant uint soft_flag_infinite = 8;
+constant uint soft_flag_invalid = 16;
 
 inline bool soft_should_increment(
     bool sign, ulong roundBits, ulong significand, uint roundingMode
@@ -53,8 +62,9 @@ inline ulong soft_overflow_result(bool sign, uint roundingMode) {
         : signBit | 0x7feffffffffffffful;
 }
 
-inline ulong soft_round_pack(
-    bool sign, int exponent, ulong significandWithRound, uint roundingMode
+inline ulong soft_round_pack_status(
+    bool sign, int exponent, ulong significandWithRound, uint roundingMode,
+    thread uint &flags
 ) {
     if (exponent <= 0) {
         uint distance = uint(1 - exponent);
@@ -78,14 +88,30 @@ inline ulong soft_round_pack(
         exponent += 1;
     }
     if (exponent >= 0x7ff) {
+        flags |= soft_flag_overflow | soft_flag_inexact;
         return soft_overflow_result(sign, roundingMode);
+    }
+    if (roundBits != 0) {
+        flags |= soft_flag_inexact;
+        if (exponent == 0) flags |= soft_flag_underflow;
     }
     if (significand == 0) return ulong(sign) << 63;
     return (ulong(sign) << 63) | (ulong(exponent) << 52) |
            (significand & 0x000ffffffffffffful);
 }
 
-inline ulong soft_add64_mode(ulong a, ulong b, uint roundingMode) {
+inline ulong soft_round_pack(
+    bool sign, int exponent, ulong significandWithRound, uint roundingMode
+) {
+    uint ignoredFlags = 0;
+    return soft_round_pack_status(
+        sign, exponent, significandWithRound, roundingMode, ignoredFlags
+    );
+}
+
+inline ulong soft_add64_status(
+    ulong a, ulong b, uint roundingMode, thread uint &flags
+) {
     uint expAField = uint((a >> 52) & 0x7fful);
     uint expBField = uint((b >> 52) & 0x7fful);
     ulong fracA = a & 0x000ffffffffffffful;
@@ -94,8 +120,14 @@ inline ulong soft_add64_mode(ulong a, ulong b, uint roundingMode) {
     bool signB = (b >> 63) != 0;
 
     if (expAField == 0x7ffu || expBField == 0x7ffu) {
-        if (soft_is_nan(a) || soft_is_nan(b)) return soft_propagate_nan(a, b);
+        if (soft_is_nan(a) || soft_is_nan(b)) {
+            if (soft_is_signaling_nan(a) || soft_is_signaling_nan(b)) {
+                flags |= soft_flag_invalid;
+            }
+            return soft_propagate_nan(a, b);
+        }
         if (soft_is_inf(a) && soft_is_inf(b) && signA != signB) {
+            flags |= soft_flag_invalid;
             return 0x7ff8000000000000ul;
         }
         return soft_is_inf(a) ? a : b;
@@ -123,7 +155,7 @@ inline ulong soft_add64_mode(ulong a, ulong b, uint roundingMode) {
             sum = shift_right_jam(sum, 1);
             expA += 1;
         }
-        return soft_round_pack(signA, expA, sum, roundingMode);
+        return soft_round_pack_status(signA, expA, sum, roundingMode, flags);
     }
 
     ulong difference = sigA - sigB;
@@ -137,7 +169,14 @@ inline ulong soft_add64_mode(ulong a, ulong b, uint roundingMode) {
         difference <<= uint(left);
         expA -= left;
     }
-    return soft_round_pack(signA, expA, difference, roundingMode);
+    return soft_round_pack_status(
+        signA, expA, difference, roundingMode, flags
+    );
+}
+
+inline ulong soft_add64_mode(ulong a, ulong b, uint roundingMode) {
+    uint ignoredFlags = 0;
+    return soft_add64_status(a, b, roundingMode, ignoredFlags);
 }
 
 inline ulong soft_add64(ulong a, ulong b) {
@@ -146,6 +185,14 @@ inline ulong soft_add64(ulong a, ulong b) {
 
 inline ulong soft_sub64_mode(ulong a, ulong b, uint roundingMode) {
     return soft_add64_mode(a, b ^ 0x8000000000000000ul, roundingMode);
+}
+
+inline ulong soft_sub64_status(
+    ulong a, ulong b, uint roundingMode, thread uint &flags
+) {
+    return soft_add64_status(
+        a, b ^ 0x8000000000000000ul, roundingMode, flags
+    );
 }
 
 inline ulong soft_sub64(ulong a, ulong b) {

@@ -56,6 +56,7 @@ func runTestFloatResultConformance(
         )
     }
     let roundingBuffer = try harness.buffer([roundingMode])
+    let flagsCovered = function == "f64_add" || function == "f64_sub"
 
     var batch: [TestFloatCase] = []
     batch.reserveCapacity(batchSize)
@@ -70,28 +71,35 @@ func runTestFloatResultConformance(
         let bBuffer = try harness.buffer(cases.map(\.b))
         let cBuffer = try harness.buffer(cases.map(\.c))
         let output = try harness.emptyBuffer(count: cases.count, of: UInt64.self)
+        let flagsOutput = try harness.emptyBuffer(count: cases.count, of: UInt32.self)
         _ = try harness.run(
             kernel,
             count: cases.count,
             buffers: [
                 (0, aBuffer), (1, bBuffer), (2, output),
-                (4, roundingBuffer), (5, cBuffer),
+                (4, roundingBuffer), (5, cBuffer), (6, flagsOutput),
             ],
             countIndex: 3
         )
         let observed: [UInt64] = harness.read(output, count: cases.count)
-        for index in cases.indices where !resultsMatch(
-            observed: observed[index], expected: cases[index].expected
-        ) {
+        let observedFlags: [UInt32] = harness.read(
+            flagsOutput, count: cases.count
+        )
+        for index in cases.indices where
+            !resultsMatch(
+                observed: observed[index], expected: cases[index].expected
+            ) || (flagsCovered && observedFlags[index] != UInt32(cases[index].expectedFlags))
+        {
             if mismatches.count < 20 {
                 mismatches.append(String(
-                    format: "case %d: a=%016llx b=%016llx c=%016llx got=%016llx want=%016llx flags=%02x",
+                    format: "case %d: a=%016llx b=%016llx c=%016llx got=%016llx want=%016llx flags=%02x wantFlags=%02x",
                     total + index,
                     cases[index].a,
                     cases[index].b,
                     cases[index].c,
                     observed[index],
                     cases[index].expected,
+                    observedFlags[index],
                     cases[index].expectedFlags
                 ))
             }
@@ -153,7 +161,8 @@ func runTestFloatResultConformance(
     }
     print(
         "\(function) \(rounding) TestFloat result conformance passed over \(total) cases; " +
-        "NaNs compared by class; exception flags not checked " +
+        "NaNs compared by class; exception flags " +
+        (flagsCovered ? "checked" : "not checked") + " " +
         "(\(expectedFlagged) oracle cases raised flags)"
     )
 }

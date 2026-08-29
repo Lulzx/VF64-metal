@@ -34,3 +34,8 @@ recorded separately and must not be implied by the reproducible level-1 gate.
 M2 must extend each GPU result with exception state and freeze signaling-NaN,
 payload, default-NaN, and tininess policies before `testfloat_ver -checkNaNs`
 and flag conformance can become release gates.
+
+M2 progress: add and subtract now compare TestFloat invalid, overflow,
+underflow-after-rounding, and inexact flags in every rounding mode. Other
+operations still parse but do not compare flags, so the general limitation
+above remains in force.

@@ -133,9 +133,13 @@ explicitly leaving exception-flag conformance open. True fused FMA uses an
 exact 106-bit product in a 128-bit aligned accumulator and rounds only after the
 addend has been combined.
 
-This is not yet a complete soft-FP64 mode: conversions, comparisons, exception
-flags, and the M2 runtime surface are absent. M1 still requires its complete
-release conformance matrix and reproducible result artifacts.
+This is not yet a complete soft-FP64 mode: conversions, comparisons, complete
+exception state, and the rest of the M2 runtime surface are absent. M1 result
+conformance is complete under its committed corpus and policy.
+
+M2 exception-state work is active: add and subtract now match TestFloat flags
+in all five rounding directions. Flags for the remaining operations are not yet
+claimed.
 
 ## Deliberate limitations
 

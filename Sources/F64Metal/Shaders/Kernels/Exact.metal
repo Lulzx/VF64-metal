@@ -43,46 +43,68 @@ kernel void soft_add_round_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
     constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]],
     uint gid [[thread_position_in_grid]])
 {
-    if (gid < count) output[gid] = soft_add64_mode(a[gid], b[gid], roundingMode);
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_add64_status(a[gid], b[gid], roundingMode, raised);
+        flags[gid] = raised;
+    }
 }
 
 kernel void soft_sub_round_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
     constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]],
     uint gid [[thread_position_in_grid]])
 {
-    if (gid < count) output[gid] = soft_sub64_mode(a[gid], b[gid], roundingMode);
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_sub64_status(a[gid], b[gid], roundingMode, raised);
+        flags[gid] = raised;
+    }
 }
 
 kernel void soft_mul_round_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
     constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]],
     uint gid [[thread_position_in_grid]])
 {
-    if (gid < count) output[gid] = soft_mul64_mode(a[gid], b[gid], roundingMode);
+    if (gid < count) {
+        output[gid] = soft_mul64_mode(a[gid], b[gid], roundingMode);
+        flags[gid] = 0;
+    }
 }
 
 kernel void soft_div_round_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
     constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]],
     uint gid [[thread_position_in_grid]])
 {
-    if (gid < count) output[gid] = soft_div64_mode(a[gid], b[gid], roundingMode);
+    if (gid < count) {
+        output[gid] = soft_div64_mode(a[gid], b[gid], roundingMode);
+        flags[gid] = 0;
+    }
 }
 
 kernel void soft_sqrt_round_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *unused [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
     constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]],
     uint gid [[thread_position_in_grid]])
 {
     (void)unused;
-    if (gid < count) output[gid] = soft_sqrt64_mode(a[gid], roundingMode);
+    if (gid < count) {
+        output[gid] = soft_sqrt64_mode(a[gid], roundingMode);
+        flags[gid] = 0;
+    }
 }
 
 kernel void soft_fma_round_kernel(
@@ -90,10 +112,12 @@ kernel void soft_fma_round_kernel(
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
     constant uint &roundingMode [[buffer(4)]],
     device const ulong *c [[buffer(5)]],
+    device uint *flags [[buffer(6)]],
     uint gid [[thread_position_in_grid]])
 {
     if (gid < count) {
         output[gid] = soft_fma64_mode(a[gid], b[gid], c[gid], roundingMode);
+        flags[gid] = 0;
     }
 }
 
