@@ -16,6 +16,13 @@ The current committed artifact is summarized in
 [`results/summary.md`](../../results/summary.md), with machine-readable device,
 source, oracle, corpus, and policy provenance beside it.
 
+Public operation-by-operation counts for both the direct runtime and VF64 ISA
+paths are in the checked
+[`operation matrix`](../../results/conformance/2026-08-29-m4-pro-operation-matrix.json).
+Run `scripts/check-conformance-data.sh` to verify that its 26 operations, 119
+policy cells, and 31,982,976 comparisons per path reconcile with the frozen M2
+and M4 artifacts.
+
 The current bridge accepts `testfloat_gen` function records, batches operands
 onto the Metal GPU, and compares returned bits and exception flags with the
 generated SoftFloat result. It covers the M1 arithmetic family plus M2

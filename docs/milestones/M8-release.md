@@ -27,6 +27,12 @@ layout/constants and machine-readable version gates. Internal Swift/Metal
 helpers, benchmark commands, and the CuMetal integration surface are not yet
 declared stable.
 
+The public [operation-by-operation conformance matrix](../../results/conformance/2026-08-29-m4-pro-operation-matrix.json)
+reconciles all 26 runtime operations and 119 policy cells with the frozen M2
+direct-runtime and M4 VF64-ISA runs. Its consistency check is part of release
+verification. This closes the data-publication item, not the cross-generation
+or release gates.
+
 Workflow source is not CI evidence. No runner availability or successful
 cross-generation run is claimed until public run artifacts exist. M3, M5, and
 M7 exits also remain open, so tagging 1.0 and publishing the final claim are

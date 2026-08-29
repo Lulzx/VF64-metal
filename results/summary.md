@@ -39,6 +39,10 @@ bitwise. Tininess is detected after rounding.
 
 Machine-readable evidence:
 [`m2/2026-08-29-m4-pro-full-runtime-level1.json`](m2/2026-08-29-m4-pro-full-runtime-level1.json).
+The checked public
+[`operation matrix`](conformance/2026-08-29-m4-pro-operation-matrix.json)
+breaks the same run into 26 operations and 119 policy cells and reconciles it
+with the independent VF64 ISA execution path.
 
 The earlier core-only flag artifact remains as historical incremental evidence.
 Level 2 exhaustive campaigns are not implied by this level-1 exit.

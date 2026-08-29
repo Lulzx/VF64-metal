@@ -14,7 +14,7 @@ The status labels below distinguish implemented source from exit evidence.
 | M5 compiler integration | In progress | standalone typed frontend lowers arithmetic, comparisons, selection, and 12 conversions; all explicit policies execute on Metal | CuMetal source/PTX `double` integration and observable-boundary regressions |
 | M6 automatic precision | Complete | profiled per-op selector; diagnostics; mixed fast48/wide48 region met 40-bit contract at 1.18x pure ieee64 | none within the declared VF64 accuracy-contract path |
 | M7 workloads | In progress | M4 Pro pilot covers CG, GMRES, three CSR structures, GEMV, GEMM, batched 2D LP, multi-step N-body, plus the legacy CuMetal CUDA pair contract | VF64-integrated CuMetal CUDA path, energy, external sparse and broader LP corpora, and cross-device reproduction |
-| M8 1.0 | In progress | claim policy, unified release-verification script, and self-hosted M1-M4 workflow matrix | successful public cross-generation runs, all prior exits, stable release, and technical report |
+| M8 1.0 | In progress | claim policy, unified release-verification script, self-hosted M1-M4 workflow matrix, stable public C/runner ABI, technical-report draft, and checked operation-by-operation conformance data | successful public cross-generation runs, all prior exits, stable release, and final technical report |
 
 ## Evidence rules
 

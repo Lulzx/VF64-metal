@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "title": "VF64 binary64 operation-by-operation conformance matrix",
+  "date": "2026-08-29",
+  "status": "pass",
+  "scope": "Berkeley TestFloat Release 3e level-1 result-bit and exception-flag comparisons",
+  "oracle": {
+    "name": "Berkeley TestFloat Release 3e with SoftFloat ARM-VFPv2",
+    "testfloat_commit": "a9c849f1b0eb0264b626d9686ffae167d996e3be",
+    "softfloat_commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "level": 1,
+    "seed": 1,
+    "tininess": "after_rounding"
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "evidence": {
+    "direct_runtime": {
+      "artifact": "results/m2/2026-08-29-m4-pro-full-runtime-level1.json",
+      "source_commit": "d96094acf6b09397750eca4d8c67fa59e37c94d0",
+      "command": "scripts/run-testfloat-m2.sh"
+    },
+    "vf64_isa": {
+      "artifact": "results/m4/2026-08-29-m4-pro-vf64-v1-level1.json",
+      "source_commit": "2827f2da02678a1e1f07cab9e03d3f3a0057b541",
+      "command": "scripts/run-testfloat-m4.sh"
+    }
+  },
+  "policy_dimensions": {
+    "rounding_modes": ["rnear_even", "rminMag", "rmin", "rmax", "rnear_maxMag"],
+    "exactness_modes": ["notexact", "exact"],
+    "rounding_independent": "one rnear_even-labelled cell because TestFloat accepts no rounding option"
+  },
+  "operations": [
+    {"operation":"f64_add","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":46464,"comparisons":232320,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_sub","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":46464,"comparisons":232320,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_mul","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":46464,"comparisons":232320,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_div","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":46464,"comparisons":232320,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_sqrt","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":768,"comparisons":3840,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_mulAdd","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":6133248,"comparisons":30666240,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_eq","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_le","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_lt","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_eq_signaling","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_le_quiet","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_lt_quiet","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_rem","policy":"rounding independent","policy_cells":1,"cases_per_cell":46464,"comparisons":46464,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_roundToInt","policy":"5 rounding modes x 2 exactness modes","policy_cells":10,"cases_per_cell":768,"comparisons":7680,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"ui32_to_f64","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":372,"comparisons":1860,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"ui64_to_f64","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":756,"comparisons":3780,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"i32_to_f64","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":372,"comparisons":1860,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"i64_to_f64","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":756,"comparisons":3780,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_to_ui32","policy":"5 rounding modes x 2 exactness modes","policy_cells":10,"cases_per_cell":768,"comparisons":7680,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_to_ui64","policy":"5 rounding modes x 2 exactness modes","policy_cells":10,"cases_per_cell":768,"comparisons":7680,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_to_i32","policy":"5 rounding modes x 2 exactness modes","policy_cells":10,"cases_per_cell":768,"comparisons":7680,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_to_i64","policy":"5 rounding modes x 2 exactness modes","policy_cells":10,"cases_per_cell":768,"comparisons":7680,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_to_f32","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":768,"comparisons":3840,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f64_to_f16","policy":"5 rounding modes","policy_cells":5,"cases_per_cell":768,"comparisons":3840,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f32_to_f64","policy":"rounding independent","policy_cells":1,"cases_per_cell":600,"comparisons":600,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0},
+    {"operation":"f16_to_f64","policy":"rounding independent","policy_cells":1,"cases_per_cell":408,"comparisons":408,"direct_runtime_mismatches":0,"vf64_isa_mismatches":0}
+  ],
+  "totals": {
+    "operations": 26,
+    "policy_cells": 119,
+    "comparisons_per_execution_path": 31982976,
+    "execution_paths": 2,
+    "direct_runtime_mismatches": 0,
+    "vf64_isa_mismatches": 0
+  },
+  "comparison_contract": {
+    "result_bits": "exact, including ARM-VFPv2 NaN sign, quiet bit, and payload",
+    "exception_flags": "exact sticky invalid, divide-by-zero, overflow, underflow, and inexact bits",
+    "integer_invalid_results": "ARM-VFPv2 saturation policy"
+  },
+  "limitations": [
+    "This matrix publishes completed level-1 runs; it does not imply TestFloat level 2",
+    "Per-operation zero mismatches follow from the recorded zero-mismatch complete runs; this file does not represent a new execution",
+    "Reduced-precision fast48 and wide48 modes are outside TestFloat IEEE conformance"
+  ]
+}
