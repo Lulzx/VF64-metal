@@ -395,4 +395,5 @@ func runScientificWorkloads(_ harness: MetalHarness) throws {
     try runGMRESWorkload(harness)
     try runDenseWorkloads(harness)
     try runNBodyWorkload(harness)
+    try runLPWorkload(harness)
 }

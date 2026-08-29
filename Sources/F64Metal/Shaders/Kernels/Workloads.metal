@@ -326,3 +326,150 @@ kernel void nbody_ieee64_kernel(
     ayOut[gid] = ay;
     azOut[gid] = az;
 }
+
+inline bool lp_fast48_leq(emu_f64 a, emu_f64 b) {
+    uint flags = 0;
+    return soft_less64_status(
+        pack_binary64(a), pack_binary64(b), true, true, flags
+    );
+}
+
+inline void lp_fast48_consider(
+    emu_f64 x, emu_f64 y, emu_f64 c0, emu_f64 c1,
+    device const ulong *a, device const ulong *b, device const ulong *rhs,
+    uint constraintCount, thread emu_f64 &bestX, thread emu_f64 &bestY,
+    thread emu_f64 &bestObjective)
+{
+    emu_f64 zero = make_emu(0.0f, 0.0f);
+    if (!lp_fast48_leq(zero, x) || !lp_fast48_leq(zero, y)) return;
+    bool ignored;
+    for (uint k = 0; k < constraintCount; ++k) {
+        emu_f64 lhs = fma_ff(
+            unpack_binary64(a[k], ignored), x,
+            mul_ff(unpack_binary64(b[k], ignored), y)
+        );
+        emu_f64 feasibleBound = add_ff(
+            unpack_binary64(rhs[k], ignored), make_emu(1.0e-10f, 0.0f)
+        );
+        if (!lp_fast48_leq(lhs, feasibleBound)) return;
+    }
+    emu_f64 objective = fma_ff(c0, x, mul_ff(c1, y));
+    if (lp_fast48_leq(bestObjective, objective)) {
+        bestX = x;
+        bestY = y;
+        bestObjective = objective;
+    }
+}
+
+kernel void lp_fast48_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device const ulong *rhs [[buffer(2)]], device const ulong *c0s [[buffer(3)]],
+    device const ulong *c1s [[buffer(4)]], device ulong *solution [[buffer(5)]],
+    device const uint *constraintCountBuffer [[buffer(6)]],
+    constant uint &count [[buffer(7)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint constraintCount = constraintCountBuffer[0];
+    bool ignored;
+    emu_f64 zero = make_emu(0.0f, 0.0f);
+    emu_f64 c0 = unpack_binary64(c0s[gid], ignored);
+    emu_f64 c1 = unpack_binary64(c1s[gid], ignored);
+    emu_f64 bestX = zero, bestY = zero, bestObjective = zero;
+    lp_fast48_consider(zero, zero, c0, c1, a, b, rhs, constraintCount,
+                       bestX, bestY, bestObjective);
+    for (uint i = 0; i < constraintCount; ++i) {
+        emu_f64 ai = unpack_binary64(a[i], ignored);
+        emu_f64 bi = unpack_binary64(b[i], ignored);
+        emu_f64 ri = unpack_binary64(rhs[i], ignored);
+        lp_fast48_consider(div_ff(ri, ai), zero, c0, c1, a, b, rhs,
+                           constraintCount, bestX, bestY, bestObjective);
+        lp_fast48_consider(zero, div_ff(ri, bi), c0, c1, a, b, rhs,
+                           constraintCount, bestX, bestY, bestObjective);
+        for (uint j = i + 1; j < constraintCount; ++j) {
+            emu_f64 aj = unpack_binary64(a[j], ignored);
+            emu_f64 bj = unpack_binary64(b[j], ignored);
+            emu_f64 rj = unpack_binary64(rhs[j], ignored);
+            emu_f64 determinant = sub_ff(mul_ff(ai, bj), mul_ff(aj, bi));
+            if (determinant.hi == 0.0f) continue;
+            emu_f64 x = div_ff(sub_ff(mul_ff(ri, bj), mul_ff(rj, bi)), determinant);
+            emu_f64 y = div_ff(sub_ff(mul_ff(ai, rj), mul_ff(aj, ri)), determinant);
+            lp_fast48_consider(x, y, c0, c1, a, b, rhs, constraintCount,
+                               bestX, bestY, bestObjective);
+        }
+    }
+    solution[gid * 3u] = pack_binary64(bestX);
+    solution[gid * 3u + 1u] = pack_binary64(bestY);
+    solution[gid * 3u + 2u] = pack_binary64(bestObjective);
+}
+
+inline bool lp_ieee_leq(ulong a, ulong b) {
+    uint flags = 0;
+    return soft_less64_status(a, b, true, true, flags);
+}
+
+inline void lp_ieee_consider(
+    ulong x, ulong y, ulong c0, ulong c1,
+    device const ulong *a, device const ulong *b, device const ulong *rhs,
+    uint constraintCount, thread ulong &bestX, thread ulong &bestY,
+    thread ulong &bestObjective)
+{
+    uint flags = 0;
+    if (!lp_ieee_leq(0ul, x) || !lp_ieee_leq(0ul, y)) return;
+    for (uint k = 0; k < constraintCount; ++k) {
+        ulong lhs = soft_mul64_status(b[k], y, soft_round_near_even, flags);
+        lhs = soft_fma64_status(a[k], x, lhs, soft_round_near_even, flags);
+        ulong feasibleBound = soft_add64_status(
+            rhs[k], 0x3ddb7cdfd9d7bdbbul, soft_round_near_even, flags
+        );
+        if (!lp_ieee_leq(lhs, feasibleBound)) return;
+    }
+    ulong objective = soft_mul64_status(c1, y, soft_round_near_even, flags);
+    objective = soft_fma64_status(c0, x, objective, soft_round_near_even, flags);
+    if (lp_ieee_leq(bestObjective, objective)) {
+        bestX = x;
+        bestY = y;
+        bestObjective = objective;
+    }
+}
+
+kernel void lp_ieee64_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device const ulong *rhs [[buffer(2)]], device const ulong *c0s [[buffer(3)]],
+    device const ulong *c1s [[buffer(4)]], device ulong *solution [[buffer(5)]],
+    device const uint *constraintCountBuffer [[buffer(6)]],
+    constant uint &count [[buffer(7)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint constraintCount = constraintCountBuffer[0];
+    uint flags = 0;
+    ulong bestX = 0ul, bestY = 0ul, bestObjective = 0ul;
+    lp_ieee_consider(0ul, 0ul, c0s[gid], c1s[gid], a, b, rhs,
+                     constraintCount, bestX, bestY, bestObjective);
+    for (uint i = 0; i < constraintCount; ++i) {
+        ulong axisX = soft_div64_status(rhs[i], a[i], soft_round_near_even, flags);
+        ulong axisY = soft_div64_status(rhs[i], b[i], soft_round_near_even, flags);
+        lp_ieee_consider(axisX, 0ul, c0s[gid], c1s[gid], a, b, rhs,
+                         constraintCount, bestX, bestY, bestObjective);
+        lp_ieee_consider(0ul, axisY, c0s[gid], c1s[gid], a, b, rhs,
+                         constraintCount, bestX, bestY, bestObjective);
+        for (uint j = i + 1; j < constraintCount; ++j) {
+            ulong determinant = soft_mul64_status(a[i], b[j], soft_round_near_even, flags);
+            ulong term = soft_mul64_status(a[j], b[i], soft_round_near_even, flags);
+            determinant = soft_sub64_status(determinant, term, soft_round_near_even, flags);
+            if ((determinant & 0x7ffffffffffffffful) == 0ul) continue;
+            ulong xNumerator = soft_mul64_status(rhs[i], b[j], soft_round_near_even, flags);
+            term = soft_mul64_status(rhs[j], b[i], soft_round_near_even, flags);
+            xNumerator = soft_sub64_status(xNumerator, term, soft_round_near_even, flags);
+            ulong yNumerator = soft_mul64_status(a[i], rhs[j], soft_round_near_even, flags);
+            term = soft_mul64_status(a[j], rhs[i], soft_round_near_even, flags);
+            yNumerator = soft_sub64_status(yNumerator, term, soft_round_near_even, flags);
+            ulong x = soft_div64_status(xNumerator, determinant, soft_round_near_even, flags);
+            ulong y = soft_div64_status(yNumerator, determinant, soft_round_near_even, flags);
+            lp_ieee_consider(x, y, c0s[gid], c1s[gid], a, b, rhs,
+                             constraintCount, bestX, bestY, bestObjective);
+        }
+    }
+    solution[gid * 3u] = bestX;
+    solution[gid * 3u + 1u] = bestY;
+    solution[gid * 3u + 2u] = bestObjective;
+}
