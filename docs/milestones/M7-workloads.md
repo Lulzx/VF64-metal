@@ -72,6 +72,9 @@ This is not the M7 exit. Energy measurements and cross-device reproduction
 remain open.
 The non-privileged `powermetrics` GPU-power probe failed with its explicit
 superuser requirement; no runtime-derived energy estimate is substituted.
+`scripts/capture-energy.sh` freezes the privileged collection method and
+preserves raw CPU/GPU samples, workload output, command status, interval, and
+device/OS provenance. It intentionally fails before collection without root.
 
 ## Exit criterion
 

@@ -93,6 +93,8 @@ proof is still required. The
 - `check-vf64-abi.sh`, `check-cli-api.sh` - freeze public ABI/API surfaces.
 - `check-cumetal-integration.sh` - verify all three CuMetal FP64 modes.
 - `fetch-matrix-market.sh` - fetch the checksum-pinned external sparse corpus.
+- `capture-energy.sh` - capture authorized raw CPU/GPU power samples around a
+  workload; it fails closed unless run as root.
 - `check-conformance-data.sh` - reconcile published conformance artifacts.
 - `verify-release.sh` - run the consolidated local release gate.
 
