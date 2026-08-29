@@ -1,0 +1,4 @@
+kernel axpy(double alpha, double x, double y) -> double {
+    let product: double = alpha * x;
+    return product + y;
+}

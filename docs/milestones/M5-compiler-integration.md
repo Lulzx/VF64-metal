@@ -16,8 +16,12 @@ CuMetal is the first integration target. CUDA-visible `mov.b64`, `uint64_t`,
 shared-memory, shuffle, reload, and call behavior are mandatory regression
 surfaces.
 
+Current progress: the standalone [`VF64 source compiler`](../compiler/source-language.md)
+lowers typed `double` kernels through each explicit policy and emits executable
+VF64 bytecode. CuMetal PTX integration and its observable-boundary regression
+suite remain required before M5 can close.
+
 ## Exit criterion
 
 Existing numerical kernels use `double` without manually calling emulation
 functions, and each policy is demonstrably routed through its declared backend.
-
