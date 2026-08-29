@@ -157,7 +157,16 @@ Device-resident scheduling evidence:
 GMRES scheduling evidence:
 [`m7/2026-08-29-m4-pro-device-resident-gmres.json`](m7/2026-08-29-m4-pro-device-resident-gmres.json).
 
-The current follow-up removes the CPU-reference iteration count. The GPU
+The current CG follow-up also removes the CPU-reference iteration count. The
+GPU selects convergence at iteration 11 and snapshots a solution with the
+same 1.453e-12 true residual. Its five-run median is 9.002 ms versus 16.183 ms
+for the synchronized path and 1.107 ms for CPU. All 200 candidate iterations
+remain encoded and execute, so the earlier CPU-count-guided 0.989 ms result is
+retained separately rather than conflated with device-selected convergence.
+Evidence:
+[`m7/2026-08-29-m4-pro-device-selected-cg.json`](m7/2026-08-29-m4-pro-device-selected-cg.json).
+
+The current GMRES follow-up removes the CPU-reference iteration count. The GPU
 selects convergence at iteration 10, captures a 2.712e-11 residual estimate,
 and performs the matching back-substitution and solution assembly. Its five-run
 median is 10.850 ms versus 32.455 ms for the synchronized path and 1.120 ms for

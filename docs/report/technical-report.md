@@ -102,6 +102,7 @@ columns, so dispatch-level early termination is not claimed.
 | batched 2D LP `fast48` | 46.43 p01 objective bits; zero infeasible | 4.36x pilot; 0.92x-2.77x structured follow-up |
 | N-body force `fast48` | 40.67 p01 bits | 0.96x |
 | CG `fast48`, device-resident schedule | 11 iterations; 1.453e-12 residual | 1.06x |
+| CG `fast48`, device-selected convergence | 11 iterations; 1.453e-12 residual | 0.12x |
 | GMRES `fast48`, synchronized | 10 iterations; 2.712e-11 residual | 0.04x |
 | GMRES `fast48`, device-selected convergence | 10 iterations; 2.712e-11 residual | 0.10x |
 
@@ -110,10 +111,12 @@ trajectory to 4.109e-15 relative state error and reproduces its 3.340e-6
 relative energy drift, but runs at 0.44x CPU for the measured 256-body shape.
 
 The CG result uses one command buffer for SpMV, reductions, alpha/beta, and
-vector updates. It uses the CPU baseline's fixed iteration count and validates
-only after completion; CG device-side convergence and dispatch-level early
-termination remain open. GMRES now selects convergence on the GPU, but likewise
-does not cancel later pre-encoded columns.
+vector updates. The original 1.06x result uses the CPU baseline's fixed
+iteration count. A current follow-up selects convergence at iteration 11 and
+snapshots the 1.453e-12-residual solution on the GPU; its five-run median is
+9.002 ms, 1.80x faster than synchronized GPU but 0.12x CPU because all 200
+candidate iterations still execute. GMRES likewise selects convergence on the
+GPU but does not cancel later pre-encoded columns.
 
 CuMetal now executes the unchanged CUDA contract probe through `fast48`,
 `wide48`, and `ieee64`. The gate covers arithmetic, true fused FMA, square root,

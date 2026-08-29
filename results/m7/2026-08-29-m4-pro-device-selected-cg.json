@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "status": "partial_pass",
+  "source_commit": "8b4301bf8a47826814d39e03d5a2dfe9a683cb68",
+  "command": "for run in 1 2 3 4 5; do .build/release/vf64-metal workloads; done",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "cg": {
+    "matrix": "cyclic nine-point stencil",
+    "unknowns": 16384,
+    "maximum_preencoded_iterations": 200,
+    "device_selected_iterations": 11,
+    "tolerance": 1e-11,
+    "true_relative_residual": 1.453e-12,
+    "relative_solution_error": 1.194e-12,
+    "samples_ms": {
+      "cpu_fp64": [1.107, 1.095, 1.085, 1.115, 1.141],
+      "synchronized_fast48_gpu": [16.012, 16.055, 17.200, 16.183, 17.111],
+      "device_selected_fast48_gpu": [8.868, 8.904, 9.233, 9.045, 9.002]
+    },
+    "median_ms": {
+      "cpu_fp64": 1.107,
+      "synchronized_fast48_gpu": 16.183,
+      "device_selected_fast48_gpu": 9.002
+    },
+    "device_selected_cpu_speedup": 0.12,
+    "scheduling_speedup": 1.80,
+    "device_resident_work": "Convergence selection, converged-solution snapshot, SpMV, dot reductions, alpha and beta, and vector updates",
+    "host_work": "final-state validation after completion"
+  },
+  "limitations": [
+    "All 200 candidate CG iterations are encoded and execute; the first converged solution is snapshotted but later dispatches are not cancelled.",
+    "The earlier CPU-count-guided 11-iteration schedule is faster and remains separate historical scheduling evidence.",
+    "The device-selected path remains slower than the scalar CPU baseline for this shape.",
+    "Results are from one Apple GPU generation."
+  ]
+}

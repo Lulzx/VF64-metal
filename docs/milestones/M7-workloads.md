@@ -37,6 +37,11 @@ Machine-readable evidence:
 [`results/m7/2026-08-29-m4-pro-workload-pilot.json`](../../results/m7/2026-08-29-m4-pro-workload-pilot.json).
 The device-resident scheduling follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-scheduling.json`](../../results/m7/2026-08-29-m4-pro-device-resident-scheduling.json).
+The current CG follow-up removes the CPU-reference iteration count. Metal
+selects convergence at iteration 11 and snapshots the solution with a
+1.453e-12 true residual. All 200 candidate iterations remain pre-encoded, so
+this proves device-side convergence selection but not dispatch cancellation:
+[`results/m7/2026-08-29-m4-pro-device-selected-cg.json`](../../results/m7/2026-08-29-m4-pro-device-selected-cg.json).
 The device-resident GMRES follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-gmres.json`](../../results/m7/2026-08-29-m4-pro-device-resident-gmres.json).
 A second GMRES follow-up removes the CPU-reference iteration count: Metal
