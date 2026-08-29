@@ -357,6 +357,64 @@ kernel void soft_f64_to_i64_kernel(
     }
 }
 
+kernel void soft_f64_to_f32_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_f64_to_format_status(
+            input[gid], roundingMode, 8, 23, 127, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_f64_to_f16_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_f64_to_format_status(
+            input[gid], roundingMode, 5, 10, 15, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_f32_to_f64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_format_to_f64_status(
+            input[gid] & 0xfffffffful, 8, 23, 127, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_f16_to_f64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_format_to_f64_status(
+            input[gid] & 0xfffful, 5, 10, 15, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

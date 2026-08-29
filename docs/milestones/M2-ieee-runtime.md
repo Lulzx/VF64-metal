@@ -15,8 +15,9 @@ comparison family, and round-to-integer under every rounding/exactness policy
 pass on the Metal GPU. IEEE remainder also passes its result/flag matrix.
 Signed and unsigned 32/64-bit integer-to-binary64 conversions pass every
 rounding mode. Binary64-to-integer conversions also pass every rounding and
-exactness policy. Cross-format conversions and the final NaN payload policy
-remain.
+exactness policy. Binary16/binary32 narrowing and widening also pass, including
+bitwise NaN payload conversion. The final full-runtime NaN policy and ABI remain
+to be frozen.
 
 Operation availability must be explicit. An unsupported exact operation may
 fail compilation or dispatch to an exact implementation, but must never

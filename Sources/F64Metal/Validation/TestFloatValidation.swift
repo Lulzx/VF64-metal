@@ -12,8 +12,10 @@ private func parseHex<T: FixedWidthInteger>(_ text: Substring, as: T.Type) -> T?
     T(text, radix: 16)
 }
 
-private func resultsMatch(observed: UInt64, expected: UInt64) -> Bool {
-    if Double(bitPattern: expected).isNaN {
+private func resultsMatch(
+    observed: UInt64, expected: UInt64, exactNaNs: Bool = false
+) -> Bool {
+    if !exactNaNs && Double(bitPattern: expected).isNaN {
         // M1 compares NaNs by class. Payload, signaling, and invalid-flag
         // semantics remain an explicit M2 gate.
         return Double(bitPattern: observed).isNaN
@@ -57,13 +59,18 @@ func runTestFloatResultConformance(
         kernel = "soft_f64_to_i32_kernel"; arity = 1
     case "f64_to_i64":
         kernel = "soft_f64_to_i64_kernel"; arity = 1
+    case "f64_to_f32": kernel = "soft_f64_to_f32_kernel"; arity = 1
+    case "f64_to_f16": kernel = "soft_f64_to_f16_kernel"; arity = 1
+    case "f32_to_f64": kernel = "soft_f32_to_f64_kernel"; arity = 1
+    case "f16_to_f64": kernel = "soft_f16_to_f64_kernel"; arity = 1
     default:
         throw HarnessError.validation(
             "TestFloat function \(function) is not implemented; supported: " +
             "f64_add, f64_sub, f64_mul, f64_div, f64_sqrt, f64_mulAdd, " +
             "f64_eq, f64_le, f64_lt, f64_eq_signaling, f64_le_quiet, " +
             "f64_lt_quiet, f64_roundToInt, f64_rem, ui32_to_f64, " +
-            "ui64_to_f64, i32_to_f64, i64_to_f64, f64_to_ui32/ui64/i32/i64"
+            "ui64_to_f64, i32_to_f64, i64_to_f64, f64_to_ui32/ui64/i32/i64, " +
+            "f64_to_f32/f16, f32/f16_to_f64"
         )
     }
     let roundingModes: [String: UInt32] = [
@@ -82,6 +89,9 @@ func runTestFloatResultConformance(
     let roundingBuffer = try harness.buffer([roundingMode])
     let exactBuffer = try harness.buffer([UInt32(exact ? 1 : 0)])
     let flagsCovered = true
+    let exactNaNs = [
+        "f64_to_f32", "f64_to_f16", "f32_to_f64", "f16_to_f64",
+    ].contains(function)
 
     var batch: [TestFloatCase] = []
     batch.reserveCapacity(batchSize)
@@ -113,7 +123,8 @@ func runTestFloatResultConformance(
         )
         for index in cases.indices where
             !resultsMatch(
-                observed: observed[index], expected: cases[index].expected
+                observed: observed[index], expected: cases[index].expected,
+                exactNaNs: exactNaNs
             ) || (flagsCovered && observedFlags[index] != UInt32(cases[index].expectedFlags))
         {
             if mismatches.count < 20 {
@@ -188,7 +199,8 @@ func runTestFloatResultConformance(
     print(
         "\(function) \(rounding) \(exact ? "exact" : "notexact") " +
         "TestFloat result conformance passed over \(total) cases; " +
-        "NaNs compared by class; exception flags checked " +
+        "NaNs compared \(exactNaNs ? "bitwise" : "by class"); " +
+        "exception flags checked " +
         "(\(expectedFlagged) oracle cases raised flags)"
     )
 }

@@ -993,3 +993,123 @@ inline ulong soft_f64_to_int_status(
         ? (~magnitude) + 1ul : magnitude;
     return targetBits == 32 ? result & 0xfffffffful : result;
 }
+
+inline ulong soft_round_pack_format_status(
+    bool sign, int exponent, ulong significandWithRound, uint roundingMode,
+    uint exponentBits, uint fractionBits, thread uint &flags
+) {
+    bool wasSubnormal = exponent <= 0;
+    if (exponent <= 0) {
+        significandWithRound = shift_right_jam(
+            significandWithRound, uint(1 - exponent)
+        );
+        exponent = 0;
+    }
+
+    ulong roundBits = significandWithRound & 7ul;
+    ulong significand = significandWithRound >> 3;
+    if (soft_should_increment(sign, roundBits, significand, roundingMode)) {
+        significand += 1ul;
+    }
+    ulong hidden = 1ul << fractionBits;
+    if (exponent == 0 && significand >= hidden) {
+        exponent = 1;
+    } else if (significand >= (hidden << 1)) {
+        significand >>= 1;
+        exponent += 1;
+    }
+
+    uint exponentMax = (1u << exponentBits) - 1u;
+    ulong signBit = ulong(sign) << (exponentBits + fractionBits);
+    if (exponent >= int(exponentMax)) {
+        flags |= soft_flag_overflow | soft_flag_inexact;
+        bool toInfinity =
+            roundingMode == soft_round_near_even ||
+            roundingMode == soft_round_near_max_mag ||
+            (roundingMode == soft_round_min && sign) ||
+            (roundingMode == soft_round_max && !sign);
+        return toInfinity
+            ? signBit | (ulong(exponentMax) << fractionBits)
+            : signBit | (ulong(exponentMax - 1u) << fractionBits) |
+                (hidden - 1ul);
+    }
+    if (roundBits != 0) {
+        flags |= soft_flag_inexact;
+        bool tiny = exponent == 0 ||
+            (wasSubnormal && exponent == 1 && roundBits <= 4ul);
+        if (tiny) flags |= soft_flag_underflow;
+    }
+    if (significand == 0) return signBit;
+    return signBit | (ulong(exponent) << fractionBits) |
+        (significand & (hidden - 1ul));
+}
+
+inline ulong soft_f64_to_format_status(
+    ulong a, uint roundingMode, uint exponentBits, uint fractionBits,
+    int targetBias, thread uint &flags
+) {
+    bool sign = (a >> 63) != 0;
+    uint exponentField = uint((a >> 52) & 0x7fful);
+    ulong fraction = a & 0x000ffffffffffffful;
+    uint exponentMax = (1u << exponentBits) - 1u;
+    ulong signBit = ulong(sign) << (exponentBits + fractionBits);
+    if (exponentField == 0x7ffu) {
+        if (fraction == 0) {
+            return signBit | (ulong(exponentMax) << fractionBits);
+        }
+        if (soft_is_signaling_nan(a)) flags |= soft_flag_invalid;
+        uint payloadShift = 52u - fractionBits;
+        ulong payload = fraction >> payloadShift;
+        return signBit | (ulong(exponentMax) << fractionBits) |
+            (1ul << (fractionBits - 1u)) | payload;
+    }
+    if (exponentField == 0 && fraction == 0) return signBit;
+
+    soft_normalized operand = soft_normalize_operand(exponentField, fraction);
+    int targetExponent = operand.exponent - 1023 + targetBias;
+    uint shift = 52u - fractionBits - 3u;
+    ulong significandWithRound = shift_right_jam(
+        operand.significand, shift
+    );
+    return soft_round_pack_format_status(
+        sign, targetExponent, significandWithRound, roundingMode,
+        exponentBits, fractionBits, flags
+    );
+}
+
+inline ulong soft_format_to_f64_status(
+    ulong raw, uint exponentBits, uint fractionBits, int sourceBias,
+    thread uint &flags
+) {
+    uint signPosition = exponentBits + fractionBits;
+    bool sign = ((raw >> signPosition) & 1ul) != 0;
+    uint exponentMax = (1u << exponentBits) - 1u;
+    uint exponentField = uint((raw >> fractionBits) & ulong(exponentMax));
+    ulong fractionMask = (1ul << fractionBits) - 1ul;
+    ulong fraction = raw & fractionMask;
+    if (exponentField == exponentMax) {
+        if (fraction == 0) {
+            return (ulong(sign) << 63) | 0x7ff0000000000000ul;
+        }
+        ulong quietBit = 1ul << (fractionBits - 1u);
+        if ((fraction & quietBit) == 0) flags |= soft_flag_invalid;
+        return (ulong(sign) << 63) | 0x7ff8000000000000ul |
+            (fraction << (52u - fractionBits));
+    }
+    if (exponentField == 0 && fraction == 0) return ulong(sign) << 63;
+
+    ulong significand;
+    int adjustedExponent;
+    if (exponentField == 0) {
+        int leading = 63 - int(clz(fraction));
+        int left = int(fractionBits) - leading;
+        significand = fraction << uint(left);
+        adjustedExponent = 1 - left;
+    } else {
+        significand = fraction | (1ul << fractionBits);
+        adjustedExponent = int(exponentField);
+    }
+    int exponent64 = adjustedExponent - sourceBias + 1023;
+    ulong fraction64 = (significand & fractionMask) << (52u - fractionBits);
+    return (ulong(sign) << 63) | (ulong(exponent64) << 52) | fraction64;
+}

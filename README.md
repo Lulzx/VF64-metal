@@ -162,6 +162,10 @@ The four binary64-to-integer directions pass all rounding and exactness
 policies. Invalid conversions follow the documented ARM-VFPv2 SoftFloat
 saturation values; 40 TestFloat cells pass with zero result/flag mismatches.
 
+Binary16 and binary32 interchange with binary64 is implemented. Narrowing
+supports every rounding mode and flags; widening is exact. Cross-format NaN
+payloads are compared bit-for-bit against the pinned SoftFloat policy.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the

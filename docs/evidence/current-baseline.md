@@ -67,6 +67,10 @@ Binary64 conversion to the same four integer targets passed 768 cases in every
 rounding/exactness cell: 30,720 result/flag comparisons. NaNs and overflows use
 the pinned ARM-VFPv2 SoftFloat saturation results and raise invalid.
 
+Binary64 narrowing to binary32 and binary16 passed 768 TestFloat cases in each
+of five rounding modes. Exact widening passed 600 binary32 and 408 binary16
+cases. Cross-format NaN payloads and signaling invalid flags matched bitwise.
+
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
 
