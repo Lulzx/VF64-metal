@@ -6,7 +6,6 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [
         .executable(name: "vf64-metal", targets: ["F64Metal"]),
-        .executable(name: "f64-metal", targets: ["F64Metal"]),
     ],
     targets: [
         .executableTarget(
