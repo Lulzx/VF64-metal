@@ -293,6 +293,70 @@ kernel void soft_i64_to_f64_kernel(
     }
 }
 
+kernel void soft_f64_to_ui32_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], constant uint &exact [[buffer(7)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_f64_to_int_status(
+            input[gid], roundingMode, exact != 0, false, 32, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_f64_to_ui64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], constant uint &exact [[buffer(7)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_f64_to_int_status(
+            input[gid], roundingMode, exact != 0, false, 64, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_f64_to_i32_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], constant uint &exact [[buffer(7)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_f64_to_int_status(
+            input[gid], roundingMode, exact != 0, true, 32, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_f64_to_i64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], constant uint &exact [[buffer(7)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_f64_to_int_status(
+            input[gid], roundingMode, exact != 0, true, 64, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

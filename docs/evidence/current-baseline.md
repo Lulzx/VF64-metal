@@ -63,6 +63,10 @@ preserves the dividend sign on an exact-zero remainder.
 rounding directions: 372 cases per 32-bit cell and 756 per 64-bit cell, for
 11,280 result/flag comparisons with zero mismatches.
 
+Binary64 conversion to the same four integer targets passed 768 cases in every
+rounding/exactness cell: 30,720 result/flag comparisons. NaNs and overflows use
+the pinned ARM-VFPv2 SoftFloat saturation results and raise invalid.
+
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
 

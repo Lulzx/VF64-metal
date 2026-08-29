@@ -158,6 +158,10 @@ Unsigned and signed 32/64-bit integer-to-binary64 conversions support every
 rounding direction. All 20 TestFloat cells pass, including 64-bit discarded-bit
 rounding and inexact flags.
 
+The four binary64-to-integer directions pass all rounding and exactness
+policies. Invalid conversions follow the documented ARM-VFPv2 SoftFloat
+saturation values; 40 TestFloat cells pass with zero result/flag mismatches.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the

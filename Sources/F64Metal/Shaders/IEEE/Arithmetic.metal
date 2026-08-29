@@ -931,3 +931,65 @@ inline ulong soft_uint_to_f64_status(
     return (ulong(sign) << 63) | (ulong(exponent) << 52) |
         (significand & 0x000ffffffffffffful);
 }
+
+inline ulong soft_f64_to_int_status(
+    ulong a, uint roundingMode, bool exact, bool signedTarget,
+    uint targetBits, thread uint &flags
+) {
+    bool sign = (a >> 63) != 0;
+    uint exponentField = uint((a >> 52) & 0x7fful);
+    ulong fraction = a & 0x000ffffffffffffful;
+    ulong positiveOverflow = targetBits == 32
+        ? (signedTarget ? 0x000000007ffffffful : 0x00000000fffffffful)
+        : (signedTarget ? 0x7ffffffffffffffful : 0xfffffffffffffffful);
+    ulong negativeOverflow = signedTarget
+        ? (targetBits == 32 ? 0x0000000080000000ul : 0x8000000000000000ul)
+        : 0ul;
+
+    if (exponentField == 0x7ffu) {
+        flags |= soft_flag_invalid;
+        if (fraction != 0) return 0;
+        return sign ? negativeOverflow : positiveOverflow;
+    }
+
+    uint roundingFlags = 0;
+    ulong rounded = soft_round_to_int64_status(
+        a, roundingMode, exact, roundingFlags
+    );
+    bool roundedSign = (rounded >> 63) != 0;
+    uint roundedExponent = uint((rounded >> 52) & 0x7fful);
+    ulong roundedFraction = rounded & 0x000ffffffffffffful;
+    ulong magnitude = 0;
+    if (roundedExponent >= 1023u) {
+        int unbiased = int(roundedExponent) - 1023;
+        if (unbiased > 63) {
+            flags |= soft_flag_invalid;
+            return roundedSign ? negativeOverflow : positiveOverflow;
+        }
+        ulong significand = roundedFraction | (1ul << 52);
+        magnitude = unbiased >= 52
+            ? significand << uint(unbiased - 52)
+            : significand >> uint(52 - unbiased);
+    }
+
+    bool invalid = false;
+    if (!signedTarget) {
+        invalid = roundedSign && magnitude != 0;
+        if (targetBits == 32 && magnitude > 0xfffffffful) invalid = true;
+    } else {
+        ulong negativeLimit = targetBits == 32
+            ? 0x0000000080000000ul : 0x8000000000000000ul;
+        ulong positiveLimit = negativeLimit - 1ul;
+        invalid = roundedSign ? magnitude > negativeLimit
+                              : magnitude > positiveLimit;
+    }
+    if (invalid) {
+        flags |= soft_flag_invalid;
+        return roundedSign ? negativeOverflow : positiveOverflow;
+    }
+
+    flags |= roundingFlags;
+    ulong result = roundedSign && magnitude != 0
+        ? (~magnitude) + 1ul : magnitude;
+    return targetBits == 32 ? result & 0xfffffffful : result;
+}
