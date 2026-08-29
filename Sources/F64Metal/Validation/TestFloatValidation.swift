@@ -36,10 +36,18 @@ func runTestFloatResultConformance(
     case "f64_div": kernel = "soft_div_round_kernel"; arity = 2
     case "f64_sqrt": kernel = "soft_sqrt_round_kernel"; arity = 1
     case "f64_mulAdd": kernel = "soft_fma_round_kernel"; arity = 3
+    case "f64_eq": kernel = "soft_eq_kernel"; arity = 2
+    case "f64_le": kernel = "soft_le_kernel"; arity = 2
+    case "f64_lt": kernel = "soft_lt_kernel"; arity = 2
+    case "f64_eq_signaling": kernel = "soft_eq_signaling_kernel"; arity = 2
+    case "f64_le_quiet": kernel = "soft_le_quiet_kernel"; arity = 2
+    case "f64_lt_quiet": kernel = "soft_lt_quiet_kernel"; arity = 2
     default:
         throw HarnessError.validation(
             "TestFloat function \(function) is not implemented; supported: " +
-            "f64_add, f64_sub, f64_mul, f64_div, f64_sqrt, f64_mulAdd"
+            "f64_add, f64_sub, f64_mul, f64_div, f64_sqrt, f64_mulAdd, " +
+            "f64_eq, f64_le, f64_lt, f64_eq_signaling, f64_le_quiet, " +
+            "f64_lt_quiet"
         )
     }
     let roundingModes: [String: UInt32] = [

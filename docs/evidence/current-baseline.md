@@ -46,6 +46,11 @@ rounding directions (30,666,240 result comparisons total) with zero mismatches.
 The implementation retains the exact 106-bit product in a 128-bit aligned
 accumulator and performs one final rounding after adding the third operand.
 
+The M2 comparison surface passed 46,464 TestFloat cases for each of `f64_eq`,
+`f64_le`, `f64_lt`, `f64_eq_signaling`, `f64_le_quiet`, and `f64_lt_quiet`.
+Results and invalid flags matched in all 278,784 comparisons, including signed
+zero and quiet/signaling NaN cases.
+
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
 

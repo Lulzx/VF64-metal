@@ -127,6 +127,78 @@ kernel void soft_fma_round_kernel(
     }
 }
 
+kernel void soft_eq_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = ulong(soft_equal64_status(a[gid], b[gid], false, raised));
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_eq_signaling_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = ulong(soft_equal64_status(a[gid], b[gid], true, raised));
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_lt_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = ulong(soft_less64_status(a[gid], b[gid], false, false, raised));
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_le_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = ulong(soft_less64_status(a[gid], b[gid], true, false, raised));
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_lt_quiet_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = ulong(soft_less64_status(a[gid], b[gid], false, true, raised));
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_le_quiet_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = ulong(soft_less64_status(a[gid], b[gid], true, true, raised));
+        flags[gid] = raised;
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

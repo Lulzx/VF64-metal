@@ -726,3 +726,44 @@ inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
 inline ulong soft_fma64(ulong a, ulong b, ulong c) {
     return soft_fma64_mode(a, b, c, soft_round_near_even);
 }
+
+inline bool soft_equal64_status(
+    ulong a, ulong b, bool signaling, thread uint &flags
+) {
+    bool nanA = soft_is_nan(a);
+    bool nanB = soft_is_nan(b);
+    if (nanA || nanB) {
+        if (signaling || soft_is_signaling_nan(a) ||
+            soft_is_signaling_nan(b)) {
+            flags |= soft_flag_invalid;
+        }
+        return false;
+    }
+    ulong magnitudeA = a & 0x7ffffffffffffffful;
+    ulong magnitudeB = b & 0x7ffffffffffffffful;
+    return a == b || ((magnitudeA | magnitudeB) == 0);
+}
+
+inline bool soft_less64_status(
+    ulong a, ulong b, bool orEqual, bool quiet, thread uint &flags
+) {
+    bool nanA = soft_is_nan(a);
+    bool nanB = soft_is_nan(b);
+    if (nanA || nanB) {
+        if (!quiet || soft_is_signaling_nan(a) ||
+            soft_is_signaling_nan(b)) {
+            flags |= soft_flag_invalid;
+        }
+        return false;
+    }
+
+    ulong magnitudeA = a & 0x7ffffffffffffffful;
+    ulong magnitudeB = b & 0x7ffffffffffffffful;
+    bool equal = a == b || ((magnitudeA | magnitudeB) == 0);
+    if (equal) return orEqual;
+
+    bool signA = (a >> 63) != 0;
+    bool signB = (b >> 63) != 0;
+    if (signA != signB) return signA;
+    return signA ? a > b : a < b;
+}

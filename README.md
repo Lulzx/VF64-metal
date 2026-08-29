@@ -141,6 +141,11 @@ M2 exception-state work is active: all M1 core operations now match TestFloat
 flags in all five rounding directions. The remaining M2 runtime surface and
 detailed NaN payload policy are not yet claimed.
 
+The complete TestFloat binary64 comparison family is also implemented: quiet
+equality, signaling equality, ordered less-than/less-or-equal, and quiet ordered
+variants. All six operations match result and invalid-flag behavior over 46,464
+cases each.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the
