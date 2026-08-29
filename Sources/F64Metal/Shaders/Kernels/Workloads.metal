@@ -130,6 +130,18 @@ kernel void vector_scale_fast48_kernel(
     ));
 }
 
+kernel void scalar_div_fast48_kernel(
+    device const ulong *numerator [[buffer(0)]],
+    device const ulong *denominator [[buffer(1)]],
+    device ulong *output [[buffer(2)]])
+{
+    bool ignored;
+    output[0] = pack_binary64(div_ff(
+        unpack_binary64(numerator[0], ignored),
+        unpack_binary64(denominator[0], ignored)
+    ));
+}
+
 kernel void gemm_fp32_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &dimension [[buffer(3)]],

@@ -233,6 +233,17 @@ private func runCGWorkload(_ harness: MetalHarness) throws {
     let gpu = try gpuFast48CG(
         harness, workload: system, b: b, tolerance: tolerance, maxIterations: 200
     )
+    let fused = try harness.fixedFast48CG(
+        rowOffsets: system.rowOffsets, columns: system.columnIndices,
+        values: system.values, b: b, iterations: cpu.iterations
+    )
+    let fusedResidual = sqrt(fused.residualSquared) / l2Norm(b)
+    let fusedError = relativeSolutionError(fused.x, expected)
+    guard fusedResidual <= tolerance, fusedError <= 1.0e-10 else {
+        throw HarnessError.commandEncoding(
+            "fused fast48 CG failed convergence contract: residual \(fusedResidual), error \(fusedError)"
+        )
+    }
     let gpuError = relativeSolutionError(gpu.x, expected)
     guard gpu.relativeResidual <= tolerance, gpuError <= 1.0e-10 else {
         throw HarnessError.commandEncoding(
@@ -251,7 +262,13 @@ private func runCGWorkload(_ harness: MetalHarness) throws {
         gpuError, gpu.seconds * 1.0e3,
         cpu.seconds / gpu.seconds
     ))
+    print(String(
+        format: "fast48-fused %2d iterations; residual %.3e; solution error %.3e; %8.3f ms; %.2fx CPU",
+        cpu.iterations, fusedResidual, fusedError, fused.seconds * 1.0e3,
+        cpu.seconds / fused.seconds
+    ))
     print("cg control: CPU computes alpha/beta and checks residual; all O(n) arithmetic is GPU")
+    print("cg fused: one command buffer; GPU computes reductions and alpha/beta; CPU validates final state")
 }
 
 private func gpuFast48GMRES(
