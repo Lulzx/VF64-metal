@@ -167,5 +167,11 @@ The earlier pair-only run remains as historical evidence:
 The 16-step `fast48` N-body simulation matched the CPU trajectory to 4.109e-15
 relative state error and reproduced its 3.340e-6 energy drift.
 
-M7 remains open for energy, general sparse LP solver validation,
-external/application sparse matrices, and cross-device reproduction.
+Two checksum-pinned NIST Matrix Market inputs add structural-engineering and
+power-network SpMV. All four modes execute without CPU arithmetic fallback;
+`ieee64` is bit-identical on both. The matrices are too small to amortize GPU
+dispatch and are not claimed as acceleration wins. Evidence:
+[`m7/2026-08-29-m4-pro-external-matrix-market.json`](m7/2026-08-29-m4-pro-external-matrix-market.json).
+
+M7 remains open for energy, general sparse LP solver validation, and
+cross-device reproduction.

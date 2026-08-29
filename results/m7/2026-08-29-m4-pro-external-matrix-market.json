@@ -1,0 +1,60 @@
+{
+  "schema": "vf64.m7.external-matrix-market.v1",
+  "milestone": "M7",
+  "status": "pass",
+  "date": "2026-08-29",
+  "source_commit": "6962d14",
+  "commands": [
+    "scripts/fetch-matrix-market.sh",
+    ".build/release/vf64-metal matrix-market .deps/external-matrices/bcsstk01.mtx .deps/external-matrices/494_bus.mtx"
+  ],
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "matrices": [
+    {
+      "name": "bcsstk01",
+      "domain": "structural engineering",
+      "source": "NIST Matrix Market, Harwell-Boeing BCS structural set",
+      "url": "https://math.nist.gov/MatrixMarket/data/Harwell-Boeing/bcsstruc1/bcsstk01.mtx.gz",
+      "sha256": "567560f75b952d9c14c0d193ded5d80370d7ca26fe49f9e67deee55f22e55699",
+      "rows": 48,
+      "columns": 48,
+      "expanded_nonzeros": 400,
+      "cpu_fp64_ms": 0.001,
+      "modes": {
+        "fp32": {"gpu_ms": 0.036, "p01_accuracy_bits": 21.72, "speedup_vs_cpu": 0.02},
+        "fast48": {"gpu_ms": 0.050, "p01_accuracy_bits": 46.50, "speedup_vs_cpu": 0.02},
+        "wide48": {"gpu_ms": 0.058, "p01_accuracy_bits": 45.68, "speedup_vs_cpu": 0.01},
+        "ieee64": {"gpu_ms": 0.065, "p01_accuracy_bits": 64.00, "speedup_vs_cpu": 0.01, "bit_identical": true}
+      }
+    },
+    {
+      "name": "494_bus",
+      "domain": "power network",
+      "source": "NIST Matrix Market, Harwell-Boeing power systems set",
+      "url": "https://math.nist.gov/MatrixMarket/data/Harwell-Boeing/psadmit/494_bus.mtx.gz",
+      "sha256": "55a2551e699253653e1b297467da1fdb7b647f850b05eb2c6647f8d66a1d8748",
+      "rows": 494,
+      "columns": 494,
+      "expanded_nonzeros": 1666,
+      "cpu_fp64_ms": 0.004,
+      "modes": {
+        "fp32": {"gpu_ms": 0.030, "p01_accuracy_bits": 13.20, "speedup_vs_cpu": 0.13},
+        "fast48": {"gpu_ms": 0.044, "p01_accuracy_bits": 37.26, "speedup_vs_cpu": 0.08},
+        "wide48": {"gpu_ms": 0.047, "p01_accuracy_bits": 37.41, "speedup_vs_cpu": 0.08},
+        "ieee64": {"gpu_ms": 0.052, "p01_accuracy_bits": 64.00, "speedup_vs_cpu": 0.07, "bit_identical": true}
+      }
+    }
+  ],
+  "interpretation": [
+    "The parser expands symmetric Matrix Market storage and merges duplicate coordinates before GPU execution",
+    "The GPU kernels contain no CPU arithmetic fallback",
+    "These small external matrices validate numerical behavior and application structure; dispatch overhead makes them slower than the scalar CPU baseline",
+    "The existing larger synthetic sparse and dense workloads provide the demonstrated acceleration cases"
+  ]
+}

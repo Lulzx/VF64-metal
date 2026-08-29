@@ -42,6 +42,13 @@ zero infeasible results; `fast48` retained at least 46.43 p01 objective bits
 and beat CPU FP64 on three of four structures:
 [`results/m7/2026-08-29-m4-pro-lp-corpus.json`](../../results/m7/2026-08-29-m4-pro-lp-corpus.json).
 
+The checksum-pinned external Matrix Market follow-up runs a structural matrix
+(`bcsstk01`) and a power-network matrix (`494_bus`) from the NIST
+Harwell-Boeing collection. Both execute in all four modes with no CPU arithmetic
+fallback; `ieee64` is bit-identical to the CPU SpMV reference. These small
+matrices are numerical/application-structure evidence, not acceleration wins:
+[`results/m7/2026-08-29-m4-pro-external-matrix-market.json`](../../results/m7/2026-08-29-m4-pro-external-matrix-market.json).
+
 The CuMetal CUDA `fp64_precision` workload now passes on the same device under
 `fast48`, `wide48`, and `ieee64`, including arithmetic, comparisons, libdevice
 FMA/square root/min/max, remainder, rounding, shared-memory and shuffle
@@ -52,8 +59,7 @@ The earlier reduced-pair-only run remains as historical evidence:
 [`results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json`](../../results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json).
 
 This is not the M7 exit. Energy measurements, general sparse LP solver
-validation, external/application sparse matrices, and cross-device
-reproduction remain open.
+validation, and cross-device reproduction remain open.
 The non-privileged `powermetrics` GPU-power probe failed with its explicit
 superuser requirement; no runtime-derived energy estimate is substituted.
 
