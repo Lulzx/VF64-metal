@@ -267,20 +267,113 @@ struct VF64SourceCompiler {
             opcode: .store, source0: result.register, immediate: 0
         ))
         instructions.append(VF64Instruction(opcode: .halt))
+        let allocated = try allocatePhysicalRegisters(instructions)
         let program = VF64Program(
-            registerCount: Int(nextRegister), inputSlots: kernel.parameters.count,
-            outputSlots: 1, laneCount: laneCount, instructions: instructions
+            registerCount: allocated.registerCount,
+            inputSlots: kernel.parameters.count, outputSlots: 1,
+            laneCount: laneCount, instructions: allocated.instructions
         )
         try program.validate()
         return program
     }
 
     private mutating func allocateRegister() throws -> UInt32 {
-        guard nextRegister < VF64Program.maximumRegisters else {
-            throw VF64CompilerError.invalid("kernel requires more than 32 VF64 registers")
+        guard nextRegister < 4096 else {
+            throw VF64CompilerError.invalid("kernel has too many virtual values")
         }
         defer { nextRegister += 1 }
         return nextRegister
+    }
+
+    private func sourceRegisters(_ instruction: VF64Instruction) -> [UInt32] {
+        switch instruction.opcode {
+        case .store, .move, .roundToInt,
+             .ui32ToF64, .ui64ToF64, .i32ToF64, .i64ToF64,
+             .f64ToUi32, .f64ToUi64, .f64ToI32, .f64ToI64,
+             .f64ToF32, .f64ToF16, .f32ToF64, .f16ToF64:
+            return [instruction.source0]
+        case .select:
+            return [instruction.source0, instruction.source1, instruction.source2]
+        case .sqrt:
+            return [instruction.source0]
+        case .fma:
+            return [instruction.source0, instruction.source1, instruction.source2]
+        case .add, .sub, .mul, .div, .remainder,
+             .eq, .le, .lt, .eqSignaling, .leQuiet, .ltQuiet:
+            return [instruction.source0, instruction.source1]
+        case .nop, .halt, .load, .constant, .flagsClear, .flagsGet, .laneU64:
+            return []
+        }
+    }
+
+    private func hasDestination(_ opcode: VF64Opcode) -> Bool {
+        ![VF64Opcode.nop, .halt, .store, .flagsClear].contains(opcode)
+    }
+
+    private func allocatePhysicalRegisters(
+        _ virtual: [VF64Instruction]
+    ) throws -> (instructions: [VF64Instruction], registerCount: Int) {
+        var lastUse: [UInt32: Int] = [:]
+        for (index, instruction) in virtual.enumerated() {
+            for source in sourceRegisters(instruction) { lastUse[source] = index }
+        }
+        var mapping: [UInt32: UInt32] = [:]
+        var free = Set((0..<VF64Program.maximumRegisters).map(UInt32.init))
+        var maximumPhysical: UInt32 = 0
+        var rewritten: [VF64Instruction] = []
+        rewritten.reserveCapacity(virtual.count)
+
+        for (index, original) in virtual.enumerated() {
+            var instruction = original
+            let sources = sourceRegisters(original)
+            let physicalSources = try sources.map { source -> UInt32 in
+                guard let physical = mapping[source] else {
+                    throw VF64CompilerError.invalid(
+                        "internal register allocator read undefined value \(source)"
+                    )
+                }
+                return physical
+            }
+            switch original.opcode {
+            case .store, .move, .roundToInt,
+                 .ui32ToF64, .ui64ToF64, .i32ToF64, .i64ToF64,
+                 .f64ToUi32, .f64ToUi64, .f64ToI32, .f64ToI64,
+                 .f64ToF32, .f64ToF16, .f32ToF64, .f16ToF64, .sqrt:
+                instruction.source0 = physicalSources[0]
+            case .add, .sub, .mul, .div, .remainder,
+                 .eq, .le, .lt, .eqSignaling, .leQuiet, .ltQuiet:
+                instruction.source0 = physicalSources[0]
+                instruction.source1 = physicalSources[1]
+            case .fma, .select:
+                instruction.source0 = physicalSources[0]
+                instruction.source1 = physicalSources[1]
+                instruction.source2 = physicalSources[2]
+            case .nop, .halt, .load, .constant, .flagsClear, .flagsGet, .laneU64:
+                break
+            }
+            for source in Set(sources) where lastUse[source] == index {
+                if let physical = mapping.removeValue(forKey: source) {
+                    free.insert(physical)
+                }
+            }
+            if hasDestination(original.opcode) {
+                guard let physical = free.min() else {
+                    throw VF64CompilerError.invalid(
+                        "kernel requires more than \(VF64Program.maximumRegisters) simultaneously live VF64 registers"
+                    )
+                }
+                free.remove(physical)
+                mapping[original.destination] = physical
+                instruction.destination = physical
+                maximumPhysical = max(maximumPhysical, physical)
+                if lastUse[original.destination] == nil {
+                    mapping.removeValue(forKey: original.destination)
+                    free.insert(physical)
+                }
+            }
+            rewritten.append(instruction)
+        }
+        return (rewritten, Int(maximumPhysical) + 1)
     }
 
     private mutating func lower(

@@ -41,6 +41,13 @@ All VF64 v1 conversion directions are exposed with explicit names:
 the VF64 raw-slot ABI described by the ISA; the source type checker prevents
 using those encodings as `double` arithmetic operands.
 
+The compiler creates virtual SSA-like values and performs last-use allocation
+to the 32 physical VF64 registers after lowering. Dead operands may share their
+slot with an instruction result. A committed 96-operation dependency-chain
+regression uses two physical registers, so source length alone does not exhaust
+the ISA register file; kernels with more than 32 simultaneously live values
+remain a hard diagnostic.
+
 This frontend is not presented as CUDA compatibility. The M5 exit still
 requires CuMetal to lower its source/PTX `double` path into VF64 and to prove
 CUDA-visible materialization boundaries.

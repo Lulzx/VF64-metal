@@ -234,6 +234,43 @@ func validateVF64SourceCompiler(_ harness: MetalHarness) throws {
         }
     }
 
+    var chainLines = [
+        "kernel long_chain(double x, double factor) -> double {",
+        "    let v0: double = x * factor;",
+    ]
+    for index in 1..<96 {
+        chainLines.append(
+            "    let v\(index): double = v\(index - 1) * factor;"
+        )
+    }
+    chainLines.append("    return v95;")
+    chainLines.append("}")
+    var chainCompiler = VF64SourceCompiler(mode: .ieee64, laneCount: lanes)
+    let chainProgram = try chainCompiler.compile(
+        chainLines.joined(separator: "\n")
+    )
+    guard chainProgram.registerCount == 2,
+          chainProgram.instructions.filter({ $0.opcode == .mul }).count == 96 else {
+        throw HarnessError.validation(
+            "long source chain was not allocated to two live VF64 registers"
+        )
+    }
+    let chainX = (0..<lanes).map { 0.75 + Double($0) * 0.001 }
+    let chainFactor = Array(repeating: 1.0001, count: lanes)
+    let chainExpected = zip(chainX, chainFactor).map { pair -> UInt64 in
+        var value = pair.0
+        for _ in 0..<96 { value *= pair.1 }
+        return value.bitPattern
+    }
+    let chainResult = try executeVF64(
+        harness, program: chainProgram,
+        inputs: bitsOf(chainX) + bitsOf(chainFactor)
+    )
+    guard chainResult.outputs == chainExpected,
+          chainResult.flags.allSatisfy({ $0 == 1 }) else {
+        throw HarnessError.validation("long allocated source chain mismatch")
+    }
+
     do {
         var invalidCompiler = VF64SourceCompiler(mode: .ieee64, laneCount: 1)
         _ = try invalidCompiler.compile(
@@ -243,5 +280,5 @@ func validateVF64SourceCompiler(_ harness: MetalHarness) throws {
     } catch is VF64CompilerError {
         // Expected diagnostic.
     }
-    print("vf64-cc     typed arithmetic, comparison, select, and 12 conversions passed")
+    print("vf64-cc     typed ops, 12 conversions, and 96-op chain in 2 registers passed")
 }
