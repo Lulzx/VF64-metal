@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "result_scope": "structured batched two-variable LP corpus",
+  "status": "pass",
+  "source_commit": "0f657f233a8390f14a0c5e45d9daa061a3a4fa9a",
+  "command": ".build/release/f64-metal lp",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "contract": {
+    "problems_per_structure": 4096,
+    "variables": 2,
+    "objective_family": "deterministic positive coefficients",
+    "solution_method": "parallel vertex enumeration",
+    "cpu_reference": "scalar Swift binary64 vertex enumeration",
+    "feasibility_tolerance": 1e-10,
+    "gpu_timing": "median Metal GPU elapsed time over 5 trials after one warmup dispatch",
+    "cpu_timing": "one host wall-time reference solve"
+  },
+  "structures": {
+    "bounded_8": {
+      "description": "well-conditioned bounded polygon",
+      "inequalities": 8,
+      "cpu_fp64_ms": 1.592,
+      "fast48": {"ms": 1.726, "p01_objective_bits": 46.43, "cpu_speedup": 0.92, "infeasible_results": 0},
+      "ieee64": {"ms": 1.048, "p01_objective_bits": 52.10, "cpu_speedup": 1.52, "infeasible_results": 0}
+    },
+    "near_parallel_8": {
+      "description": "three nearly parallel leading constraint rows",
+      "inequalities": 8,
+      "cpu_fp64_ms": 1.485,
+      "fast48": {"ms": 0.559, "p01_objective_bits": 47.54, "cpu_speedup": 2.65, "infeasible_results": 0},
+      "ieee64": {"ms": 0.954, "p01_objective_bits": 52.08, "cpu_speedup": 1.56, "infeasible_results": 0}
+    },
+    "redundant_12": {
+      "description": "bounded polygon with four redundant constraints",
+      "inequalities": 12,
+      "cpu_fp64_ms": 2.307,
+      "fast48": {"ms": 1.141, "p01_objective_bits": 46.49, "cpu_speedup": 2.02, "infeasible_results": 0},
+      "ieee64": {"ms": 1.900, "p01_objective_bits": 52.10, "cpu_speedup": 1.21, "infeasible_results": 0}
+    },
+    "scaled_8": {
+      "description": "equivalent row geometry scaled from 2^-12 through 2^12",
+      "inequalities": 8,
+      "cpu_fp64_ms": 1.517,
+      "fast48": {"ms": 0.549, "p01_objective_bits": 46.50, "cpu_speedup": 2.77, "infeasible_results": 0},
+      "ieee64": {"ms": 0.958, "p01_objective_bits": 52.09, "cpu_speedup": 1.58, "infeasible_results": 0}
+    }
+  },
+  "summary": {
+    "structures": 4,
+    "total_problems_per_mode": 16384,
+    "fast48_min_p01_objective_bits": 46.43,
+    "fast48_cpu_wins": 3,
+    "ieee64_cpu_wins": 4,
+    "infeasible_results_all_modes": 0
+  },
+  "limitations": [
+    "This is a structured two-variable corpus, not a general sparse LP solver or cuPDLP validation",
+    "Timing is a single-session device result and does not establish cross-device performance",
+    "Energy was not measured"
+  ]
+}

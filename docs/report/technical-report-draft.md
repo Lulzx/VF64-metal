@@ -76,7 +76,7 @@ are workload baselines, not tuned BLAS comparisons.
 | GEMV `fast48` | 40.66 p01 bits | 1.26x |
 | GEMM `fast48` | 41.28 p01 bits | 7.89x |
 | GEMM `ieee64` | bit-identical | 4.61x |
-| batched 2D LP `fast48` | 46.43 p01 objective bits; zero infeasible | 4.36x |
+| batched 2D LP `fast48` | 46.43 p01 objective bits; zero infeasible | 4.36x pilot; 0.92x-2.77x structured follow-up |
 | N-body force `fast48` | 40.67 p01 bits | 0.96x |
 | CG `fast48`, device-resident schedule | 11 iterations; 1.453e-12 residual | 1.06x |
 | GMRES `fast48` | 10 iterations; 2.712e-11 residual | 0.04x |
@@ -99,8 +99,8 @@ execute VF64 and is not compiler-integration evidence.
   and spill evidence.
 - M5 needs CuMetal source/PTX `double` lowering through VF64 with observable
   storage-boundary regressions.
-- M7 needs VF64-integrated CUDA workloads, authorized energy measurement, and
-  broader sparse and LP corpora.
+- M7 needs VF64-integrated CUDA workloads, authorized energy measurement,
+  external sparse matrices, and general sparse LP solver validation.
 - M8 needs successful public cross-generation runs, a stable external release,
   and a publication-time prior-art search.
 

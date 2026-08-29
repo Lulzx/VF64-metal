@@ -141,6 +141,13 @@ operator. `fast48` exceeds the scalar CPU baseline on all three while measuring
 44.66 or more p01 bits. Evidence:
 [`m7/2026-08-29-m4-pro-sparse-corpus.json`](m7/2026-08-29-m4-pro-sparse-corpus.json).
 
+The LP follow-up covers well-conditioned, near-parallel, redundant, and
+row-scaled constraint systems: 16,384 deterministic problems per mode.
+`fast48` measured at least 46.43 p01 objective bits, returned no infeasible
+solutions, and beat CPU FP64 on three of four structures; the retained bounded
+case measured 0.92x CPU. Evidence:
+[`m7/2026-08-29-m4-pro-lp-corpus.json`](m7/2026-08-29-m4-pro-lp-corpus.json).
+
 CuMetal's existing CUDA `fp64_precision` probe also passed its reduced-pair
 contract on the M4 Pro, including shared memory, shuffle, reload, and aliasing
 boundaries. It is explicitly legacy `CUMETAL_FP64_MODE=emulate` evidence, not a
@@ -150,6 +157,6 @@ VF64-integrated compiler result. Evidence:
 The 16-step `fast48` N-body simulation matched the CPU trajectory to 4.109e-15
 relative state error and reproduced its 3.340e-6 energy drift.
 
-M7 remains open for VF64-integrated CuMetal CUDA workloads, energy,
-external/application sparse matrices, broader LP corpora, and cross-device
-reproduction.
+M7 remains open for VF64-integrated CuMetal CUDA workloads, energy, general
+sparse LP solver validation, external/application sparse matrices, and
+cross-device reproduction.
