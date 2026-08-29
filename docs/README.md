@@ -12,6 +12,8 @@ specific implementation, device, workload, and result artifact.
 
 - [Research index](research/README.md)
 - [Current measured baseline](evidence/current-baseline.md)
+- [Milestone status and evidence ledger](evidence/milestone-status.md)
+- [Berkeley TestFloat conformance workflow](conformance/testfloat.md)
 - [Precision-stack architecture](architecture/precision-stack.md)
 - [Apple Metal capability boundary](platform/apple-metal-capabilities.md)
 - [Experiment roadmap](roadmap/experiments.md)

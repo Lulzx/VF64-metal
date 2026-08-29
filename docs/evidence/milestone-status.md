@@ -1,0 +1,26 @@
+# Milestone status and evidence ledger
+
+Date: 2026-08-29
+
+No milestone is complete until its linked exit artifacts exist and reproduce.
+The status labels below distinguish implemented source from exit evidence.
+
+| Milestone | Status | Current evidence | Earliest blocking exit gap |
+| --- | --- | --- | --- |
+| M1 exact core | In progress | GPU add/sub/mul TestFloat result bridge for all IEEE rounding directions | div/sqrt/fused FMA and complete TestFloat matrices |
+| M2 IEEE runtime | Not started | Special-value behavior exists in prototypes | conversions, comparisons, remainder, round-to-integer, flags, tininess and NaN policy |
+| M3 precision modes | Research prototype | measured FP32-pair and integer add/mul kernels | frozen `fast48`, `wide48`, `ieee64` contracts and cross-device artifacts |
+| M4 virtual ISA | Designed only | semantic scope documented | versioned machine-readable ISA and independent backend tests |
+| M5 compiler integration | Designed only | CuMetal boundary and residency plan | source `double` lowering through each declared policy |
+| M6 automatic precision | Proposed | policy shape documented | implemented selector, diagnostics, accuracy contract and speedup proof |
+| M7 workloads | Proposed | workload matrix documented | reproducible delivered-device workload corpus and CPU baselines |
+| M8 1.0 | Not started | claim policy documented | all prior exits, cross-generation CI, stable release and public report |
+
+## Evidence rules
+
+- Host `Double` differential testing is a local smoke oracle, not Berkeley
+  SoftFloat/TestFloat conformance.
+- TestFloat result-only runs do not validate exception flags.
+- NaNs are compared by class until M2 freezes payload and signaling semantics.
+- Pair microkernel measurements do not establish application acceleration.
+- The final M8 claim remains embargoed until every row is complete.

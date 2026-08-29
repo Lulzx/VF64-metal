@@ -24,11 +24,22 @@ precision or range.
 
 ## Integer binary64 track
 
-`soft_add64` and `soft_mul64` matched the host's round-to-nearest-even result in
-215,172 directed and random cases per operation, with NaNs compared by class.
-This is evidence for those two operations only. Division, square root, FMA,
-conversions, comparisons, rounding modes, exception state, and full TestFloat
-coverage remain absent.
+`soft_add64`, `soft_sub64`, and `soft_mul64` matched the host's
+round-to-nearest-even result in 215,172 directed and random cases per operation,
+with NaNs compared by class. This host-oracle smoke corpus is evidence for those
+three operations only and is not Berkeley TestFloat conformance. A separate
+pinned TestFloat result bridge
+now covers add, subtract, and multiply; its exception flags are not yet checked.
+Division, square root, FMA, conversions, comparisons, rounding support for the
+remaining operations, exception state, and complete TestFloat coverage remain
+absent.
+
+On the same M4 Pro on 2026-08-29, Berkeley TestFloat Release 3e level 1
+generated 46,464 cases for each add/subtract/multiply and rounding-mode cell.
+All 15 cells passed result-bit comparison with zero mismatches. The covered
+rounding directions were nearest-even, toward zero, toward negative, toward
+positive, and nearest-away. NaNs were compared by class and exception flags
+were parsed but not checked, so this is not the M1 exit artifact.
 
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
@@ -41,4 +52,3 @@ integer multiply 12.07 times slower than the pair-resident path.
   silently fall back to the pair representation.
 - Device, OS/Metal version, corpus, timing method, and result artifacts must
   accompany future performance claims.
-

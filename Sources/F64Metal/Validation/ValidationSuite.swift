@@ -4,7 +4,7 @@ func runValidation(_ harness: MetalHarness) throws {
     print("Device: \(harness.device.name)")
     try validateCodec(harness)
     try validateSpecialValues(harness)
-    try validateSoftFloat(harness)
+    try validateExactHostOracle(harness)
 
     var rng = SplitMix64(state: 0xdecafbad12345678)
     let count = 32_768
@@ -47,4 +47,3 @@ func runValidation(_ harness: MetalHarness) throws {
     )
     print("Validation passed")
 }
-

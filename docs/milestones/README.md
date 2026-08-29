@@ -14,5 +14,6 @@ and be reproducible.
 8. [M8 — 1.0 and research claim](M8-release.md)
 
 The [experiment roadmap](../roadmap/experiments.md) lists near-term probes and
-the [claim policy](../policies/claims.md) defines the evidence language.
-
+the [claim policy](../policies/claims.md) defines the evidence language. Current
+progress and blocking artifacts are tracked in the
+[milestone evidence ledger](../evidence/milestone-status.md).

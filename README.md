@@ -17,6 +17,7 @@ swift build -c release
 .build/release/f64-metal validate
 .build/release/f64-metal bench
 .build/release/f64-metal all
+scripts/run-testfloat-m1.sh
 ```
 
 The Metal library is compiled at runtime with safe floating-point semantics.
@@ -36,6 +37,7 @@ explicit `fma()` where fusion is required.
 - NaN, infinity, signed-zero, and exponent-envelope tests.
 - Binary64-boundary, pair-streaming, and compute-bound microbenchmarks.
 - Integer software-binary64 add and multiply with full exponent/subnormal range.
+- Integer software-binary64 subtraction through the exact add core.
 - Exact 53x53-bit products using `mulhi(ulong, ulong)` and 128-bit rounding.
 
 ## Verified result on this machine
@@ -50,8 +52,10 @@ divide      precision bits p01 47.39, median 49.89
 fma         precision bits p01 47.41, median 50.38
 dot         50.97 bits against a compensated CPU reference
 specials    add/mul NaN, Inf, and signed-zero matrix passed
-soft add    bit-exact RNE over 215,172 directed and random cases
-soft mul    bit-exact RNE over 215,172 directed and random cases
+exact add   bit-exact RNE against the host over 215,172 directed/random cases
+exact sub   bit-exact RNE against the host over 215,172 directed/random cases
+exact mul   bit-exact RNE against the host over 215,172 directed/random cases
+TestFloat   add/sub/mul result bits passed 46,464 cases in each of 5 rounding modes
 ```
 
 In a compute-bound 32-multiplication dependency chain, the same run measured:
@@ -103,7 +107,8 @@ arithmetic cost and is the relevant comparison for pair-resident CuMetal code.
 
 ## Integer soft-binary64 prototype
 
-`soft_add64` and `soft_mul64` operate directly on IEEE binary64 bit patterns.
+`soft_add64`, `soft_sub64`, and `soft_mul64` operate directly on IEEE binary64
+bit patterns.
 They implement:
 
 - All 53 significand bits.
@@ -112,13 +117,19 @@ They implement:
 - Signed zero, infinity, invalid-operation NaN, overflow, and underflow results.
 - Exact 53x53 multiplication from the low product and `mulhi` high product.
 
-The validation corpus includes exponent/fraction boundary cross-products,
+The default validation corpus includes exponent/fraction boundary
+cross-products,
 rounding boundaries, both signs, zeros, subnormals, maximum finite values,
 infinities, signaling/quiet NaNs, and 131,072 arbitrary bit-pattern pairs.
 Non-NaN results must match host binary64 bits exactly; NaNs must match class.
+This is a smoke oracle, not Berkeley TestFloat. The separate pinned TestFloat
+workflow currently validates generated result bits for add, subtract, and
+multiply in all five IEEE rounding directions while explicitly leaving
+exception-flag conformance open.
 
 This is not yet a complete soft-FP64 mode: division, square root, FMA,
-conversions, comparisons, exception flags, and selectable rounding modes remain.
+conversions, comparisons, exception flags, and rounding support for the
+remaining operations are absent.
 
 ## Deliberate limitations
 

@@ -44,13 +44,14 @@ private func softFloatInputs() -> ([UInt64], [UInt64]) {
     return (aBits, bBits)
 }
 
-func validateSoftFloat(_ harness: MetalHarness) throws {
+func validateExactHostOracle(_ harness: MetalHarness) throws {
     let (aBits, bBits) = softFloatInputs()
     let aBuffer = try harness.buffer(aBits)
     let bBuffer = try harness.buffer(bBits)
     let cases: [(String, String, (Double, Double) -> Double)] = [
-        ("soft-add", "soft_add_kernel", +),
-        ("soft-mul", "soft_mul_kernel", *),
+        ("exact-add", "soft_add_kernel", +),
+        ("exact-sub", "soft_sub_kernel", -),
+        ("exact-mul", "soft_mul_kernel", *),
     ]
     for (label, kernel, operation) in cases {
         let output = try harness.emptyBuffer(count: aBits.count, of: UInt64.self)
@@ -78,4 +79,3 @@ func validateSoftFloat(_ harness: MetalHarness) throws {
         )
     }
 }
-

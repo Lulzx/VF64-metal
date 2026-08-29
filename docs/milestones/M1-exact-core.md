@@ -8,12 +8,17 @@ Implement correctly rounded binary64:
 - true fused FMA with one final rounding;
 - all IEEE rounding modes.
 
-The current integer prototype covers round-to-nearest-even add and multiply
-only. Existing differential results are a foundation, not completion of M1.
+The current integer prototype covers add, subtract, and multiply result bits in
+all five IEEE rounding directions. Division, square root, fused FMA, and the
+complete operation-by-mode TestFloat matrix remain. Existing differential
+results are a foundation, not completion of M1.
+The reproducible TestFloat workflow and its current result-only limitations are
+documented in [the conformance guide](../conformance/testfloat.md). Host
+`Double` differential tests are smoke coverage and must not be reported as
+SoftFloat/TestFloat evidence.
 
 ## Exit criterion
 
 Differential conformance against Berkeley SoftFloat/TestFloat with zero
 unexplained mismatches. Results must identify operation, rounding mode, corpus,
 device, Metal version, tininess policy, and NaN comparison policy.
-

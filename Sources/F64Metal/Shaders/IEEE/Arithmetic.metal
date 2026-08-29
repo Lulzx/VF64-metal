@@ -21,7 +21,41 @@ inline ulong shift_right_jam(ulong value, uint distance) {
     return ulong(value != 0);
 }
 
-inline ulong soft_round_pack(bool sign, int exponent, ulong significandWithRound) {
+constant uint soft_round_near_even = 0;
+constant uint soft_round_min_mag = 1;
+constant uint soft_round_min = 2;
+constant uint soft_round_max = 3;
+constant uint soft_round_near_max_mag = 4;
+
+inline bool soft_should_increment(
+    bool sign, ulong roundBits, ulong significand, uint roundingMode
+) {
+    if (roundBits == 0) return false;
+    if (roundingMode == soft_round_near_even) {
+        return roundBits > 4ul ||
+               (roundBits == 4ul && (significand & 1ul) != 0);
+    }
+    if (roundingMode == soft_round_near_max_mag) return roundBits >= 4ul;
+    if (roundingMode == soft_round_min) return sign;
+    if (roundingMode == soft_round_max) return !sign;
+    return false;
+}
+
+inline ulong soft_overflow_result(bool sign, uint roundingMode) {
+    bool toInfinity =
+        roundingMode == soft_round_near_even ||
+        roundingMode == soft_round_near_max_mag ||
+        (roundingMode == soft_round_min && sign) ||
+        (roundingMode == soft_round_max && !sign);
+    ulong signBit = ulong(sign) << 63;
+    return toInfinity
+        ? signBit | 0x7ff0000000000000ul
+        : signBit | 0x7feffffffffffffful;
+}
+
+inline ulong soft_round_pack(
+    bool sign, int exponent, ulong significandWithRound, uint roundingMode
+) {
     if (exponent <= 0) {
         uint distance = uint(1 - exponent);
         significandWithRound = shift_right_jam(significandWithRound, distance);
@@ -30,7 +64,7 @@ inline ulong soft_round_pack(bool sign, int exponent, ulong significandWithRound
 
     ulong roundBits = significandWithRound & 7ul;
     ulong significand = significandWithRound >> 3;
-    if (roundBits > 4ul || (roundBits == 4ul && (significand & 1ul) != 0)) {
+    if (soft_should_increment(sign, roundBits, significand, roundingMode)) {
         significand += 1ul;
     }
 
@@ -44,14 +78,14 @@ inline ulong soft_round_pack(bool sign, int exponent, ulong significandWithRound
         exponent += 1;
     }
     if (exponent >= 0x7ff) {
-        return (ulong(sign) << 63) | 0x7ff0000000000000ul;
+        return soft_overflow_result(sign, roundingMode);
     }
     if (significand == 0) return ulong(sign) << 63;
     return (ulong(sign) << 63) | (ulong(exponent) << 52) |
            (significand & 0x000ffffffffffffful);
 }
 
-inline ulong soft_add64(ulong a, ulong b) {
+inline ulong soft_add64_mode(ulong a, ulong b, uint roundingMode) {
     uint expAField = uint((a >> 52) & 0x7fful);
     uint expBField = uint((b >> 52) & 0x7fful);
     ulong fracA = a & 0x000ffffffffffffful;
@@ -89,18 +123,33 @@ inline ulong soft_add64(ulong a, ulong b) {
             sum = shift_right_jam(sum, 1);
             expA += 1;
         }
-        return soft_round_pack(signA, expA, sum);
+        return soft_round_pack(signA, expA, sum, roundingMode);
     }
 
     ulong difference = sigA - sigB;
-    if (difference == 0) return 0ul; // RNE exact cancellation is +0.
+    if (difference == 0) {
+        // Exact cancellation is -0 only when rounding toward -infinity.
+        return roundingMode == soft_round_min ? 0x8000000000000000ul : 0ul;
+    }
     int leading = 63 - int(clz(difference));
     int left = 55 - leading;
     if (left > 0) {
         difference <<= uint(left);
         expA -= left;
     }
-    return soft_round_pack(signA, expA, difference);
+    return soft_round_pack(signA, expA, difference, roundingMode);
+}
+
+inline ulong soft_add64(ulong a, ulong b) {
+    return soft_add64_mode(a, b, soft_round_near_even);
+}
+
+inline ulong soft_sub64_mode(ulong a, ulong b, uint roundingMode) {
+    return soft_add64_mode(a, b ^ 0x8000000000000000ul, roundingMode);
+}
+
+inline ulong soft_sub64(ulong a, ulong b) {
+    return soft_sub64_mode(a, b, soft_round_near_even);
 }
 
 struct soft_normalized {
@@ -117,7 +166,9 @@ inline soft_normalized soft_normalize_operand(uint exponentField, ulong fraction
     return soft_normalized{fraction << uint(left), 1 - left};
 }
 
-inline ulong round_shift_u128(ulong hi, ulong lo, int distance) {
+inline ulong round_shift_u128(
+    ulong hi, ulong lo, int distance, bool sign, uint roundingMode
+) {
     if (distance <= 0) return lo;
     ulong quotient;
     bool greaterHalf = false;
@@ -142,13 +193,34 @@ inline ulong round_shift_u128(ulong hi, ulong lo, int distance) {
         greaterHalf = highRemainder > halfwayBit || (highRemainder == halfwayBit && lo != 0);
         exactlyHalf = highRemainder == halfwayBit && lo == 0;
     } else {
-        return 0ul;
+        quotient = 0ul;
+        greaterHalf = false;
+        exactlyHalf = false;
+        bool inexact = hi != 0 || lo != 0;
+        ulong syntheticRoundBits = inexact ? 1ul : 0ul;
+        if (soft_should_increment(sign, syntheticRoundBits, quotient, roundingMode)) {
+            quotient += 1ul;
+        }
+        return quotient;
     }
-    if (greaterHalf || (exactlyHalf && (quotient & 1ul) != 0)) quotient += 1ul;
+    ulong roundBits = greaterHalf ? 5ul : (exactlyHalf ? 4ul : 0ul);
+    bool inexact = greaterHalf || exactlyHalf;
+    if (!inexact) {
+        if (distance < 64) {
+            inexact = (lo & ((1ul << uint(distance)) - 1ul)) != 0;
+        } else if (distance == 64) {
+            inexact = lo != 0;
+        } else {
+            uint d = uint(distance - 64);
+            inexact = (hi & ((1ul << d) - 1ul)) != 0 || lo != 0;
+        }
+        if (inexact) roundBits = 1ul;
+    }
+    if (soft_should_increment(sign, roundBits, quotient, roundingMode)) quotient += 1ul;
     return quotient;
 }
 
-inline ulong soft_mul64(ulong a, ulong b) {
+inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
     bool sign = ((a ^ b) >> 63) != 0;
     uint expAField = uint((a >> 52) & 0x7fful);
     uint expBField = uint((b >> 52) & 0x7fful);
@@ -175,7 +247,7 @@ inline ulong soft_mul64(ulong a, ulong b) {
     int shift = top - 52;
     bool subnormal = exponent <= 0;
     if (subnormal) shift += 1 - exponent;
-    ulong significand = round_shift_u128(hi, lo, shift);
+    ulong significand = round_shift_u128(hi, lo, shift, sign, roundingMode);
 
     if (subnormal) {
         if (significand >= (1ul << 52)) exponent = 1;
@@ -185,10 +257,13 @@ inline ulong soft_mul64(ulong a, ulong b) {
         exponent += 1;
     }
     if (exponent >= 0x7ff) {
-        return (ulong(sign) << 63) | 0x7ff0000000000000ul;
+        return soft_overflow_result(sign, roundingMode);
     }
     if (significand == 0) return ulong(sign) << 63;
     return (ulong(sign) << 63) | (ulong(exponent) << 52) |
            (significand & 0x000ffffffffffffful);
 }
 
+inline ulong soft_mul64(ulong a, ulong b) {
+    return soft_mul64_mode(a, b, soft_round_near_even);
+}
