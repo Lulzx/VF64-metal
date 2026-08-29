@@ -58,8 +58,18 @@ is recorded with M5:
 The earlier reduced-pair-only run remains as historical evidence:
 [`results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json`](../../results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json).
 
-This is not the M7 exit. Energy measurements, general sparse LP solver
-validation, and cross-device reproduction remain open.
+An unmodified HiGHS 1.15.1 `CUPDLP_GPU` build supplies the general sparse LP
+solver path. On Netlib `afiro` with presolve disabled, `wide48` and `ieee64`
+both pass the frozen status/objective/residual gate and record more than 2,600
+Apple-GPU launches. `fast48` reaches Optimal with a 3.1e-8 objective difference
+but fails the stricter residual-parity gate: its dual residual is 10.5x the CPU
+residual against a 10x limit. The `ieee64` solve is explicitly mixed because
+translated CUDA kernels are exact while cuSPARSE SpMV is still a labeled
+reduced-precision library substitution:
+[`results/m7/2026-08-29-m4-pro-highs-afiro-vf64.json`](../../results/m7/2026-08-29-m4-pro-highs-afiro-vf64.json).
+
+This is not the M7 exit. Energy measurements and cross-device reproduction
+remain open.
 The non-privileged `powermetrics` GPU-power probe failed with its explicit
 superuser requirement; no runtime-derived energy estimate is substituted.
 

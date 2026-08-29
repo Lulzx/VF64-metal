@@ -1,0 +1,92 @@
+{
+  "schema": "vf64.m7.highs-cupdlp.v1",
+  "milestone": "M7",
+  "status": "partial_pass",
+  "date": "2026-08-29",
+  "command": "CUMETAL_FP64_MODE=<mode> HIGHS_SRC=/Users/lulzx/work/cumetal-bench-ext/HiGHS bash demos/highs/run_highs.sh --skip-build --build-dir=<clean-build-release>",
+  "source": {
+    "cumetal_commit": "15e0bb2812bc4e29adca3bf54ca9c0f5d1c122c9",
+    "vf64_shader_pin": "66270a124fb2bc943ccd32f2685a09c93f1b6f0a",
+    "highs_version": "1.15.1",
+    "highs_source_policy": "unmodified CPU and CUPDLP_GPU builds from the same source tree",
+    "worktree": "clean detached CuMetal worktree"
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "model": {
+    "name": "afiro",
+    "format": "MPS",
+    "solver": "HiGHS PDLP",
+    "presolve": "off"
+  },
+  "cpu": {
+    "status": "Optimal",
+    "objective": -464.75315239,
+    "primal_infeasibility": 1.91e-8,
+    "dual_infeasibility": 1.17e-9,
+    "relative_gap": 3.62e-8
+  },
+  "modes": {
+    "fast48": {
+      "gate": "fail",
+      "gate_reason": "dual residual was 10.5x the CPU residual, outside the frozen 10x parity gate",
+      "status": "Optimal",
+      "objective": -464.75313776,
+      "objective_relative_difference": 3.1e-8,
+      "primal_infeasibility": 2.98e-8,
+      "dual_infeasibility": 1.23e-8,
+      "relative_gap": 9.19e-8,
+      "apple_gpu_launches": 2414,
+      "generic_ptx_launches": 1734,
+      "sparse_library_launches": 680,
+      "generic_ptx_semantics": "reduced_precision_fp64",
+      "sparse_library_semantics": "reduced_precision_fp64"
+    },
+    "wide48": {
+      "gate": "pass",
+      "status": "Optimal",
+      "objective": -464.75313321,
+      "objective_relative_difference": 4.1e-8,
+      "primal_infeasibility": 3.35e-8,
+      "dual_infeasibility": 8.59e-9,
+      "relative_gap": 6.22e-8,
+      "apple_gpu_launches": 2684,
+      "generic_ptx_launches": 1922,
+      "sparse_library_launches": 762,
+      "generic_ptx_semantics": "reduced_precision_fp64",
+      "sparse_library_semantics": "reduced_precision_fp64"
+    },
+    "ieee64": {
+      "gate": "pass",
+      "status": "Optimal",
+      "objective": -464.75311202,
+      "objective_relative_difference": 8.7e-8,
+      "primal_infeasibility": 2.36e-8,
+      "dual_infeasibility": 8.58e-9,
+      "relative_gap": 3.80e-8,
+      "apple_gpu_launches": 2674,
+      "generic_ptx_launches": 1912,
+      "sparse_library_launches": 762,
+      "generic_ptx_semantics": "exact",
+      "sparse_library_semantics": "reduced_precision_fp64"
+    }
+  },
+  "gate": {
+    "status_class": "must match CPU",
+    "objective_relative_tolerance": 0.001,
+    "converged_residual_ceiling": 0.001,
+    "residual_parity_factor": 10,
+    "requires_apple_gpu_provenance": true,
+    "rejects_approximate_stubs": true
+  },
+  "limitations": [
+    "The ieee64 setting applies to translated CUDA kernels, but cuSPARSE SpMV remains an explicitly labeled reduced-precision library substitution; the whole solve is therefore mixed, not exact binary64",
+    "The focused integration gate covers one Netlib model and is not broad HiGHS model coverage",
+    "fast48 converged well inside the solver tolerance but failed the stricter frozen CPU-residual parity gate"
+  ]
+}

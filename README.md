@@ -79,8 +79,8 @@ The standalone compiler additionally supports `auto` selection.
 - [Remaining experiments](docs/roadmap/experiments.md)
 
 M1, M2, M4, M5, and M6 are complete under their documented exit criteria.
-M3, M7, and M8 remain open where cross-generation hardware, energy, broader
-scientific corpora, or release proof is still required. The
+M3, M7, and M8 remain open where cross-generation hardware, energy, or release
+proof is still required. The
 [status ledger](docs/evidence/milestone-status.md) is authoritative.
 
 ## Reproducibility scripts

@@ -98,8 +98,7 @@ reload, aliasing, cache hits, and mode-specific provenance.
 
 - M3 needs a second Apple GPU generation and defensible register, occupancy,
   and spill evidence.
-- M7 needs authorized energy measurement, general sparse LP solver validation,
-  and cross-device reproduction.
+- M7 needs authorized energy measurement and cross-device reproduction.
 - M8 needs successful public cross-generation runs, a stable external release,
   and a publication-time prior-art search.
 

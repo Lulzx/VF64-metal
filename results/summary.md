@@ -173,5 +173,12 @@ power-network SpMV. All four modes execute without CPU arithmetic fallback;
 dispatch and are not claimed as acceleration wins. Evidence:
 [`m7/2026-08-29-m4-pro-external-matrix-market.json`](m7/2026-08-29-m4-pro-external-matrix-market.json).
 
-M7 remains open for energy, general sparse LP solver validation, and
-cross-device reproduction.
+Unmodified HiGHS 1.15.1 PDLP on Netlib `afiro` adds the general sparse LP path.
+`wide48` and `ieee64` pass the frozen solution/residual gate with more than
+2,600 Apple-GPU launches each. `fast48` is retained as a failed cell: it reaches
+Optimal but its dual residual is 10.5x the CPU residual against a 10x limit.
+The `ieee64` solve is mixed because its translated kernels are exact but the
+cuSPARSE SpMV substitution remains reduced precision. Evidence:
+[`m7/2026-08-29-m4-pro-highs-afiro-vf64.json`](m7/2026-08-29-m4-pro-highs-afiro-vf64.json).
+
+M7 remains open for energy and cross-device reproduction.
