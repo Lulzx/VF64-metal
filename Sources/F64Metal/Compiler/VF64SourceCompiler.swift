@@ -289,6 +289,13 @@ struct VF64SourceCompiler {
             case "fma": opcode = .fma; arity = 3
             case "remainder": opcode = .remainder; arity = 2
             case "round": opcode = .roundToInt; arity = 1
+            case "eq": opcode = .eq; arity = 2
+            case "le": opcode = .le; arity = 2
+            case "lt": opcode = .lt; arity = 2
+            case "eq_signaling": opcode = .eqSignaling; arity = 2
+            case "le_quiet": opcode = .leQuiet; arity = 2
+            case "lt_quiet": opcode = .ltQuiet; arity = 2
+            case "select": opcode = .select; arity = 3
             default: throw VF64CompilerError.invalid("unknown double function '\(name)'")
             }
             guard registers.count == arity else {

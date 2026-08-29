@@ -26,8 +26,14 @@ call an emulation routine.
 The grammar supports typed `double` parameters, immutable `let` bindings,
 decimal literals, parentheses, unary minus, `+`, `-`, `*`, `/`, and the
 `sqrt`, `fma`, `remainder`, and `round` functions. It is deliberately
-straight-line to match VF64 v1. Unsupported syntax and unknown values are hard
-diagnostics.
+straight-line to match VF64 v1. Comparisons are available as `eq`, `le`, `lt`,
+`eq_signaling`, `le_quiet`, and `lt_quiet`; they produce a condition consumed
+by `select(condition, when_true, when_false)`. Unsupported syntax and unknown
+values are hard diagnostics.
+
+Integer and binary16/binary32 conversion opcodes are part of VF64 v1 but are
+not exposed by this double-only source grammar. They require a typed integer
+extension rather than pretending raw integer bits are a `double` value.
 
 This frontend is not presented as CUDA compatibility. The M5 exit still
 requires CuMetal to lower its source/PTX `double` path into VF64 and to prove

@@ -49,6 +49,34 @@ func validateVF64SourceCompiler(_ harness: MetalHarness) throws {
         throw HarnessError.validation("source fma did not lower to VF64 fma")
     }
 
+    let selectionSource = """
+    kernel minimum(double a, double b) -> double {
+        let condition = lt_quiet(a, b);
+        return select(condition, a, b);
+    }
+    """
+    let selectionA = (0..<lanes).map { Double($0 - 20) }
+    let selectionB = (0..<lanes).map { Double(25 - $0) }
+    let selectionInputs = bitsOf(selectionA) + bitsOf(selectionB)
+    let selectionExpected = zip(selectionA, selectionB).map { min($0, $1).bitPattern }
+    for mode in [VF64PrecisionMode.fast48, .wide48, .ieee64] {
+        var selectionCompiler = VF64SourceCompiler(mode: mode, laneCount: lanes)
+        let program = try selectionCompiler.compile(selectionSource)
+        guard program.instructions.contains(where: { $0.opcode == .ltQuiet }),
+              program.instructions.contains(where: { $0.opcode == .select }) else {
+            throw HarnessError.validation("source comparison/select did not lower")
+        }
+        let result = try executeVF64(
+            harness, program: program, inputs: selectionInputs
+        )
+        guard result.outputs == selectionExpected,
+              result.flags.allSatisfy({ $0 == 0 }) else {
+            throw HarnessError.validation(
+                "source comparison/select execution mismatch for \(mode)"
+            )
+        }
+    }
+
     do {
         var invalidCompiler = VF64SourceCompiler(mode: .ieee64, laneCount: 1)
         _ = try invalidCompiler.compile(
@@ -58,5 +86,5 @@ func validateVF64SourceCompiler(_ harness: MetalHarness) throws {
     } catch is VF64CompilerError {
         // Expected diagnostic.
     }
-    print("vf64-cc     source double lowered through fast48, wide48, and ieee64")
+    print("vf64-cc     arithmetic, comparison, and select lowered through all modes")
 }
