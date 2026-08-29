@@ -86,6 +86,13 @@ buffer. It preserves the 2.712e-11 true residual and reduces the synchronized
 GPU median from 62.431 ms to 1.683 ms (37.10x). At 0.66x the scalar CPU median,
 it is scheduling evidence rather than an acceleration claim.
 
+The current GMRES follow-up removes the CPU-reference iteration count. A GPU
+state selects the first converged column at iteration 10, preserves its
+2.712e-11 residual estimate, and controls back-substitution and solution
+assembly. Its five-run median is 10.850 ms, 2.99x faster than the synchronized
+GPU path but 0.10x CPU. Metal still executes all 32 pre-encoded candidate
+columns, so dispatch-level early termination is not claimed.
+
 | Workload and mode | Accuracy or convergence | Speed versus CPU FP64 |
 | --- | --- | ---: |
 | SpMV `wide48` | 46.75 p01 bits | 1.02x |
@@ -95,7 +102,8 @@ it is scheduling evidence rather than an acceleration claim.
 | batched 2D LP `fast48` | 46.43 p01 objective bits; zero infeasible | 4.36x pilot; 0.92x-2.77x structured follow-up |
 | N-body force `fast48` | 40.67 p01 bits | 0.96x |
 | CG `fast48`, device-resident schedule | 11 iterations; 1.453e-12 residual | 1.06x |
-| GMRES `fast48` | 10 iterations; 2.712e-11 residual | 0.04x |
+| GMRES `fast48`, synchronized | 10 iterations; 2.712e-11 residual | 0.04x |
+| GMRES `fast48`, device-selected convergence | 10 iterations; 2.712e-11 residual | 0.10x |
 
 A 16-step device-resident `fast48` symplectic-Euler N-body simulation matches the CPU
 trajectory to 4.109e-15 relative state error and reproduces its 3.340e-6
@@ -103,7 +111,9 @@ relative energy drift, but runs at 0.44x CPU for the measured 256-body shape.
 
 The CG result uses one command buffer for SpMV, reductions, alpha/beta, and
 vector updates. It uses the CPU baseline's fixed iteration count and validates
-only after completion; device-side convergence and early exit remain open.
+only after completion; CG device-side convergence and dispatch-level early
+termination remain open. GMRES now selects convergence on the GPU, but likewise
+does not cancel later pre-encoded columns.
 
 CuMetal now executes the unchanged CUDA contract probe through `fast48`,
 `wide48`, and `ieee64`. The gate covers arithmetic, true fused FMA, square root,

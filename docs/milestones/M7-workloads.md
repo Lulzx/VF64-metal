@@ -18,9 +18,10 @@ structure rather than reporting one favorable corpus as general coverage.
 
 Status: **in progress**. The first Apple M4 Pro pilot now covers CG, GMRES,
 SpMV, GEMV, GEMM, batched two-variable LP vertex enumeration, and a 16-step
-N-body simulation. The cross-mode kernels contain no CPU arithmetic
-fallback. CG and GMRES retain CPU scalar/control logic, which is printed and
-recorded explicitly; their O(n) vector and matrix arithmetic executes on Metal.
+N-body simulation. The cross-mode kernels contain no CPU arithmetic fallback.
+The original CG and GMRES paths retain CPU scalar/control logic, which is
+printed and recorded explicitly; device-resident follow-ups move CG scalars and
+GMRES convergence/scalars onto Metal while retaining final CPU validation.
 
 The measured corpus demonstrates practical wins for the current shapes,
 including 7.89x CPU for `fast48` GEMM at 41.28 p01 accuracy bits and 4.36x CPU
@@ -38,6 +39,12 @@ The device-resident scheduling follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-scheduling.json`](../../results/m7/2026-08-29-m4-pro-device-resident-scheduling.json).
 The device-resident GMRES follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-gmres.json`](../../results/m7/2026-08-29-m4-pro-device-resident-gmres.json).
+A second GMRES follow-up removes the CPU-reference iteration count: Metal
+selects convergence at iteration 10, stores the matching 2.712e-11 residual,
+and drives back-substitution and solution assembly. All 32 candidate columns
+remain pre-encoded, so this proves device-side convergence selection but not
+dispatch cancellation:
+[`results/m7/2026-08-29-m4-pro-device-selected-gmres.json`](../../results/m7/2026-08-29-m4-pro-device-selected-gmres.json).
 The cross-mode CSR corpus adds periodic, symmetric positive-definite, and
 nonsymmetric matrix structures:
 [`results/m7/2026-08-29-m4-pro-sparse-corpus.json`](../../results/m7/2026-08-29-m4-pro-sparse-corpus.json).
