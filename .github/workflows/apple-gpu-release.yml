@@ -45,12 +45,42 @@ jobs:
         run: |
           set -o pipefail
           scripts/check-cumetal-integration.sh 2>&1 | tee cumetal-integration.log
-      - name: Preserve verification log
-        if: always()
+      - name: Capture device evidence manifest
+        run: |
+          scripts/capture-device-evidence.sh \
+            "evidence/apple-${{ matrix.generation }}" \
+            "${{ matrix.generation }}" \
+            release-verification.log \
+            cumetal-integration.log \
+            15e0bb2812bc4e29adca3bf54ca9c0f5d1c122c9
+      - name: Preserve device evidence
         uses: actions/upload-artifact@v4
         with:
           name: apple-${{ matrix.generation }}-release-verification
-          path: |
-            release-verification.log
-            cumetal-integration.log
+          path: evidence/apple-${{ matrix.generation }}
+          if-no-files-found: error
+
+  aggregate:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out VF64-metal
+        uses: actions/checkout@v4
+      - name: Download device evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: apple-*-release-verification
+          path: evidence
+      - name: Verify cross-generation evidence
+        shell: bash
+        run: |
+          mapfile -d '' manifests < <(find evidence -name device-manifest.json -print0)
+          scripts/check-cross-generation-evidence.sh \
+            --require=m1,m2,m3,m4 "${manifests[@]}" \
+            | tee cross-generation-summary.json
+      - name: Preserve aggregate evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: apple-cross-generation-release-summary
+          path: cross-generation-summary.json
           if-no-files-found: error

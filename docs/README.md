@@ -26,6 +26,7 @@ specific implementation, device, workload, and result artifact.
 - [Publication-time prior-art audit](research/prior-art-2026-08-29.md)
 - [Technical report](report/technical-report.md)
 - [VF64 public API and ABI](release/api-abi.md)
+- [Cross-generation evidence contract](release/cross-generation-evidence.md)
 
 ## Integration
 

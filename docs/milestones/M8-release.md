@@ -17,7 +17,11 @@ local validation, M2/M4 TestFloat, pipeline resources, benchmarks, synthetic and
 checksum-pinned external scientific workloads. A manual self-hosted workflow
 declares M1, M2, M3, and M4 Apple GPU runner labels, checks out the frozen
 CuMetal integration commit, reruns all three compiler modes, and preserves both
-verification logs.
+verification logs. Each runner emits a privacy-scoped, checksum-bound
+[device evidence manifest](../release/cross-generation-evidence.md); a separate
+job rejects missing generations, mixed source revisions, incomplete mode or
+release-component coverage, mislabeled chips, and altered logs before
+publishing a cross-generation summary.
 
 An evidence-linked [technical report](../report/technical-report.md) summarizes
 the current architecture, methodology, results, and open gates. It does not
