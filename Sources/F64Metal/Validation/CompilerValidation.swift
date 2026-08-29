@@ -77,6 +77,163 @@ func validateVF64SourceCompiler(_ harness: MetalHarness) throws {
         }
     }
 
+    struct ConversionCase {
+        let parameterType: String
+        let returnType: String
+        let function: String
+        let opcode: VF64Opcode
+        let inputs: [UInt64]
+        let expected: [UInt64]
+    }
+    let u32 = (0..<lanes).map { UInt32($0 * 65_537) }
+    let u64 = (0..<lanes).map { UInt64(9_007_199_254_740_992) + UInt64($0 * 3) }
+    let i32 = (0..<lanes).map { Int32($0 - 32) * 1_000_003 }
+    let i64 = (0..<lanes).map { Int64($0 - 32) * 9_007_199_254_741 }
+    let exactDoubles = (0..<lanes).map { Double($0 - 32) }
+    let positiveDoubles = (0..<lanes).map { Double($0 * 17) }
+    let floatValues = (0..<lanes).map { Float($0 - 32) * 0.25 }
+    let halfValues = (0..<lanes).map { Float16($0 - 32) * Float16(0.25) }
+    let conversionCases = [
+        ConversionCase(
+            parameterType: "uint32", returnType: "double",
+            function: "uint32_to_double", opcode: .ui32ToF64,
+            inputs: u32.map(UInt64.init),
+            expected: u32.map { Double($0).bitPattern }
+        ),
+        ConversionCase(
+            parameterType: "uint64", returnType: "double",
+            function: "uint64_to_double", opcode: .ui64ToF64,
+            inputs: u64, expected: u64.map { Double($0).bitPattern }
+        ),
+        ConversionCase(
+            parameterType: "int32", returnType: "double",
+            function: "int32_to_double", opcode: .i32ToF64,
+            inputs: i32.map { UInt64(UInt32(bitPattern: $0)) },
+            expected: i32.map { Double($0).bitPattern }
+        ),
+        ConversionCase(
+            parameterType: "int64", returnType: "double",
+            function: "int64_to_double", opcode: .i64ToF64,
+            inputs: i64.map { UInt64(bitPattern: $0) },
+            expected: i64.map { Double($0).bitPattern }
+        ),
+        ConversionCase(
+            parameterType: "double", returnType: "uint32",
+            function: "double_to_uint32", opcode: .f64ToUi32,
+            inputs: positiveDoubles.map(\.bitPattern),
+            expected: positiveDoubles.map { UInt64(UInt32($0)) }
+        ),
+        ConversionCase(
+            parameterType: "double", returnType: "uint64",
+            function: "double_to_uint64", opcode: .f64ToUi64,
+            inputs: positiveDoubles.map(\.bitPattern),
+            expected: positiveDoubles.map { UInt64($0) }
+        ),
+        ConversionCase(
+            parameterType: "double", returnType: "int32",
+            function: "double_to_int32", opcode: .f64ToI32,
+            inputs: exactDoubles.map(\.bitPattern),
+            expected: exactDoubles.map {
+                UInt64(UInt32(bitPattern: Int32($0)))
+            }
+        ),
+        ConversionCase(
+            parameterType: "double", returnType: "int64",
+            function: "double_to_int64", opcode: .f64ToI64,
+            inputs: exactDoubles.map(\.bitPattern),
+            expected: exactDoubles.map { UInt64(bitPattern: Int64($0)) }
+        ),
+        ConversionCase(
+            parameterType: "double", returnType: "float",
+            function: "double_to_float", opcode: .f64ToF32,
+            inputs: exactDoubles.map(\.bitPattern),
+            expected: exactDoubles.map { UInt64(Float($0).bitPattern) }
+        ),
+        ConversionCase(
+            parameterType: "double", returnType: "half",
+            function: "double_to_half", opcode: .f64ToF16,
+            inputs: exactDoubles.map(\.bitPattern),
+            expected: exactDoubles.map { UInt64(Float16($0).bitPattern) }
+        ),
+        ConversionCase(
+            parameterType: "float", returnType: "double",
+            function: "float_to_double", opcode: .f32ToF64,
+            inputs: floatValues.map { UInt64($0.bitPattern) },
+            expected: floatValues.map { Double($0).bitPattern }
+        ),
+        ConversionCase(
+            parameterType: "half", returnType: "double",
+            function: "half_to_double", opcode: .f16ToF64,
+            inputs: halfValues.map { UInt64($0.bitPattern) },
+            expected: halfValues.map { Double($0).bitPattern }
+        ),
+    ]
+    for item in conversionCases {
+        let source = """
+        kernel convert(\(item.parameterType) value) -> \(item.returnType) {
+            return \(item.function)(value);
+        }
+        """
+        var compiler = VF64SourceCompiler(mode: .ieee64, laneCount: lanes)
+        let program = try compiler.compile(source)
+        guard program.instructions.contains(where: { $0.opcode == item.opcode }) else {
+            throw HarnessError.validation(
+                "source conversion \(item.function) did not lower"
+            )
+        }
+        let result = try executeVF64(
+            harness, program: program, inputs: item.inputs
+        )
+        let expectedFlags: [UInt32]
+        if item.opcode == .ui64ToF64 {
+            expectedFlags = zip(item.inputs, item.expected).map {
+                UInt64(Double(bitPattern: $0.1)) == $0.0 ? 0 : 1
+            }
+        } else if item.opcode == .i64ToF64 {
+            expectedFlags = zip(item.inputs, item.expected).map {
+                Int64(Double(bitPattern: $0.1)) == Int64(bitPattern: $0.0) ? 0 : 1
+            }
+        } else {
+            expectedFlags = [UInt32](repeating: 0, count: lanes)
+        }
+        guard result.outputs == item.expected,
+              result.flags == expectedFlags else {
+            let mismatch = zip(result.outputs, item.expected).enumerated().first {
+                $0.element.0 != $0.element.1
+            }
+            let detail: String
+            if let mismatch {
+                detail = " at lane \(mismatch.offset): got 0x\(String(mismatch.element.0, radix: 16)), expected 0x\(String(mismatch.element.1, radix: 16)), input 0x\(String(item.inputs[mismatch.offset], radix: 16))"
+            } else {
+                let flagMismatch = zip(result.flags, expectedFlags).enumerated().first {
+                    $0.element.0 != $0.element.1
+                }
+                detail = flagMismatch.map {
+                    " at lane \($0.offset): flags \($0.element.0), expected \($0.element.1)"
+                } ?? " (flags)"
+            }
+            throw HarnessError.validation(
+                "source conversion \(item.function) execution mismatch\(detail)"
+            )
+        }
+    }
+
+    for invalidSource in [
+        "kernel bad(int64 x) -> int64 { return x + x; }",
+        "kernel bad(double x) -> int64 { return x; }",
+        "kernel bad(bool c, double x, int64 y) -> double { return select(c, x, y); }",
+    ] {
+        do {
+            var invalidCompiler = VF64SourceCompiler(mode: .ieee64, laneCount: 1)
+            _ = try invalidCompiler.compile(invalidSource)
+            throw HarnessError.validation(
+                "invalid typed source unexpectedly compiled"
+            )
+        } catch is VF64CompilerError {
+            // Expected diagnostic.
+        }
+    }
+
     do {
         var invalidCompiler = VF64SourceCompiler(mode: .ieee64, laneCount: 1)
         _ = try invalidCompiler.compile(
@@ -86,5 +243,5 @@ func validateVF64SourceCompiler(_ harness: MetalHarness) throws {
     } catch is VF64CompilerError {
         // Expected diagnostic.
     }
-    print("vf64-cc     arithmetic, comparison, and select lowered through all modes")
+    print("vf64-cc     typed arithmetic, comparison, select, and 12 conversions passed")
 }

@@ -24,10 +24,29 @@ private indirect enum VF64Expression {
     case negate(VF64Expression)
 }
 
+private enum VF64SourceType: String, Equatable, CustomStringConvertible {
+    case double, bool, uint32, uint64, int32, int64, float, half
+
+    var description: String { rawValue }
+
+    static func parse(_ name: String) throws -> VF64SourceType {
+        guard let type = VF64SourceType(rawValue: name) else {
+            throw VF64CompilerError.invalid("unknown source type '\(name)'")
+        }
+        return type
+    }
+}
+
+private struct VF64TypedRegister {
+    let register: UInt32
+    let type: VF64SourceType
+}
+
 private struct VF64SourceKernel {
     let name: String
-    let parameters: [String]
-    let bindings: [(String, VF64Expression)]
+    let parameters: [(String, VF64SourceType)]
+    let bindings: [(String, VF64SourceType?, VF64Expression)]
+    let returnType: VF64SourceType
     let result: VF64Expression
 }
 
@@ -111,43 +130,44 @@ private struct VF64SourceParser {
         _ = try expectIdentifier("kernel")
         let name = try expectIdentifier()
         try expect(.symbol("("))
-        var parameters: [String] = []
+        var parameters: [(String, VF64SourceType)] = []
         if tokens[index] != .symbol(")") {
             while true {
-                _ = try expectIdentifier("double")
-                parameters.append(try expectIdentifier())
+                let type = try VF64SourceType.parse(expectIdentifier())
+                parameters.append((try expectIdentifier(), type))
                 if tokens[index] != .symbol(",") { break }
                 _ = take()
             }
         }
         try expect(.symbol(")"))
         try expect(.arrow)
-        _ = try expectIdentifier("double")
+        let returnType = try VF64SourceType.parse(expectIdentifier())
         try expect(.symbol("{"))
-        var bindings: [(String, VF64Expression)] = []
+        var bindings: [(String, VF64SourceType?, VF64Expression)] = []
         while tokens[index] == .identifier("let") {
             _ = take()
             let binding = try expectIdentifier()
+            var declaredType: VF64SourceType?
             if tokens[index] == .symbol(":") {
                 _ = take()
-                _ = try expectIdentifier("double")
+                declaredType = try VF64SourceType.parse(expectIdentifier())
             }
             try expect(.symbol("="))
             let expression = try parseExpression()
             try expect(.symbol(";"))
-            bindings.append((binding, expression))
+            bindings.append((binding, declaredType, expression))
         }
         _ = try expectIdentifier("return")
         let result = try parseExpression()
         try expect(.symbol(";"))
         try expect(.symbol("}"))
         try expect(.eof)
-        guard Set(parameters).count == parameters.count else {
+        guard Set(parameters.map(\.0)).count == parameters.count else {
             throw VF64CompilerError.invalid("duplicate kernel parameter")
         }
         return VF64SourceKernel(
             name: name, parameters: parameters, bindings: bindings,
-            result: result
+            returnType: returnType, result: result
         )
     }
 
@@ -199,7 +219,7 @@ struct VF64SourceCompiler {
     let mode: VF64PrecisionMode
     let laneCount: Int
     private(set) var instructions: [VF64Instruction] = []
-    private var variables: [String: UInt32] = [:]
+    private var variables: [String: VF64TypedRegister] = [:]
     private var nextRegister: UInt32 = 0
 
     init(mode: VF64PrecisionMode, laneCount: Int) {
@@ -216,22 +236,35 @@ struct VF64SourceCompiler {
         guard kernel.parameters.count <= VF64Program.maximumRegisters else {
             throw VF64CompilerError.invalid("too many kernel parameters")
         }
-        for (slot, name) in kernel.parameters.enumerated() {
+        for (slot, parameter) in kernel.parameters.enumerated() {
             let register = try allocateRegister()
-            variables[name] = register
+            variables[parameter.0] = VF64TypedRegister(
+                register: register, type: parameter.1
+            )
             instructions.append(VF64Instruction(
                 opcode: .load, destination: register, immediate: UInt64(slot)
             ))
         }
-        for (name, expression) in kernel.bindings {
+        for (name, declaredType, expression) in kernel.bindings {
             guard variables[name] == nil else {
                 throw VF64CompilerError.invalid("duplicate binding '\(name)'")
             }
-            variables[name] = try lower(expression)
+            let value = try lower(expression)
+            if let declaredType, declaredType != value.type {
+                throw VF64CompilerError.invalid(
+                    "binding '\(name)' declares \(declaredType) but expression is \(value.type)"
+                )
+            }
+            variables[name] = value
         }
         let result = try lower(kernel.result)
+        guard result.type == kernel.returnType else {
+            throw VF64CompilerError.invalid(
+                "kernel returns \(kernel.returnType) but expression is \(result.type)"
+            )
+        }
         instructions.append(VF64Instruction(
-            opcode: .store, source0: result, immediate: 0
+            opcode: .store, source0: result.register, immediate: 0
         ))
         instructions.append(VF64Instruction(opcode: .halt))
         let program = VF64Program(
@@ -250,27 +283,34 @@ struct VF64SourceCompiler {
         return nextRegister
     }
 
-    private mutating func lower(_ expression: VF64Expression) throws -> UInt32 {
+    private mutating func lower(
+        _ expression: VF64Expression
+    ) throws -> VF64TypedRegister {
         switch expression {
         case .variable(let name):
-            guard let register = variables[name] else {
-                throw VF64CompilerError.invalid("unknown double value '\(name)'")
+            guard let value = variables[name] else {
+                throw VF64CompilerError.invalid("unknown source value '\(name)'")
             }
-            return register
+            return value
         case .literal(let value):
             let destination = try allocateRegister()
             instructions.append(VF64Instruction(
                 opcode: .constant, destination: destination,
                 immediate: value.bitPattern
             ))
-            return destination
+            return VF64TypedRegister(register: destination, type: .double)
         case .negate(let value):
-            let zero = try lower(.literal(-0.0))
             let operand = try lower(value)
-            return try emit(.sub, [zero, operand])
+            try require([operand], types: [.double], function: "unary minus")
+            let zero = try lower(.literal(-0.0))
+            return VF64TypedRegister(
+                register: try emit(.sub, [zero.register, operand.register]),
+                type: .double
+            )
         case .binary(let operation, let left, let right):
             let lhs = try lower(left)
             let rhs = try lower(right)
+            try require([lhs, rhs], types: [.double, .double], function: "\(operation)")
             let opcode: VF64Opcode
             switch operation {
             case "+": opcode = .add
@@ -279,30 +319,106 @@ struct VF64SourceCompiler {
             case "/": opcode = .div
             default: throw VF64CompilerError.invalid("unsupported binary operation")
             }
-            return try emit(opcode, [lhs, rhs])
+            return VF64TypedRegister(
+                register: try emit(opcode, [lhs.register, rhs.register]),
+                type: .double
+            )
         case .call(let name, let arguments):
-            let registers = try arguments.map { try lower($0) }
-            let opcode: VF64Opcode
-            let arity: Int
-            switch name {
-            case "sqrt": opcode = .sqrt; arity = 1
-            case "fma": opcode = .fma; arity = 3
-            case "remainder": opcode = .remainder; arity = 2
-            case "round": opcode = .roundToInt; arity = 1
-            case "eq": opcode = .eq; arity = 2
-            case "le": opcode = .le; arity = 2
-            case "lt": opcode = .lt; arity = 2
-            case "eq_signaling": opcode = .eqSignaling; arity = 2
-            case "le_quiet": opcode = .leQuiet; arity = 2
-            case "lt_quiet": opcode = .ltQuiet; arity = 2
-            case "select": opcode = .select; arity = 3
-            default: throw VF64CompilerError.invalid("unknown double function '\(name)'")
-            }
-            guard registers.count == arity else {
-                throw VF64CompilerError.invalid("'\(name)' expects \(arity) arguments")
-            }
-            return try emit(opcode, registers)
+            let values = try arguments.map { try lower($0) }
+            return try lowerCall(name, values)
         }
+    }
+
+    private func require(
+        _ values: [VF64TypedRegister], types: [VF64SourceType], function: String
+    ) throws {
+        guard values.count == types.count else {
+            throw VF64CompilerError.invalid(
+                "'\(function)' expects \(types.count) arguments"
+            )
+        }
+        for (index, pair) in zip(values, types).enumerated() where pair.0.type != pair.1 {
+            throw VF64CompilerError.invalid(
+                "'\(function)' argument \(index + 1) must be \(pair.1), got \(pair.0.type)"
+            )
+        }
+    }
+
+    private mutating func lowerCall(
+        _ name: String, _ values: [VF64TypedRegister]
+    ) throws -> VF64TypedRegister {
+        let doubleUnary: [String: VF64Opcode] = [
+            "sqrt": .sqrt, "round": .roundToInt,
+        ]
+        let doubleBinary: [String: VF64Opcode] = ["remainder": .remainder]
+        let comparisons: [String: VF64Opcode] = [
+            "eq": .eq, "le": .le, "lt": .lt,
+            "eq_signaling": .eqSignaling, "le_quiet": .leQuiet,
+            "lt_quiet": .ltQuiet,
+        ]
+        let conversions: [String: (VF64Opcode, VF64SourceType, VF64SourceType)] = [
+            "uint32_to_double": (.ui32ToF64, .uint32, .double),
+            "uint64_to_double": (.ui64ToF64, .uint64, .double),
+            "int32_to_double": (.i32ToF64, .int32, .double),
+            "int64_to_double": (.i64ToF64, .int64, .double),
+            "double_to_uint32": (.f64ToUi32, .double, .uint32),
+            "double_to_uint64": (.f64ToUi64, .double, .uint64),
+            "double_to_int32": (.f64ToI32, .double, .int32),
+            "double_to_int64": (.f64ToI64, .double, .int64),
+            "double_to_float": (.f64ToF32, .double, .float),
+            "double_to_half": (.f64ToF16, .double, .half),
+            "float_to_double": (.f32ToF64, .float, .double),
+            "half_to_double": (.f16ToF64, .half, .double),
+        ]
+        if let opcode = doubleUnary[name] {
+            try require(values, types: [.double], function: name)
+            return VF64TypedRegister(
+                register: try emit(opcode, values.map(\.register)), type: .double
+            )
+        }
+        if let opcode = doubleBinary[name] {
+            try require(values, types: [.double, .double], function: name)
+            return VF64TypedRegister(
+                register: try emit(opcode, values.map(\.register)), type: .double
+            )
+        }
+        if name == "fma" {
+            try require(values, types: [.double, .double, .double], function: name)
+            return VF64TypedRegister(
+                register: try emit(.fma, values.map(\.register)), type: .double
+            )
+        }
+        if let opcode = comparisons[name] {
+            try require(values, types: [.double, .double], function: name)
+            return VF64TypedRegister(
+                register: try emit(opcode, values.map(\.register)), type: .bool
+            )
+        }
+        if name == "select" {
+            guard values.count == 3 else {
+                throw VF64CompilerError.invalid("'select' expects 3 arguments")
+            }
+            guard values[0].type == .bool else {
+                throw VF64CompilerError.invalid("'select' condition must be bool")
+            }
+            guard values[1].type == values[2].type else {
+                throw VF64CompilerError.invalid(
+                    "'select' branches must have the same type"
+                )
+            }
+            return VF64TypedRegister(
+                register: try emit(.select, values.map(\.register)),
+                type: values[1].type
+            )
+        }
+        if let conversion = conversions[name] {
+            try require(values, types: [conversion.1], function: name)
+            return VF64TypedRegister(
+                register: try emit(conversion.0, values.map(\.register)),
+                type: conversion.2
+            )
+        }
+        throw VF64CompilerError.invalid("unknown source function '\(name)'")
     }
 
     private mutating func emit(

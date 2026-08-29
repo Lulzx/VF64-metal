@@ -23,17 +23,23 @@ slot-major input vectors, the return value becomes output slot zero, and all
 source `double` arithmetic becomes mode-tagged VF64 instructions. Users never
 call an emulation routine.
 
-The grammar supports typed `double` parameters, immutable `let` bindings,
-decimal literals, parentheses, unary minus, `+`, `-`, `*`, `/`, and the
+The grammar supports `double`, `bool`, `uint32`, `uint64`, `int32`, `int64`,
+`float`, and `half` parameters and return values, immutable `let` bindings,
+decimal `double` literals, parentheses, unary minus, `+`, `-`, `*`, `/`, and the
 `sqrt`, `fma`, `remainder`, and `round` functions. It is deliberately
 straight-line to match VF64 v1. Comparisons are available as `eq`, `le`, `lt`,
 `eq_signaling`, `le_quiet`, and `lt_quiet`; they produce a condition consumed
 by `select(condition, when_true, when_false)`. Unsupported syntax and unknown
-values are hard diagnostics.
+values are hard diagnostics. Arithmetic operands must be `double`; comparisons
+return `bool`; `select` requires equal branch types.
 
-Integer and binary16/binary32 conversion opcodes are part of VF64 v1 but are
-not exposed by this double-only source grammar. They require a typed integer
-extension rather than pretending raw integer bits are a `double` value.
+All VF64 v1 conversion directions are exposed with explicit names:
+`uint32_to_double`, `uint64_to_double`, `int32_to_double`,
+`int64_to_double`, `double_to_uint32`, `double_to_uint64`,
+`double_to_int32`, `double_to_int64`, `double_to_float`, `double_to_half`,
+`float_to_double`, and `half_to_double`. Integer, float, and half values retain
+the VF64 raw-slot ABI described by the ISA; the source type checker prevents
+using those encodings as `double` arithmetic operands.
 
 This frontend is not presented as CUDA compatibility. The M5 exit still
 requires CuMetal to lower its source/PTX `double` path into VF64 and to prove
