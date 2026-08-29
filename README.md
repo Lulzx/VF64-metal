@@ -95,6 +95,8 @@ proof is still required. The
 - `fetch-matrix-market.sh` - fetch the checksum-pinned external sparse corpus.
 - `capture-energy.sh` - capture authorized raw CPU/GPU power samples around a
   workload; it fails closed unless run as root.
+- `capture-metal-resource-trace.sh` - capture Xcode Metal System Trace compiler
+  spill events and map them to stable `vf64:` encoder labels.
 - `check-conformance-data.sh` - reconcile published conformance artifacts.
 - `verify-release.sh` - run the consolidated local release gate.
 

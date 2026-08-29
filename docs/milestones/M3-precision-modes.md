@@ -31,9 +31,13 @@ ISA registers. This is compiler/ISA residency evidence only. On this device,
 public Metal pipeline reflection exposes SIMD width, maximum threads per
 threadgroup, and static threadgroup memory, while the only public counter set is
 `timestamp`. It exposes no physical-register, spill-byte, or resident-occupancy
-measurement. AIR disassembly is intermediate representation, not physical GPU
-ISA, so it is deliberately not used as a substitute. Those measurements and a
-second Apple GPU generation remain part of the M3 exit.
+measurement. Xcode's Metal System Trace separately exposes compiler spill
+events; `capture-metal-resource-trace.sh` maps those events to stable `vf64:`
+encoder labels. Its standard command-line template does not select an occupancy
+counter set, and it does not expose physical-register allocation. AIR
+disassembly is intermediate representation, not physical GPU ISA, so it is
+deliberately not used as a substitute. Physical-register and resident-occupancy
+evidence, plus a second Apple GPU generation, remain part of the M3 exit.
 
 ## Exit criterion
 
