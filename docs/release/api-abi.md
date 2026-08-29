@@ -27,6 +27,27 @@ write/read explicit little-endian words when the host is not little-endian.
 Run `scripts/check-vf64-abi.sh` to compile and execute the C layout/constants
 gate. `scripts/verify-release.sh` includes this check before device validation.
 
+## Linkable Metal support ABI
+
+Source-language backends can build `vf64-support.air` with
+`scripts/build-vf64-support.sh`. The module exports 32 unmangled `vf64_*`
+symbols over raw IEEE binary64 bits: the six core operations in
+round-to-nearest-even and explicit-rounding forms, remainder,
+round-to-integer, six comparisons, all twelve conversions, and the two
+rounding-independent widening conversions.
+
+Backends issue direct AIR calls and statically link the support module with
+`air-link`; Metal visible-function-table calls are a different ABI and are not
+used. The functions intentionally do not return exception flags because CUDA
+source arithmetic has no exposed per-thread IEEE status register. VF64 bytecode
+continues to provide the complete sticky-flag ABI.
+
+The support ABI accepts rounding values from the VF64 v1 C ABI and returns
+integer or raw-bit results. Storage remains ordinary eight-byte IEEE binary64
+at every observable boundary. `scripts/check-vf64-support.sh` verifies all 32
+symbols, performs an AIR static link, creates a Metal pipeline, and executes
+arithmetic, comparison, and conversion probes on the GPU.
+
 ## Standalone runner API
 
 `f64-metal version --json` reports the tool and VF64 ABI versions without
@@ -45,6 +66,7 @@ arguments, changed file layouts, or changed semantics require a new API/ABI
 version. `scripts/check-cli-api.sh` freezes the machine-readable version
 response and runs inside the release gate.
 
-This stabilizes the VF64 compiler/backend C and standalone file/command API.
-Internal Swift types, Metal helper functions, benchmark commands, and CuMetal
-integration hooks are not stable for 1.0.
+This stabilizes the VF64 compiler/backend C, standalone file/command API, and
+the named linkable Metal support entry points. Internal Swift types, unnamed
+Metal helpers, benchmark commands, and CuMetal integration hooks are not stable
+for 1.0.

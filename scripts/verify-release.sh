@@ -11,6 +11,7 @@ system_profiler SPDisplaysDataType | sed -n '1,24p'
 
 "$script_dir/check-vf64-abi.sh"
 "$script_dir/check-conformance-data.sh"
+"$script_dir/check-vf64-support.sh"
 swift build --package-path "$repo_dir" -c release
 "$script_dir/check-cli-api.sh"
 "$repo_dir/.build/release/f64-metal" validate

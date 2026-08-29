@@ -25,6 +25,12 @@ two physical VF64 registers while preserving exact results and sticky flags.
 Evidence:
 [`results/m5/2026-08-29-m4-pro-typed-source-compiler.json`](../../results/m5/2026-08-29-m4-pro-typed-source-compiler.json).
 
+The exact runtime is now also exported as a statically linkable AIR support
+module with 32 stable raw-bit entry points. Its build, symbol, AIR-link,
+pipeline-creation, and GPU execution gate is `scripts/check-vf64-support.sh`.
+This supplies the reusable Metal backend boundary for CuMetal integration; it
+does not by itself prove that CuMetal emits calls to it.
+
 This remains a straight-line standalone frontend. CuMetal source/PTX
 integration and its observable-boundary regression suite remain required before
 M5 can close.
