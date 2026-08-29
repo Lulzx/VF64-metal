@@ -17,41 +17,44 @@ func runTestFloatResultConformance(
     function: String,
     rounding: String,
     exact: Bool = false,
-    batchSize: Int = 65_536
+    viaISA: Bool = false,
+    batchSize: Int = 65_536,
+    inputLine: () -> String? = { readLine() }
 ) throws {
     let kernel: String
+    let isaOpcode: VF64Opcode
     let arity: Int
     switch function {
-    case "f64_add": kernel = "soft_add_round_kernel"; arity = 2
-    case "f64_sub": kernel = "soft_sub_round_kernel"; arity = 2
-    case "f64_mul": kernel = "soft_mul_round_kernel"; arity = 2
-    case "f64_div": kernel = "soft_div_round_kernel"; arity = 2
-    case "f64_sqrt": kernel = "soft_sqrt_round_kernel"; arity = 1
-    case "f64_mulAdd": kernel = "soft_fma_round_kernel"; arity = 3
-    case "f64_eq": kernel = "soft_eq_kernel"; arity = 2
-    case "f64_le": kernel = "soft_le_kernel"; arity = 2
-    case "f64_lt": kernel = "soft_lt_kernel"; arity = 2
-    case "f64_eq_signaling": kernel = "soft_eq_signaling_kernel"; arity = 2
-    case "f64_le_quiet": kernel = "soft_le_quiet_kernel"; arity = 2
-    case "f64_lt_quiet": kernel = "soft_lt_quiet_kernel"; arity = 2
-    case "f64_roundToInt": kernel = "soft_round_to_int_kernel"; arity = 1
-    case "f64_rem": kernel = "soft_remainder_kernel"; arity = 2
-    case "ui32_to_f64": kernel = "soft_ui32_to_f64_kernel"; arity = 1
-    case "ui64_to_f64": kernel = "soft_ui64_to_f64_kernel"; arity = 1
-    case "i32_to_f64": kernel = "soft_i32_to_f64_kernel"; arity = 1
-    case "i64_to_f64": kernel = "soft_i64_to_f64_kernel"; arity = 1
+    case "f64_add": kernel = "soft_add_round_kernel"; isaOpcode = .add; arity = 2
+    case "f64_sub": kernel = "soft_sub_round_kernel"; isaOpcode = .sub; arity = 2
+    case "f64_mul": kernel = "soft_mul_round_kernel"; isaOpcode = .mul; arity = 2
+    case "f64_div": kernel = "soft_div_round_kernel"; isaOpcode = .div; arity = 2
+    case "f64_sqrt": kernel = "soft_sqrt_round_kernel"; isaOpcode = .sqrt; arity = 1
+    case "f64_mulAdd": kernel = "soft_fma_round_kernel"; isaOpcode = .fma; arity = 3
+    case "f64_eq": kernel = "soft_eq_kernel"; isaOpcode = .eq; arity = 2
+    case "f64_le": kernel = "soft_le_kernel"; isaOpcode = .le; arity = 2
+    case "f64_lt": kernel = "soft_lt_kernel"; isaOpcode = .lt; arity = 2
+    case "f64_eq_signaling": kernel = "soft_eq_signaling_kernel"; isaOpcode = .eqSignaling; arity = 2
+    case "f64_le_quiet": kernel = "soft_le_quiet_kernel"; isaOpcode = .leQuiet; arity = 2
+    case "f64_lt_quiet": kernel = "soft_lt_quiet_kernel"; isaOpcode = .ltQuiet; arity = 2
+    case "f64_roundToInt": kernel = "soft_round_to_int_kernel"; isaOpcode = .roundToInt; arity = 1
+    case "f64_rem": kernel = "soft_remainder_kernel"; isaOpcode = .remainder; arity = 2
+    case "ui32_to_f64": kernel = "soft_ui32_to_f64_kernel"; isaOpcode = .ui32ToF64; arity = 1
+    case "ui64_to_f64": kernel = "soft_ui64_to_f64_kernel"; isaOpcode = .ui64ToF64; arity = 1
+    case "i32_to_f64": kernel = "soft_i32_to_f64_kernel"; isaOpcode = .i32ToF64; arity = 1
+    case "i64_to_f64": kernel = "soft_i64_to_f64_kernel"; isaOpcode = .i64ToF64; arity = 1
     case "f64_to_ui32":
-        kernel = "soft_f64_to_ui32_kernel"; arity = 1
+        kernel = "soft_f64_to_ui32_kernel"; isaOpcode = .f64ToUi32; arity = 1
     case "f64_to_ui64":
-        kernel = "soft_f64_to_ui64_kernel"; arity = 1
+        kernel = "soft_f64_to_ui64_kernel"; isaOpcode = .f64ToUi64; arity = 1
     case "f64_to_i32":
-        kernel = "soft_f64_to_i32_kernel"; arity = 1
+        kernel = "soft_f64_to_i32_kernel"; isaOpcode = .f64ToI32; arity = 1
     case "f64_to_i64":
-        kernel = "soft_f64_to_i64_kernel"; arity = 1
-    case "f64_to_f32": kernel = "soft_f64_to_f32_kernel"; arity = 1
-    case "f64_to_f16": kernel = "soft_f64_to_f16_kernel"; arity = 1
-    case "f32_to_f64": kernel = "soft_f32_to_f64_kernel"; arity = 1
-    case "f16_to_f64": kernel = "soft_f16_to_f64_kernel"; arity = 1
+        kernel = "soft_f64_to_i64_kernel"; isaOpcode = .f64ToI64; arity = 1
+    case "f64_to_f32": kernel = "soft_f64_to_f32_kernel"; isaOpcode = .f64ToF32; arity = 1
+    case "f64_to_f16": kernel = "soft_f64_to_f16_kernel"; isaOpcode = .f64ToF16; arity = 1
+    case "f32_to_f64": kernel = "soft_f32_to_f64_kernel"; isaOpcode = .f32ToF64; arity = 1
+    case "f16_to_f64": kernel = "soft_f16_to_f64_kernel"; isaOpcode = .f16ToF64; arity = 1
     default:
         throw HarnessError.validation(
             "TestFloat function \(function) is not implemented; supported: " +
@@ -87,25 +90,62 @@ func runTestFloatResultConformance(
 
     func validateBatch(_ cases: [TestFloatCase]) throws {
         guard !cases.isEmpty else { return }
-        let aBuffer = try harness.buffer(cases.map(\.a))
-        let bBuffer = try harness.buffer(cases.map(\.b))
-        let cBuffer = try harness.buffer(cases.map(\.c))
-        let output = try harness.emptyBuffer(count: cases.count, of: UInt64.self)
-        let flagsOutput = try harness.emptyBuffer(count: cases.count, of: UInt32.self)
-        _ = try harness.run(
-            kernel,
-            count: cases.count,
-            buffers: [
-                (0, aBuffer), (1, bBuffer), (2, output),
-                (4, roundingBuffer), (5, cBuffer), (6, flagsOutput),
-                (7, exactBuffer),
-            ],
-            countIndex: 3
-        )
-        let observed: [UInt64] = harness.read(output, count: cases.count)
-        let observedFlags: [UInt32] = harness.read(
-            flagsOutput, count: cases.count
-        )
+        let observed: [UInt64]
+        let observedFlags: [UInt32]
+        if viaISA {
+            let fixedControl: Set<VF64Opcode> = [
+                .remainder, .eq, .le, .lt, .eqSignaling, .leQuiet, .ltQuiet,
+                .f32ToF64, .f16ToF64,
+            ]
+            let control = fixedControl.contains(isaOpcode) ? 0 :
+                VF64Instruction.control(rounding: roundingMode, exact: exact)
+            var programInstructions: [VF64Instruction] = []
+            for slot in 0..<arity {
+                programInstructions.append(VF64Instruction(
+                    opcode: .load, destination: UInt32(slot),
+                    immediate: UInt64(slot)
+                ))
+            }
+            programInstructions.append(VF64Instruction(
+                opcode: isaOpcode, destination: 3, source0: 0,
+                source1: arity >= 2 ? 1 : 0,
+                source2: arity >= 3 ? 2 : 0, control: control
+            ))
+            programInstructions.append(VF64Instruction(
+                opcode: .store, source0: 3, immediate: 0
+            ))
+            programInstructions.append(VF64Instruction(opcode: .halt))
+            let program = VF64Program(
+                registerCount: 4, inputSlots: arity, outputSlots: 1,
+                laneCount: cases.count, instructions: programInstructions
+            )
+            var inputs = cases.map(\.a)
+            if arity >= 2 { inputs += cases.map(\.b) }
+            if arity >= 3 { inputs += cases.map(\.c) }
+            let execution = try executeVF64(
+                harness, program: program, inputs: inputs
+            )
+            observed = execution.outputs
+            observedFlags = execution.flags
+        } else {
+            let aBuffer = try harness.buffer(cases.map(\.a))
+            let bBuffer = try harness.buffer(cases.map(\.b))
+            let cBuffer = try harness.buffer(cases.map(\.c))
+            let output = try harness.emptyBuffer(count: cases.count, of: UInt64.self)
+            let flagsOutput = try harness.emptyBuffer(count: cases.count, of: UInt32.self)
+            _ = try harness.run(
+                kernel,
+                count: cases.count,
+                buffers: [
+                    (0, aBuffer), (1, bBuffer), (2, output),
+                    (4, roundingBuffer), (5, cBuffer), (6, flagsOutput),
+                    (7, exactBuffer),
+                ],
+                countIndex: 3
+            )
+            observed = harness.read(output, count: cases.count)
+            observedFlags = harness.read(flagsOutput, count: cases.count)
+        }
         for index in cases.indices where
             observed[index] != cases[index].expected ||
             (flagsCovered && observedFlags[index] != UInt32(cases[index].expectedFlags))
@@ -126,7 +166,7 @@ func runTestFloatResultConformance(
         }
     }
 
-    while let line = readLine() {
+    while let line = inputLine() {
         let fields = line.split(whereSeparator: \.isWhitespace)
         let expectedField = arity
         let flagsField = arity + 1
@@ -181,7 +221,7 @@ func runTestFloatResultConformance(
     }
     print(
         "\(function) \(rounding) \(exact ? "exact" : "notexact") " +
-        "TestFloat result conformance passed over \(total) cases; " +
+        "TestFloat \(viaISA ? "VF64 " : "")result conformance passed over \(total) cases; " +
         "result bits compared exactly; " +
         "exception flags checked " +
         "(\(expectedFlagged) oracle cases raised flags)"

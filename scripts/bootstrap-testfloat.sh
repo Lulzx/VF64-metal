@@ -20,7 +20,9 @@ clone_at_commit() {
     if [ ! -d "$target/.git" ]; then
         git clone "$url" "$target"
     fi
-    git -C "$target" fetch origin "$commit"
+    if ! git -C "$target" cat-file -e "$commit^{commit}" 2>/dev/null; then
+        git -C "$target" fetch origin "$commit"
+    fi
     git -C "$target" checkout --detach "$commit"
 }
 
