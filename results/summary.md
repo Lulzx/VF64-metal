@@ -26,18 +26,19 @@ Machine-readable provenance and policy are in
 This is result-bit conformance with NaNs compared by class. It does not claim
 M2 exception-flag, signaling-NaN, or payload conformance.
 
-## M2 core exception state
+## M2 complete IEEE-754 runtime
 
-The same 31,599,360 operation/mode cases now pass result and exception-flag
-comparison at source commit `d856d8b`. This covers invalid, divide-by-zero,
-overflow, underflow with tininess detected after rounding, and inexact.
+Status: **complete** for the documented M2 runtime surface.
+
+At source commit `d96094a`, `scripts/run-testfloat-m2.sh` passed 31,982,976
+level-1 result and exception-flag comparisons on the Apple M4 Pro. This covers
+the six exact arithmetic operations, comparisons, remainder, round-to-integer,
+signed/unsigned 32/64-bit integer conversions, and binary16/binary32
+interchange. Floating NaN results match ARM-VFPv2 sign, quiet bit, and payload
+bitwise. Tininess is detected after rounding.
 
 Machine-readable evidence:
-[`m2/2026-08-29-m4-pro-core-flags-level1.json`](m2/2026-08-29-m4-pro-core-flags-level1.json).
+[`m2/2026-08-29-m4-pro-full-runtime-level1.json`](m2/2026-08-29-m4-pro-full-runtime-level1.json).
 
-Since that core-flags artifact, comparisons, remainder, round-to-integer,
-integer conversions, and binary16/binary32 conversions have passed their
-level-1 TestFloat matrices. Floating-result operations also pass bitwise NaN
-sign, quiet-bit, and payload comparison against the ARM-VFPv2 specialization.
-M2 remains incomplete until the full runtime ABI is frozen and a consolidated
-machine-readable exit artifact is committed.
+The earlier core-only flag artifact remains as historical incremental evidence.
+Level 2 exhaustive campaigns are not implied by this level-1 exit.

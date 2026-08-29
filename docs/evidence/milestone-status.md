@@ -8,7 +8,7 @@ The status labels below distinguish implemented source from exit evidence.
 | Milestone | Status | Current evidence | Earliest blocking exit gap |
 | --- | --- | --- | --- |
 | M1 exact core | Complete | 31,599,360 level-1 GPU TestFloat result comparisons; zero mismatches; all core ops/modes; machine-readable provenance | none within documented result-bit boundary |
-| M2 IEEE runtime | In progress | core flags, comparisons, remainder, round-to-integer, integer and f16/f32 format conversions pass TestFloat; NaN results match ARM-VFPv2 bitwise | freeze and document the complete runtime ABI |
+| M2 IEEE runtime | Complete | 31,982,976 level-1 TestFloat result/flag comparisons; exact floating NaN bits; documented source/storage/exception ABI | none within the documented M2 surface |
 | M3 precision modes | Research prototype | measured FP32-pair and integer add/mul kernels | frozen `fast48`, `wide48`, `ieee64` contracts and cross-device artifacts |
 | M4 virtual ISA | Designed only | semantic scope documented | versioned machine-readable ISA and independent backend tests |
 | M5 compiler integration | Designed only | CuMetal boundary and residency plan | source `double` lowering through each declared policy |

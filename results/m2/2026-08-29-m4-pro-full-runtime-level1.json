@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "milestone": "M2",
+  "result_scope": "complete documented IEEE-754 binary64 software runtime surface",
+  "status": "pass",
+  "unexplained_mismatches": 0,
+  "source_commit": "d96094acf6b09397750eca4d8c67fa59e37c94d0",
+  "command": "scripts/run-testfloat-m2.sh",
+  "oracle": {
+    "name": "Berkeley TestFloat Release 3e with SoftFloat ARM-VFPv2",
+    "testfloat_commit": "a9c849f1b0eb0264b626d9686ffae167d996e3be",
+    "softfloat_commit": "a0c6494cdc11865811dec815d5c0049fba9d82a8",
+    "level": 1,
+    "seed": 1
+  },
+  "policy": {
+    "rounding_modes": [
+      "near_even",
+      "min_magnitude",
+      "minimum",
+      "maximum",
+      "near_max_magnitude"
+    ],
+    "tininess": "after_rounding",
+    "nan_comparison": "bitwise_for_floating_results",
+    "nan_specialization": "ARM-VFPv2",
+    "exception_flags_checked": true,
+    "exception_flag_bits": {
+      "inexact": 1,
+      "underflow": 2,
+      "overflow": 4,
+      "divide_by_zero": 8,
+      "invalid": 16
+    },
+    "integer_invalid_results": "ARM-VFPv2 saturation policy"
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "operation_groups": {
+    "core_arithmetic": {
+      "functions": ["f64_add", "f64_sub", "f64_mul", "f64_div", "f64_sqrt", "f64_mulAdd"],
+      "cells": 30,
+      "comparisons": 31599360,
+      "mismatches": 0
+    },
+    "comparisons": {
+      "functions": ["f64_eq", "f64_le", "f64_lt", "f64_eq_signaling", "f64_le_quiet", "f64_lt_quiet"],
+      "cells": 6,
+      "comparisons": 278784,
+      "mismatches": 0
+    },
+    "remainder": {
+      "functions": ["f64_rem"],
+      "cells": 1,
+      "comparisons": 46464,
+      "mismatches": 0
+    },
+    "round_to_integer": {
+      "functions": ["f64_roundToInt"],
+      "rounding_modes": 5,
+      "exactness_policies": 2,
+      "cells": 10,
+      "comparisons": 7680,
+      "mismatches": 0
+    },
+    "integer_to_binary64": {
+      "functions": ["ui32_to_f64", "ui64_to_f64", "i32_to_f64", "i64_to_f64"],
+      "rounding_modes": 5,
+      "cells": 20,
+      "comparisons": 11280,
+      "mismatches": 0
+    },
+    "binary64_to_integer": {
+      "functions": ["f64_to_ui32", "f64_to_ui64", "f64_to_i32", "f64_to_i64"],
+      "rounding_modes": 5,
+      "exactness_policies": 2,
+      "cells": 40,
+      "comparisons": 30720,
+      "mismatches": 0
+    },
+    "binary16_binary32_interchange": {
+      "functions": ["f64_to_f32", "f64_to_f16", "f32_to_f64", "f16_to_f64"],
+      "cells": 12,
+      "comparisons": 8688,
+      "mismatches": 0
+    }
+  },
+  "total_result_and_flag_comparisons": 31982976,
+  "runtime_contract": "docs/runtime/ieee64.md",
+  "limitations": [
+    "This artifact records TestFloat level 1, not level 2 exhaustive campaigns",
+    "Transcendentals, decimal formats, binary128, FP64 atomics, and totalOrder are outside the declared M2 runtime",
+    "Virtual ISA encoding, compiler lowering, and reduced-precision modes are later milestones"
+  ]
+}

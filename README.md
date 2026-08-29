@@ -109,7 +109,7 @@ arithmetic cost and is the relevant comparison for pair-resident CuMetal code.
    normalization, 128-bit shifting, and exact rounding leave integer multiply
    about 12x slower in an ALU-bound chain.
 
-## Integer soft-binary64 prototype
+## Exact software binary64 runtime
 
 `soft_add64`, `soft_sub64`, `soft_mul64`, `soft_div64`, `soft_sqrt64`, and
 `soft_fma64` operate directly on IEEE binary64 bit patterns.
@@ -133,13 +133,11 @@ explicitly leaving exception-flag conformance open. True fused FMA uses an
 exact 106-bit product in a 128-bit aligned accumulator and rounds only after the
 addend has been combined.
 
-This is not yet a complete soft-FP64 mode: conversions, comparisons, complete
-exception state, and the rest of the M2 runtime surface are absent. M1 result
-conformance is complete under its committed corpus and policy.
-
-M2 exception-state work is active: all M1 core operations now match TestFloat
-flags in all five rounding directions. The remaining M2 runtime surface and
-detailed NaN payload policy are not yet claimed.
+M1 exact arithmetic and the documented M2 runtime surface are complete under
+their committed level-1 TestFloat policies. The consolidated M2 run covers
+31,982,976 result-and-flag comparisons with zero mismatches. Floating NaN
+results match the pinned ARM-VFPv2 policy bit-for-bit; tininess is detected
+after rounding.
 
 The complete TestFloat binary64 comparison family is also implemented: quiet
 equality, signaling equality, ordered less-than/less-or-equal, and quiet ordered
@@ -174,8 +172,8 @@ payloads are compared bit-for-bit against the pinned SoftFloat policy.
 - NaNs remain NaNs, but binary64 payloads are reduced to the payload capacity of
   the FP32 leading limb and repacked as quiet NaNs.
 - The FP32-pair path is ~48-bit arithmetic, not correctly rounded binary64.
-- The integer core operations are correctly rounded for their tested result
-  surfaces, but exception flags and the complete M2 runtime are not implemented.
+- The exact runtime is a source-level Metal API; the stable virtual ISA and
+  compiler lowering belong to M4 and M5.
 - Transcendentals and FP64 atomics are outside this harness.
 
 See [the documentation index](docs/README.md) for the research record, milestone

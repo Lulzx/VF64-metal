@@ -10,7 +10,8 @@ Add the runtime surface around M1:
 - exception flags;
 - a documented tininess policy.
 
-Current progress: M1 core exception flags, the complete six-operation TestFloat
+Status: **complete** at source commit `d96094a` plus the consolidated exit
+artifact. M1 core exception flags, the complete six-operation TestFloat
 comparison family, and round-to-integer under every rounding/exactness policy
 pass on the Metal GPU. IEEE remainder also passes its result/flag matrix.
 Signed and unsigned 32/64-bit integer-to-binary64 conversions pass every
@@ -18,12 +19,12 @@ rounding mode. Binary64-to-integer conversions also pass every rounding and
 exactness policy. Binary16/binary32 narrowing and widening also pass, including
 bitwise NaN payload conversion. Floating-result operations now also pass
 bitwise NaN comparison against the pinned ARM-VFPv2 SoftFloat specialization.
-The remaining M2 exit work is to freeze and document the complete runtime ABI.
-
 The source-level value, storage, rounding, exception, conversion, and
 unsupported-operation contract is documented in
-[`runtime/ieee64.md`](../runtime/ieee64.md). A consolidated reproducible exit
-artifact is the final closure gate.
+[`runtime/ieee64.md`](../runtime/ieee64.md). The consolidated Apple M4 Pro
+level-1 run compared 31,982,976 results and flags with zero mismatches; its
+machine-readable provenance is in
+[`results/m2/2026-08-29-m4-pro-full-runtime-level1.json`](../../results/m2/2026-08-29-m4-pro-full-runtime-level1.json).
 
 ## NaN contract
 
@@ -47,3 +48,5 @@ silently use `fast48`.
 
 A complete, documented IEEE-754 binary64 software runtime for Metal GPU compute,
 including ABI, rounding, exceptions, NaNs, and unsupported-language boundaries.
+
+Exit: **met** for the documented M2 surface and level-1 conformance policy.
