@@ -145,12 +145,14 @@ kernel void scalar_div_fast48_kernel(
 kernel void gmres_initialize_fast48_kernel(
     device const ulong *normSquared [[buffer(0)]],
     device ulong *inverseNorm [[buffer(1)]],
-    device ulong *g [[buffer(2)]])
+    device ulong *g [[buffer(2)]],
+    device ulong *initialNorm [[buffer(3)]])
 {
     bool ignored;
     emu_f64 norm = sqrt_ff(unpack_binary64(normSquared[0], ignored));
     inverseNorm[0] = pack_binary64(div_ff(make_emu(1.0f, 0.0f), norm));
     g[0] = pack_binary64(norm);
+    initialNorm[0] = pack_binary64(norm);
 }
 
 kernel void gmres_orthogonalize_fast48_kernel(
@@ -175,8 +177,12 @@ kernel void gmres_finalize_column_fast48_kernel(
     device ulong *sine [[buffer(3)]],
     device ulong *g [[buffer(4)]],
     device ulong *inverseNorm [[buffer(5)]],
-    constant uint &column [[buffer(6)]],
-    constant uint &stride [[buffer(7)]])
+    device const ulong *initialNorm [[buffer(6)]],
+    device uint *completed [[buffer(7)]],
+    device ulong *convergedResidual [[buffer(8)]],
+    constant uint &column [[buffer(9)]],
+    constant uint &stride [[buffer(10)]],
+    constant float &tolerance [[buffer(11)]])
 {
     bool ignored;
     emu_f64 norm = sqrt_ff(unpack_binary64(normSquared[0], ignored));
@@ -210,17 +216,29 @@ kernel void gmres_finalize_column_fast48_kernel(
 
     emu_f64 previousG = unpack_binary64(g[column], ignored);
     g[column] = pack_binary64(mul_ff(c, previousG));
-    g[column + 1u] = pack_binary64(mul_ff(neg_ff(s), previousG));
+    emu_f64 nextG = mul_ff(neg_ff(s), previousG);
+    g[column + 1u] = pack_binary64(nextG);
+
+    float residualMagnitude = fabs(nextG.hi + nextG.lo);
+    emu_f64 bNorm = unpack_binary64(initialNorm[0], ignored);
+    bool reachedTolerance = residualMagnitude <= tolerance * fabs(bNorm.hi + bNorm.lo);
+    bool finalColumn = column + 1u == stride;
+    if (completed[0] == 0u && (reachedTolerance || finalColumn)) {
+        completed[0] = column + 1u;
+        emu_f64 magnitudeValue = nextG.hi < 0.0f ? neg_ff(nextG) : nextG;
+        convergedResidual[0] = pack_binary64(magnitudeValue);
+    }
 }
 
 kernel void gmres_backsolve_fast48_kernel(
     device const ulong *h [[buffer(0)]],
     device const ulong *g [[buffer(1)]],
     device ulong *y [[buffer(2)]],
-    constant uint &completed [[buffer(3)]],
+    device const uint *completedState [[buffer(3)]],
     constant uint &stride [[buffer(4)]])
 {
     bool ignored;
+    uint completed = completedState[0];
     for (int row = int(completed) - 1; row >= 0; --row) {
         emu_f64 rhs = unpack_binary64(g[uint(row)], ignored);
         for (uint column = uint(row) + 1u; column < completed; ++column) {

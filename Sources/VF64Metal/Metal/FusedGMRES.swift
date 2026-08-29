@@ -2,28 +2,31 @@ import Foundation
 import Metal
 
 extension MetalHarness {
-    func fixedFast48GMRES(
+    func deviceConvergedFast48GMRES(
         rowOffsets: [UInt32], columns: [UInt32], values: [Double], b: [Double],
-        iterations: Int
-    ) throws -> (x: [Double], residualEstimate: Double, seconds: Double) {
+        tolerance: Double, maxIterations: Int
+    ) throws -> (x: [Double], iterations: Int, residualEstimate: Double, seconds: Double) {
         let count = b.count
-        let stride = iterations
+        let stride = maxIterations
         let rowBuffer = try buffer(rowOffsets)
         let columnBuffer = try buffer(columns)
         let valueBuffer = try buffer(bitsOf(values))
         let bBuffer = try buffer(bitsOf(b))
         let x = try buffer(bitsOf([Double](repeating: 0, count: count)))
         let work = try emptyBuffer(count: count, of: UInt64.self)
-        let basis = try (0...iterations).map { _ in
+        let basis = try (0...maxIterations).map { _ in
             try emptyBuffer(count: count, of: UInt64.self)
         }
-        let h = try buffer([UInt64](repeating: 0, count: (iterations + 1) * stride))
-        let cosine = try buffer([UInt64](repeating: 0, count: iterations))
-        let sine = try buffer([UInt64](repeating: 0, count: iterations))
-        let g = try buffer([UInt64](repeating: 0, count: iterations + 1))
-        let y = try buffer([UInt64](repeating: 0, count: iterations))
+        let h = try buffer([UInt64](repeating: 0, count: (maxIterations + 1) * stride))
+        let cosine = try buffer([UInt64](repeating: 0, count: maxIterations))
+        let sine = try buffer([UInt64](repeating: 0, count: maxIterations))
+        let g = try buffer([UInt64](repeating: 0, count: maxIterations + 1))
+        let y = try buffer([UInt64](repeating: 0, count: maxIterations))
         let normSquared = try emptyBuffer(count: 1, of: UInt64.self)
         let inverseNorm = try emptyBuffer(count: 1, of: UInt64.self)
+        let initialNorm = try emptyBuffer(count: 1, of: UInt64.self)
+        let completed = try buffer([UInt32(0)])
+        let convergedResidual = try emptyBuffer(count: 1, of: UInt64.self)
         let threads = 256
         let maximumPartials = max(1, (count + threads * 4 - 1) / (threads * 4))
         let partialA = try emptyBuffer(count: maximumPartials, of: SIMD2<Float>.self)
@@ -119,6 +122,7 @@ extension MetalHarness {
         try encodeDot(bBuffer, bBuffer, output: normSquared)
         try dispatch("gmres_initialize_fast48_kernel", count: 1, buffers: [
             (0, normSquared, 0), (1, inverseNorm, 0), (2, g, 0),
+            (3, initialNorm, 0),
         ], countIndex: nil)
         barrier()
         try dispatch("vector_scale_fast48_kernel", count: count, buffers: [
@@ -126,7 +130,7 @@ extension MetalHarness {
         ], countIndex: 3)
         barrier()
 
-        for column in 0..<iterations {
+        for column in 0..<maxIterations {
             try dispatch("spmv_fast48_kernel", count: count, buffers: [
                 (0, rowBuffer, 0), (1, columnBuffer, 0), (2, valueBuffer, 0),
                 (3, basis[column], 0), (4, work, 0),
@@ -145,6 +149,7 @@ extension MetalHarness {
             try encodeDot(work, work, output: normSquared)
             var columnValue = UInt32(column)
             var strideValue = UInt32(stride)
+            var toleranceValue = Float(tolerance)
             let finalize = try pipeline("gmres_finalize_column_fast48_kernel")
             encoder.setComputePipelineState(finalize)
             encoder.setBuffer(h, offset: 0, index: 0)
@@ -153,8 +158,12 @@ extension MetalHarness {
             encoder.setBuffer(sine, offset: 0, index: 3)
             encoder.setBuffer(g, offset: 0, index: 4)
             encoder.setBuffer(inverseNorm, offset: 0, index: 5)
-            encoder.setBytes(&columnValue, length: 4, index: 6)
-            encoder.setBytes(&strideValue, length: 4, index: 7)
+            encoder.setBuffer(initialNorm, offset: 0, index: 6)
+            encoder.setBuffer(completed, offset: 0, index: 7)
+            encoder.setBuffer(convergedResidual, offset: 0, index: 8)
+            encoder.setBytes(&columnValue, length: 4, index: 9)
+            encoder.setBytes(&strideValue, length: 4, index: 10)
+            encoder.setBytes(&toleranceValue, length: 4, index: 11)
             encoder.dispatchThreads(
                 MTLSize(width: 1, height: 1, depth: 1),
                 threadsPerThreadgroup: MTLSize(width: 1, height: 1, depth: 1)
@@ -166,21 +175,20 @@ extension MetalHarness {
             barrier()
         }
 
-        var completedValue = UInt32(iterations)
         var strideValue = UInt32(stride)
         let backsolve = try pipeline("gmres_backsolve_fast48_kernel")
         encoder.setComputePipelineState(backsolve)
         encoder.setBuffer(h, offset: 0, index: 0)
         encoder.setBuffer(g, offset: 0, index: 1)
         encoder.setBuffer(y, offset: 0, index: 2)
-        encoder.setBytes(&completedValue, length: 4, index: 3)
+        encoder.setBuffer(completed, offset: 0, index: 3)
         encoder.setBytes(&strideValue, length: 4, index: 4)
         encoder.dispatchThreads(
             MTLSize(width: 1, height: 1, depth: 1),
             threadsPerThreadgroup: MTLSize(width: 1, height: 1, depth: 1)
         )
         barrier()
-        for index in 0..<iterations {
+        for index in 0..<maxIterations {
             try dispatch("axpy_kernel", count: count, buffers: [
                 (0, y, index * MemoryLayout<UInt64>.stride),
                 (1, basis[index], 0), (2, x, 0), (3, x, 0),
@@ -197,11 +205,19 @@ extension MetalHarness {
         }
         let wallSeconds = start.duration(to: .now).seconds
         let outputBits: [UInt64] = read(x, count: count)
-        let gBits: [UInt64] = read(g, count: iterations + 1)
+        let completedValue: [UInt32] = read(completed, count: 1)
+        let residualBits: [UInt64] = read(convergedResidual, count: 1)
+        let observedIterations = Int(completedValue[0])
+        guard observedIterations > 0, observedIterations <= maxIterations else {
+            throw HarnessError.commandEncoding(
+                "device GMRES returned invalid iteration count \(observedIterations)"
+            )
+        }
         let bNorm = sqrt(b.reduce(0.0) { $0 + $1 * $1 })
         return (
             outputBits.map(Double.init(bitPattern:)),
-            abs(Double(bitPattern: gBits[iterations])) / bNorm,
+            observedIterations,
+            Double(bitPattern: residualBits[0]) / bNorm,
             wallSeconds
         )
     }
