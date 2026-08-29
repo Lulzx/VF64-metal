@@ -30,13 +30,13 @@ gate. `scripts/verify-release.sh` includes this check before device validation.
 ## Linkable Metal support ABI
 
 Source-language backends can build `vf64-support.air` with
-`scripts/build-vf64-support.sh`. The module exports 38 unmangled `vf64_*`
-symbols over raw IEEE binary64 bits: the six core operations in
+`scripts/build-vf64-support.sh`. The module exports 32 exact, unmangled
+`vf64_*` symbols over raw IEEE binary64 bits: the six core operations in
 round-to-nearest-even and explicit-rounding forms, remainder,
 round-to-integer, six comparisons, all twelve conversions, and the two
-rounding-independent widening conversions. Six additional `vf64_wide_*`
-symbols expose the frozen `wide48` core-arithmetic contract with full binary64
-input range.
+rounding-independent widening conversions. Six `vf64_wide_*` symbols expose
+the frozen `wide48` core-arithmetic contract with full binary64 input range,
+for 38 support symbols in total.
 
 Backends issue direct AIR calls and statically link the support module with
 `air-link`; Metal visible-function-table calls are a different ABI and are not
@@ -68,7 +68,7 @@ arguments, changed file layouts, or changed semantics require a new API/ABI
 version. `scripts/check-cli-api.sh` freezes the machine-readable version
 response and runs inside the release gate.
 
-This stabilizes the VF64 compiler/backend C, standalone file/command API, and
-the named linkable Metal support entry points. Internal Swift types, unnamed
-Metal helpers, benchmark commands, and CuMetal integration hooks are not stable
-for 1.0.
+This stabilizes the VF64 compiler/backend C, standalone file/command API, named
+linkable Metal support entry points, and CuMetal's mode-selection contract.
+Internal Swift types, unnamed Metal helpers, and benchmark commands are not
+stable for 1.0.

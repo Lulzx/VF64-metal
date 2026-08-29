@@ -80,7 +80,7 @@ round trips. Evidence:
 
 ## M5 compiler integration
 
-Status: **in progress**.
+Status: **complete** for the declared CuMetal source/PTX operation surface.
 
 The standalone typed source frontend lowers arithmetic, all six comparisons,
 typed selection, and all twelve VF64 conversion directions into executable
@@ -94,10 +94,12 @@ dependency chain executes with two physical VF64 registers, bit-exact results,
 and the expected sticky inexact flag. This does not substitute for Metal
 hardware register, occupancy, or spill counters.
 
-It is not yet integrated into CuMetal's source/PTX path, so existing CUDA
-kernels cannot use VF64 `double` without a separate compilation step.
-Observable-boundary regressions for `mov.b64`, `uint64_t`, shared memory,
-shuffle, reload, and calls remain required.
+CuMetal commit `15e0bb2` lowers an unchanged CUDA `double` workload through all
+three explicit policies. The M4 Pro gate passes arithmetic chains, true fused
+FMA, square root, conversions, comparisons, min/max, remainder, rounding,
+shared/global memory, shuffles, reloads, `uint64_t` aliasing, persistent-cache
+hits, and mode-specific provenance. Evidence:
+[`m5/2026-08-29-m4-pro-cumetal-vf64.json`](m5/2026-08-29-m4-pro-cumetal-vf64.json).
 
 ## M6 automatic precision
 
@@ -148,15 +150,15 @@ solutions, and beat CPU FP64 on three of four structures; the retained bounded
 case measured 0.92x CPU. Evidence:
 [`m7/2026-08-29-m4-pro-lp-corpus.json`](m7/2026-08-29-m4-pro-lp-corpus.json).
 
-CuMetal's existing CUDA `fp64_precision` probe also passed its reduced-pair
-contract on the M4 Pro, including shared memory, shuffle, reload, and aliasing
-boundaries. It is explicitly legacy `CUMETAL_FP64_MODE=emulate` evidence, not a
-VF64-integrated compiler result. Evidence:
+CuMetal's CUDA `fp64_precision` probe passes `fast48`, `wide48`, and `ieee64` on
+the M4 Pro, including arithmetic, comparisons, libdevice operations, rounding,
+shared memory, shuffle, reload, and aliasing boundaries. Integrated evidence:
+[`m5/2026-08-29-m4-pro-cumetal-vf64.json`](m5/2026-08-29-m4-pro-cumetal-vf64.json).
+The earlier pair-only run remains as historical evidence:
 [`m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json`](m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json).
 
 The 16-step `fast48` N-body simulation matched the CPU trajectory to 4.109e-15
 relative state error and reproduced its 3.340e-6 energy drift.
 
-M7 remains open for VF64-integrated CuMetal CUDA workloads, energy, general
-sparse LP solver validation, external/application sparse matrices, and
-cross-device reproduction.
+M7 remains open for energy, general sparse LP solver validation,
+external/application sparse matrices, and cross-device reproduction.

@@ -1,0 +1,56 @@
+{
+  "schema": "vf64.m5.cumetal-integration.v1",
+  "milestone": "M5",
+  "status": "pass",
+  "date": "2026-08-29",
+  "command": "scripts/check-cumetal-integration.sh",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "api": "Metal 4"
+  },
+  "source": {
+    "vf64_gate_commit": "fee2e01",
+    "vf64_shader_pin": "66270a124fb2bc943ccd32f2685a09c93f1b6f0a",
+    "cumetal_commit": "15e0bb2812bc4e29adca3bf54ca9c0f5d1c122c9",
+    "cumetal_repository": "https://github.com/Lulzx/cuda-metal"
+  },
+  "input": "tests/cuda_projects/fp64/fp64_precision.cu",
+  "policies": {
+    "fast48": {
+      "result": "pass",
+      "provenance": "generic_ptx_lowering_fp64_emulated",
+      "semantic_quality": "reduced_precision_fp64"
+    },
+    "wide48": {
+      "result": "pass",
+      "provenance": "generic_ptx_lowering_fp64_wide48",
+      "semantic_quality": "reduced_precision_fp64"
+    },
+    "ieee64": {
+      "result": "pass",
+      "provenance": "generic_ptx_lowering_fp64_ieee64",
+      "semantic_quality": "exact"
+    }
+  },
+  "verified_surfaces": [
+    "source-level double arithmetic chains",
+    "true fused FMA and square root",
+    "binary32 to binary64 conversion",
+    "binary64 comparisons including NaN and signed zero",
+    "min and max including NaN and signed zero",
+    "remainder and round-to-integer",
+    "global and shared storage",
+    "warp shuffle and reduction",
+    "store reload arithmetic",
+    "uint64_t aliasing",
+    "persistent JIT cache hits",
+    "mode-specific launch provenance"
+  ],
+  "notes": [
+    "The CUDA source uses ordinary double expressions and no VF64 or emulation calls",
+    "CuMetal statically links the pinned VF64Metal shader support module",
+    "The gate rejects a stale shader pin by comparing shader-tree content",
+    "Observable IEEE exception flags are not exposed through CUDA source"
+  ]
+}

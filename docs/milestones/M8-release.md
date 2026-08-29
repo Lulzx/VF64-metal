@@ -23,9 +23,9 @@ does not publish the embargoed final claim.
 
 VF64 v1's compiler/backend boundary is published as a versioned
 [C and standalone runner API/ABI](../release/api-abi.md) with compiled
-layout/constants and machine-readable version gates. Internal Swift/Metal
-helpers, benchmark commands, and the CuMetal integration surface are not yet
-declared stable.
+layout/constants and machine-readable version gates. Its named linkable Metal
+support entry points are also frozen. Internal Swift/Metal helpers and benchmark
+commands are not declared stable.
 
 The public [operation-by-operation conformance matrix](../../results/conformance/2026-08-29-m4-pro-operation-matrix.json)
 reconciles all 26 runtime operations and 119 policy cells with the frozen M2
@@ -34,8 +34,8 @@ verification. This closes the data-publication item, not the cross-generation
 or release gates.
 
 Workflow source is not CI evidence. No runner availability or successful
-cross-generation run is claimed until public run artifacts exist. M3, M5, and
-M7 exits also remain open, so tagging 1.0 and publishing the final claim are
+cross-generation run is claimed until public run artifacts exist. M3 and M7
+exits also remain open, so tagging 1.0 and publishing the final claim are
 premature.
 
 ## Exit criterion

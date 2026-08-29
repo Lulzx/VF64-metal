@@ -89,18 +89,17 @@ The CG result uses one command buffer for SpMV, reductions, alpha/beta, and
 vector updates. It uses the CPU baseline's fixed iteration count and validates
 only after completion; device-side convergence and early exit remain open.
 
-The existing CuMetal CUDA reduced-pair contract probe also passes shared
-memory, shuffle, reload, aliasing, and precision sentinels. That probe does not
-execute VF64 and is not compiler-integration evidence.
+CuMetal now executes the unchanged CUDA contract probe through `fast48`,
+`wide48`, and `ieee64`. The gate covers arithmetic, true fused FMA, square root,
+conversions, comparisons, min/max, remainder, rounding, shared memory, shuffle,
+reload, aliasing, cache hits, and mode-specific provenance.
 
 ## Open validity and release gates
 
 - M3 needs a second Apple GPU generation and defensible register, occupancy,
   and spill evidence.
-- M5 needs CuMetal source/PTX `double` lowering through VF64 with observable
-  storage-boundary regressions.
-- M7 needs VF64-integrated CUDA workloads, authorized energy measurement,
-  external sparse matrices, and general sparse LP solver validation.
+- M7 needs authorized energy measurement, external sparse matrices, general
+  sparse LP solver validation, and cross-device reproduction.
 - M8 needs successful public cross-generation runs, a stable external release,
   and a publication-time prior-art search.
 

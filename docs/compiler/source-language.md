@@ -48,9 +48,10 @@ regression uses two physical registers, so source length alone does not exhaust
 the ISA register file; kernels with more than 32 simultaneously live values
 remain a hard diagnostic.
 
-This frontend is not presented as CUDA compatibility. The M5 exit still
-requires CuMetal to lower its source/PTX `double` path into VF64 and to prove
-CUDA-visible materialization boundaries.
+This frontend is not presented as CUDA compatibility. CuMetal separately
+lowers its CUDA/PTX `double` path through the linkable VF64 support ABI and has
+verified CUDA-visible shared-memory, shuffle, store/reload, and integer-alias
+materialization boundaries in all three explicit precision modes.
 
 ## Automatic precision
 
