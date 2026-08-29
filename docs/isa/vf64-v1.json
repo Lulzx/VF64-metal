@@ -1,0 +1,85 @@
+{
+  "name": "VF64",
+  "version": "1.0",
+  "magic_u32": 1447441972,
+  "endianness": "little",
+  "program_header_u32_words": 8,
+  "instruction_u32_words": 8,
+  "max_registers": 32,
+  "header": [
+    "magic", "version", "instruction_count", "register_count",
+    "input_slots", "output_slots", "lane_count", "feature_bits"
+  ],
+  "instruction": [
+    "opcode", "destination", "source0", "source1",
+    "source2", "control", "immediate_low", "immediate_high"
+  ],
+  "control": {
+    "rounding_bits": [0, 2],
+    "exact_bit": 3,
+    "precision_mode_bits": [8, 9],
+    "reserved_mask": 4294966512
+  },
+  "rounding_modes": {
+    "nearest_even": 0,
+    "toward_zero": 1,
+    "toward_negative": 2,
+    "toward_positive": 3,
+    "nearest_away": 4
+  },
+  "precision_modes": {
+    "ieee64": 0,
+    "fast48": 1,
+    "wide48": 2
+  },
+  "opcodes": {
+    "nop": 0,
+    "halt": 1,
+    "load": 2,
+    "store": 3,
+    "constant": 4,
+    "move": 5,
+    "select": 6,
+    "flags_clear": 7,
+    "flags_get": 8,
+    "lane_u64": 9,
+    "add": 16,
+    "sub": 17,
+    "mul": 18,
+    "div": 19,
+    "sqrt": 20,
+    "fma": 21,
+    "remainder": 22,
+    "round_to_int": 23,
+    "eq": 32,
+    "le": 33,
+    "lt": 34,
+    "eq_signaling": 35,
+    "le_quiet": 36,
+    "lt_quiet": 37,
+    "ui32_to_f64": 48,
+    "ui64_to_f64": 49,
+    "i32_to_f64": 50,
+    "i64_to_f64": 51,
+    "f64_to_ui32": 52,
+    "f64_to_ui64": 53,
+    "f64_to_i32": 54,
+    "f64_to_i64": 55,
+    "f64_to_f32": 56,
+    "f64_to_f16": 57,
+    "f32_to_f64": 58,
+    "f16_to_f64": 59
+  },
+  "exception_flag_bits": {
+    "inexact": 1,
+    "underflow": 2,
+    "overflow": 4,
+    "divide_by_zero": 8,
+    "invalid": 16
+  },
+  "storage": {
+    "value": "one raw IEEE binary64 u64",
+    "vectors": "slot-major packed u64 arrays",
+    "flags": "one sticky u32 mask per lane"
+  }
+}
