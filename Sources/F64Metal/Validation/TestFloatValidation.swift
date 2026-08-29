@@ -56,7 +56,7 @@ func runTestFloatResultConformance(
         )
     }
     let roundingBuffer = try harness.buffer([roundingMode])
-    let flagsCovered = function == "f64_add" || function == "f64_sub"
+    let flagsCovered = true
 
     var batch: [TestFloatCase] = []
     batch.reserveCapacity(batchSize)
@@ -161,8 +161,7 @@ func runTestFloatResultConformance(
     }
     print(
         "\(function) \(rounding) TestFloat result conformance passed over \(total) cases; " +
-        "NaNs compared by class; exception flags " +
-        (flagsCovered ? "checked" : "not checked") + " " +
+        "NaNs compared by class; exception flags checked " +
         "(\(expectedFlagged) oracle cases raised flags)"
     )
 }

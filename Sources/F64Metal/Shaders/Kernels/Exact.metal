@@ -75,8 +75,9 @@ kernel void soft_mul_round_kernel(
     uint gid [[thread_position_in_grid]])
 {
     if (gid < count) {
-        output[gid] = soft_mul64_mode(a[gid], b[gid], roundingMode);
-        flags[gid] = 0;
+        uint raised = 0;
+        output[gid] = soft_mul64_status(a[gid], b[gid], roundingMode, raised);
+        flags[gid] = raised;
     }
 }
 
@@ -88,8 +89,9 @@ kernel void soft_div_round_kernel(
     uint gid [[thread_position_in_grid]])
 {
     if (gid < count) {
-        output[gid] = soft_div64_mode(a[gid], b[gid], roundingMode);
-        flags[gid] = 0;
+        uint raised = 0;
+        output[gid] = soft_div64_status(a[gid], b[gid], roundingMode, raised);
+        flags[gid] = raised;
     }
 }
 
@@ -102,8 +104,9 @@ kernel void soft_sqrt_round_kernel(
 {
     (void)unused;
     if (gid < count) {
-        output[gid] = soft_sqrt64_mode(a[gid], roundingMode);
-        flags[gid] = 0;
+        uint raised = 0;
+        output[gid] = soft_sqrt64_status(a[gid], roundingMode, raised);
+        flags[gid] = raised;
     }
 }
 
@@ -116,8 +119,11 @@ kernel void soft_fma_round_kernel(
     uint gid [[thread_position_in_grid]])
 {
     if (gid < count) {
-        output[gid] = soft_fma64_mode(a[gid], b[gid], c[gid], roundingMode);
-        flags[gid] = 0;
+        uint raised = 0;
+        output[gid] = soft_fma64_status(
+            a[gid], b[gid], c[gid], roundingMode, raised
+        );
+        flags[gid] = raised;
     }
 }
 

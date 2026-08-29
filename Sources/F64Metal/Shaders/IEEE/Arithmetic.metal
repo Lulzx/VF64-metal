@@ -66,6 +66,7 @@ inline ulong soft_round_pack_status(
     bool sign, int exponent, ulong significandWithRound, uint roundingMode,
     thread uint &flags
 ) {
+    bool wasSubnormal = exponent <= 0;
     if (exponent <= 0) {
         uint distance = uint(1 - exponent);
         significandWithRound = shift_right_jam(significandWithRound, distance);
@@ -93,7 +94,9 @@ inline ulong soft_round_pack_status(
     }
     if (roundBits != 0) {
         flags |= soft_flag_inexact;
-        if (exponent == 0) flags |= soft_flag_underflow;
+        bool tiny = exponent == 0 ||
+            (wasSubnormal && exponent == 1 && roundBits <= 4ul);
+        if (tiny) flags |= soft_flag_underflow;
     }
     if (significand == 0) return ulong(sign) << 63;
     return (ulong(sign) << 63) | (ulong(exponent) << 52) |
@@ -213,8 +216,9 @@ inline soft_normalized soft_normalize_operand(uint exponentField, ulong fraction
     return soft_normalized{fraction << uint(left), 1 - left};
 }
 
-inline ulong round_shift_u128(
-    ulong hi, ulong lo, int distance, bool sign, uint roundingMode
+inline ulong round_shift_u128_status(
+    ulong hi, ulong lo, int distance, bool sign, uint roundingMode,
+    thread bool &wasInexact, thread bool &wasAboveHalf
 ) {
     if (distance <= 0) return lo;
     ulong quotient;
@@ -243,31 +247,46 @@ inline ulong round_shift_u128(
         quotient = 0ul;
         greaterHalf = false;
         exactlyHalf = false;
-        bool inexact = hi != 0 || lo != 0;
-        ulong syntheticRoundBits = inexact ? 1ul : 0ul;
+        wasInexact = hi != 0 || lo != 0;
+        wasAboveHalf = false;
+        ulong syntheticRoundBits = wasInexact ? 1ul : 0ul;
         if (soft_should_increment(sign, syntheticRoundBits, quotient, roundingMode)) {
             quotient += 1ul;
         }
         return quotient;
     }
     ulong roundBits = greaterHalf ? 5ul : (exactlyHalf ? 4ul : 0ul);
-    bool inexact = greaterHalf || exactlyHalf;
-    if (!inexact) {
+    wasInexact = greaterHalf || exactlyHalf;
+    wasAboveHalf = greaterHalf;
+    if (!wasInexact) {
         if (distance < 64) {
-            inexact = (lo & ((1ul << uint(distance)) - 1ul)) != 0;
+            wasInexact = (lo & ((1ul << uint(distance)) - 1ul)) != 0;
         } else if (distance == 64) {
-            inexact = lo != 0;
+            wasInexact = lo != 0;
         } else {
             uint d = uint(distance - 64);
-            inexact = (hi & ((1ul << d) - 1ul)) != 0 || lo != 0;
+            wasInexact = (hi & ((1ul << d) - 1ul)) != 0 || lo != 0;
         }
-        if (inexact) roundBits = 1ul;
+        if (wasInexact) roundBits = 1ul;
     }
     if (soft_should_increment(sign, roundBits, quotient, roundingMode)) quotient += 1ul;
     return quotient;
 }
 
-inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
+inline ulong round_shift_u128(
+    ulong hi, ulong lo, int distance, bool sign, uint roundingMode
+) {
+    bool ignoredInexact = false;
+    bool ignoredAboveHalf = false;
+    return round_shift_u128_status(
+        hi, lo, distance, sign, roundingMode, ignoredInexact,
+        ignoredAboveHalf
+    );
+}
+
+inline ulong soft_mul64_status(
+    ulong a, ulong b, uint roundingMode, thread uint &flags
+) {
     bool sign = ((a ^ b) >> 63) != 0;
     uint expAField = uint((a >> 52) & 0x7fful);
     uint expBField = uint((b >> 52) & 0x7fful);
@@ -275,10 +294,18 @@ inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
     ulong fracB = b & 0x000ffffffffffffful;
 
     if (expAField == 0x7ffu || expBField == 0x7ffu) {
-        if (soft_is_nan(a) || soft_is_nan(b)) return soft_propagate_nan(a, b);
+        if (soft_is_nan(a) || soft_is_nan(b)) {
+            if (soft_is_signaling_nan(a) || soft_is_signaling_nan(b)) {
+                flags |= soft_flag_invalid;
+            }
+            return soft_propagate_nan(a, b);
+        }
         bool zeroA = (a & 0x7ffffffffffffffful) == 0;
         bool zeroB = (b & 0x7ffffffffffffffful) == 0;
-        if (zeroA || zeroB) return 0x7ff8000000000000ul;
+        if (zeroA || zeroB) {
+            flags |= soft_flag_invalid;
+            return 0x7ff8000000000000ul;
+        }
         return (ulong(sign) << 63) | 0x7ff0000000000000ul;
     }
     if ((expAField == 0 && fracA == 0) || (expBField == 0 && fracB == 0)) {
@@ -294,7 +321,11 @@ inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
     int shift = top - 52;
     bool subnormal = exponent <= 0;
     if (subnormal) shift += 1 - exponent;
-    ulong significand = round_shift_u128(hi, lo, shift, sign, roundingMode);
+    bool inexact = false;
+    bool aboveHalf = false;
+    ulong significand = round_shift_u128_status(
+        hi, lo, shift, sign, roundingMode, inexact, aboveHalf
+    );
 
     if (subnormal) {
         if (significand >= (1ul << 52)) exponent = 1;
@@ -304,18 +335,32 @@ inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
         exponent += 1;
     }
     if (exponent >= 0x7ff) {
+        flags |= soft_flag_overflow | soft_flag_inexact;
         return soft_overflow_result(sign, roundingMode);
+    }
+    if (inexact) {
+        flags |= soft_flag_inexact;
+        bool tiny = exponent == 0 ||
+            (subnormal && exponent == 1 && !aboveHalf);
+        if (tiny) flags |= soft_flag_underflow;
     }
     if (significand == 0) return ulong(sign) << 63;
     return (ulong(sign) << 63) | (ulong(exponent) << 52) |
            (significand & 0x000ffffffffffffful);
 }
 
+inline ulong soft_mul64_mode(ulong a, ulong b, uint roundingMode) {
+    uint ignoredFlags = 0;
+    return soft_mul64_status(a, b, roundingMode, ignoredFlags);
+}
+
 inline ulong soft_mul64(ulong a, ulong b) {
     return soft_mul64_mode(a, b, soft_round_near_even);
 }
 
-inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
+inline ulong soft_div64_status(
+    ulong a, ulong b, uint roundingMode, thread uint &flags
+) {
     bool sign = ((a ^ b) >> 63) != 0;
     uint expAField = uint((a >> 52) & 0x7fful);
     uint expBField = uint((b >> 52) & 0x7fful);
@@ -324,14 +369,26 @@ inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
     bool zeroA = expAField == 0 && fracA == 0;
     bool zeroB = expBField == 0 && fracB == 0;
 
-    if (soft_is_nan(a) || soft_is_nan(b)) return soft_propagate_nan(a, b);
+    if (soft_is_nan(a) || soft_is_nan(b)) {
+        if (soft_is_signaling_nan(a) || soft_is_signaling_nan(b)) {
+            flags |= soft_flag_invalid;
+        }
+        return soft_propagate_nan(a, b);
+    }
     if (soft_is_inf(a)) {
-        if (soft_is_inf(b)) return 0x7ff8000000000000ul;
+        if (soft_is_inf(b)) {
+            flags |= soft_flag_invalid;
+            return 0x7ff8000000000000ul;
+        }
         return (ulong(sign) << 63) | 0x7ff0000000000000ul;
     }
     if (soft_is_inf(b)) return ulong(sign) << 63;
     if (zeroB) {
-        if (zeroA) return 0x7ff8000000000000ul;
+        if (zeroA) {
+            flags |= soft_flag_invalid;
+            return 0x7ff8000000000000ul;
+        }
+        flags |= soft_flag_infinite;
         return (ulong(sign) << 63) | 0x7ff0000000000000ul;
     }
     if (zeroA) return ulong(sign) << 63;
@@ -357,24 +414,40 @@ inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
         remainder <<= 1;
     }
     if (remainder != 0) quotientWithRound |= 1ul;
-    return soft_round_pack(sign, exponent, quotientWithRound, roundingMode);
+    return soft_round_pack_status(
+        sign, exponent, quotientWithRound, roundingMode, flags
+    );
+}
+
+inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
+    uint ignoredFlags = 0;
+    return soft_div64_status(a, b, roundingMode, ignoredFlags);
 }
 
 inline ulong soft_div64(ulong a, ulong b) {
     return soft_div64_mode(a, b, soft_round_near_even);
 }
 
-inline ulong soft_sqrt64_mode(ulong a, uint roundingMode) {
+inline ulong soft_sqrt64_status(
+    ulong a, uint roundingMode, thread uint &flags
+) {
     uint exponentField = uint((a >> 52) & 0x7fful);
     ulong fraction = a & 0x000ffffffffffffful;
     bool sign = (a >> 63) != 0;
 
-    if (soft_is_nan(a)) return a | 0x0008000000000000ul;
+    if (soft_is_nan(a)) {
+        if (soft_is_signaling_nan(a)) flags |= soft_flag_invalid;
+        return a | 0x0008000000000000ul;
+    }
     if (soft_is_inf(a)) {
+        if (sign) flags |= soft_flag_invalid;
         return sign ? 0x7ff8000000000000ul : a;
     }
     if (exponentField == 0 && fraction == 0) return a;
-    if (sign) return 0x7ff8000000000000ul;
+    if (sign) {
+        flags |= soft_flag_invalid;
+        return 0x7ff8000000000000ul;
+    }
 
     soft_normalized operand = soft_normalize_operand(exponentField, fraction);
     int unbiasedExponent = operand.exponent - 1023;
@@ -405,7 +478,14 @@ inline ulong soft_sqrt64_mode(ulong a, uint roundingMode) {
     }
     if (remainder != 0) rootWithRound |= 1ul;
     int resultExponent = unbiasedExponent / 2 + 1023;
-    return soft_round_pack(false, resultExponent, rootWithRound, roundingMode);
+    return soft_round_pack_status(
+        false, resultExponent, rootWithRound, roundingMode, flags
+    );
+}
+
+inline ulong soft_sqrt64_mode(ulong a, uint roundingMode) {
+    uint ignoredFlags = 0;
+    return soft_sqrt64_status(a, roundingMode, ignoredFlags);
 }
 
 inline ulong soft_sqrt64(ulong a) {
@@ -459,15 +539,44 @@ inline soft_u128 soft_shift_left128(soft_u128 a, uint distance) {
     };
 }
 
-inline ulong soft_finish_fma(
-    bool sign, int exponent, ulong significand, uint roundingMode
+inline ulong soft_finish_fma_status(
+    bool sign, int exponent, ulong significand, uint roundingMode,
+    thread uint &flags
 ) {
+    ulong roundIncrement = 0x200ul;
+    if (roundingMode != soft_round_near_even &&
+        roundingMode != soft_round_near_max_mag) {
+        bool towardSign = roundingMode ==
+            (sign ? soft_round_min : soft_round_max);
+        roundIncrement = towardSign ? 0x3fful : 0ul;
+    }
+
+    ulong roundedInput = significand;
+    bool tiny = false;
+    if (exponent < 0) {
+        tiny = exponent < -1 ||
+            significand + roundIncrement < 0x8000000000000000ul;
+        roundedInput = shift_right_jam(significand, uint(-exponent));
+    }
+    ulong roundBits = roundedInput & 0x3fful;
+    bool overflow = exponent > 0x7fd ||
+        (exponent == 0x7fd &&
+         significand + roundIncrement >= 0x8000000000000000ul);
+    if (overflow) {
+        flags |= soft_flag_overflow | soft_flag_inexact;
+    } else if (roundBits != 0) {
+        flags |= soft_flag_inexact;
+        if (tiny) flags |= soft_flag_underflow;
+    }
+
     return soft_round_pack(
         sign, exponent + 1, shift_right_jam(significand, 7), roundingMode
     );
 }
 
-inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
+inline ulong soft_fma64_status(
+    ulong a, ulong b, ulong c, uint roundingMode, thread uint &flags
+) {
     bool signProduct = ((a ^ b) >> 63) != 0;
     bool signC = (c >> 63) != 0;
     uint expAField = uint((a >> 52) & 0x7fful);
@@ -480,19 +589,33 @@ inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
     bool zeroB = expBField == 0 && fracB == 0;
 
     if (soft_is_nan(a) || soft_is_nan(b)) {
+        if (soft_is_signaling_nan(a) || soft_is_signaling_nan(b) ||
+            soft_is_signaling_nan(c)) {
+            flags |= soft_flag_invalid;
+        }
         ulong ab = soft_propagate_nan(a, b);
         return soft_is_nan(c) ? soft_propagate_nan(ab, c) : ab;
     }
-    if (soft_is_nan(c)) return c | 0x0008000000000000ul;
-
     if (soft_is_inf(a) || soft_is_inf(b)) {
-        if (zeroA || zeroB) return 0x7ff8000000000000ul;
+        if (zeroA || zeroB) {
+            flags |= soft_flag_invalid;
+            return 0x7ff8000000000000ul;
+        }
+        if (soft_is_nan(c)) {
+            if (soft_is_signaling_nan(c)) flags |= soft_flag_invalid;
+            return c | 0x0008000000000000ul;
+        }
         ulong productInfinity =
             (ulong(signProduct) << 63) | 0x7ff0000000000000ul;
         if (soft_is_inf(c) && signProduct != signC) {
+            flags |= soft_flag_invalid;
             return 0x7ff8000000000000ul;
         }
         return productInfinity;
+    }
+    if (soft_is_nan(c)) {
+        if (soft_is_signaling_nan(c)) flags |= soft_flag_invalid;
+        return c | 0x0008000000000000ul;
     }
     if (soft_is_inf(c)) return c;
     if (zeroA || zeroB) {
@@ -519,8 +642,8 @@ inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
     if (zeroC) {
         exponent -= 1;
         ulong significand = (product.hi << 1) | ulong(product.lo != 0);
-        return soft_finish_fma(
-            signProduct, exponent, significand, roundingMode
+        return soft_finish_fma_status(
+            signProduct, exponent, significand, roundingMode, flags
         );
     }
 
@@ -590,7 +713,14 @@ inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
         }
         significand |= ulong(product.lo != 0);
     }
-    return soft_finish_fma(signResult, exponent, significand, roundingMode);
+    return soft_finish_fma_status(
+        signResult, exponent, significand, roundingMode, flags
+    );
+}
+
+inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
+    uint ignoredFlags = 0;
+    return soft_fma64_status(a, b, c, roundingMode, ignoredFlags);
 }
 
 inline ulong soft_fma64(ulong a, ulong b, ulong c) {

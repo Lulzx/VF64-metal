@@ -137,9 +137,9 @@ This is not yet a complete soft-FP64 mode: conversions, comparisons, complete
 exception state, and the rest of the M2 runtime surface are absent. M1 result
 conformance is complete under its committed corpus and policy.
 
-M2 exception-state work is active: add and subtract now match TestFloat flags
-in all five rounding directions. Flags for the remaining operations are not yet
-claimed.
+M2 exception-state work is active: all M1 core operations now match TestFloat
+flags in all five rounding directions. The remaining M2 runtime surface and
+detailed NaN payload policy are not yet claimed.
 
 ## Deliberate limitations
 
