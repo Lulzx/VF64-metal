@@ -26,6 +26,7 @@ func runChainBenchmarks(_ harness: MetalHarness, data: BenchmarkData) throws {
         ("pair-add", "pair_add_chain_kernel", [(0, data.chainA), (1, data.chainB), (2, data.pairOutput)]),
         ("soft-add", "soft_add_chain_kernel", [(0, softChainA), (1, softChainB), (2, data.output)]),
         ("pair-mul", "pair_mul_chain_kernel", [(0, data.chainA), (1, data.chainB), (2, data.pairOutput)]),
+        ("wide-mul", "wide_mul_chain_kernel", [(0, softChainA), (1, softChainB), (2, data.output)]),
         ("soft-mul", "soft_mul_chain_kernel", [(0, softChainA), (1, softChainB), (2, data.output)]),
     ]
     for (label, kernel, buffers) in cases {
@@ -38,4 +39,3 @@ func runChainBenchmarks(_ harness: MetalHarness, data: BenchmarkData) throws {
               String(format: "%10.1f", rate))
     }
 }
-

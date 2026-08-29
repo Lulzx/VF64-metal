@@ -51,11 +51,16 @@ func validateWideMode(_ harness: MetalHarness) throws {
     let b = (0..<count).map { _ in
         rng.finiteValue(exponentRange: -450...450)
     }
+    let c = (0..<count).map { _ in
+        rng.finiteValue(exponentRange: -450...450)
+    }
     let aBuffer = try harness.buffer(bitsOf(a))
     let bBuffer = try harness.buffer(bitsOf(b))
+    let cBuffer = try harness.buffer(bitsOf(c))
     let output = try harness.emptyBuffer(count: count, of: UInt64.self)
     let operations: [(String, String, (Double, Double) -> Double)] = [
         ("wide-add", "wide_add_kernel", +),
+        ("wide-sub", "wide_sub_kernel", -),
         ("wide-mul", "wide_mul_kernel", *),
         ("wide-div", "wide_div_kernel", /),
     ]
@@ -69,4 +74,16 @@ func validateWideMode(_ harness: MetalHarness) throws {
             references: zip(a, b).map(reference), label: label
         )
     }
+    try harness.run(
+        "wide_fma_kernel", count: count,
+        buffers: [(0, aBuffer), (1, bBuffer), (2, cBuffer), (3, output)],
+        countIndex: 4
+    )
+    try wideAccuracySummary(
+        harness.read(output, count: count),
+        references: zip(zip(a, b), c).map {
+            $0.1.addingProduct($0.0.0, $0.0.1)
+        },
+        label: "wide-fma"
+    )
 }

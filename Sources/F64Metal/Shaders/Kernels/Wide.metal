@@ -15,6 +15,16 @@ kernel void wide_add_kernel(
     );
 }
 
+kernel void wide_sub_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) output[gid] = wide_pack64(
+        wide_sub(wide_unpack64(a[gid]), wide_unpack64(b[gid]))
+    );
+}
+
 kernel void wide_mul_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
@@ -33,6 +43,16 @@ kernel void wide_div_kernel(
     if (gid < count) output[gid] = wide_pack64(
         wide_div(wide_unpack64(a[gid]), wide_unpack64(b[gid]))
     );
+}
+
+kernel void wide_fma_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device const ulong *c [[buffer(2)]], device ulong *output [[buffer(3)]],
+    constant uint &count [[buffer(4)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) output[gid] = wide_pack64(wide_fma(
+        wide_unpack64(a[gid]), wide_unpack64(b[gid]), wide_unpack64(c[gid])
+    ));
 }
 
 kernel void wide_mul_chain_kernel(
