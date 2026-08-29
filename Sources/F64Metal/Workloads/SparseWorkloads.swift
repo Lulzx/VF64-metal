@@ -352,6 +352,79 @@ private func gpuFast48GMRES(
     )
 }
 
+private func cpuGMRES(
+    workload: CSRWorkload, b: [Double], tolerance: Double, restart: Int
+) -> CGResult {
+    let start = ContinuousClock.now
+    let bNorm = l2Norm(b)
+    var basis = [b.map { $0 / bNorm }]
+    var h = Array(
+        repeating: Array(repeating: 0.0, count: restart), count: restart + 1
+    )
+    var cosine = [Double](repeating: 0, count: restart)
+    var sine = [Double](repeating: 0, count: restart)
+    var g = [Double](repeating: 0, count: restart + 1)
+    g[0] = bNorm
+    var completed = 0
+    var relativeResidual = 1.0
+    for column in 0..<restart {
+        var work = (0..<workload.rows).map { row in
+            var sum = 0.0
+            for entry in Int(workload.rowOffsets[row])..<Int(workload.rowOffsets[row + 1]) {
+                sum.addProduct(
+                    workload.values[entry],
+                    basis[column][Int(workload.columnIndices[entry])]
+                )
+            }
+            return sum
+        }
+        for row in 0...column {
+            h[row][column] = zip(basis[row], work).reduce(0.0) {
+                $0 + $1.0 * $1.1
+            }
+            for index in work.indices {
+                work[index].addProduct(-h[row][column], basis[row][index])
+            }
+        }
+        let arnoldiNorm = l2Norm(work)
+        h[column + 1][column] = arnoldiNorm
+        for row in 0..<column {
+            let upper = cosine[row] * h[row][column] +
+                sine[row] * h[row + 1][column]
+            h[row + 1][column] = -sine[row] * h[row][column] +
+                cosine[row] * h[row + 1][column]
+            h[row][column] = upper
+        }
+        let magnitude = hypot(h[column][column], h[column + 1][column])
+        cosine[column] = h[column][column] / magnitude
+        sine[column] = h[column + 1][column] / magnitude
+        h[column][column] = magnitude
+        h[column + 1][column] = 0
+        g[column + 1] = -sine[column] * g[column]
+        g[column] *= cosine[column]
+        completed = column + 1
+        relativeResidual = abs(g[column + 1]) / bNorm
+        if relativeResidual <= tolerance { break }
+        basis.append(work.map { $0 / arnoldiNorm })
+    }
+    var y = [Double](repeating: 0, count: completed)
+    for row in stride(from: completed - 1, through: 0, by: -1) {
+        var rhs = g[row]
+        if row + 1 < completed {
+            for column in (row + 1)..<completed { rhs -= h[row][column] * y[column] }
+        }
+        y[row] = rhs / h[row][row]
+    }
+    var x = [Double](repeating: 0, count: workload.rows)
+    for index in 0..<completed {
+        for element in x.indices { x[element].addProduct(y[index], basis[index][element]) }
+    }
+    return CGResult(
+        x: x, iterations: completed, relativeResidual: relativeResidual,
+        seconds: start.duration(to: .now).seconds
+    )
+}
+
 private func runGMRESWorkload(_ harness: MetalHarness) throws {
     let workload = sparseStencilWorkload(size: 8_192)
     let expected = (0..<workload.rows).map {
@@ -364,6 +437,9 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
     )
     let b = system.cpuReference()
     let tolerance = 1.0e-10
+    let cpu = cpuGMRES(
+        workload: system, b: b, tolerance: tolerance, restart: 32
+    )
     let gpu = try gpuFast48GMRES(
         harness, workload: system, b: b, tolerance: tolerance, restart: 32
     )
@@ -381,8 +457,14 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
     }
     print("\ngmres-cyclic-9: \(workload.rows) unknowns; restart 32; tolerance \(tolerance)")
     print(String(
-        format: "fast48-gpu  %3d iterations; residual %.3e; solution error %.3e; %8.3f ms",
-        gpu.iterations, trueResidual, gpuError, gpu.seconds * 1.0e3
+        format: "cpu-fp64    %3d iterations; residual %.3e; solution error %.3e; %8.3f ms",
+        cpu.iterations, cpu.relativeResidual,
+        relativeSolutionError(cpu.x, expected), cpu.seconds * 1.0e3
+    ))
+    print(String(
+        format: "fast48-gpu  %3d iterations; residual %.3e; solution error %.3e; %8.3f ms; %.2fx CPU",
+        gpu.iterations, trueResidual, gpuError, gpu.seconds * 1.0e3,
+        cpu.seconds / gpu.seconds
     ))
     print("gmres control: CPU updates Hessenberg/Givens scalars and validates final residual; solver O(n) arithmetic is GPU")
 }
