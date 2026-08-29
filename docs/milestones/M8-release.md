@@ -9,6 +9,19 @@ Release requirements:
 - public operation-by-operation conformance data;
 - explicit supported-device and unsupported-feature matrices.
 
+## Current status
+
+Status: **in progress; release infrastructure only**. The repository now has a
+single [`scripts/verify-release.sh`](../../scripts/verify-release.sh) gate for
+local validation, M2/M4 TestFloat, benchmarks, and scientific workloads. A
+manual self-hosted workflow declares M1, M2, M3, and M4 Apple GPU runner labels
+and preserves each verification log.
+
+Workflow source is not CI evidence. No runner availability or successful
+cross-generation run is claimed until public run artifacts exist. M3, M5, and
+M7 exits also remain open, so tagging 1.0 and publishing the final claim are
+premature.
+
 ## Exit criterion
 
 All prior milestone exits remain reproducible from a tagged release.
@@ -21,4 +34,3 @@ Only then is the final claim supportable:
 
 “First” must be rechecked against the public landscape immediately before
 publication. “Complete” refers only to the documented runtime and ISA surface.
-

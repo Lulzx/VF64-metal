@@ -1,0 +1,38 @@
+name: Apple GPU release evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - generation: m1
+            runner: apple-gpu-m1
+          - generation: m2
+            runner: apple-gpu-m2
+          - generation: m3
+            runner: apple-gpu-m3
+          - generation: m4
+            runner: apple-gpu-m4
+    runs-on: [self-hosted, macOS, ARM64, "${{ matrix.runner }}"]
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release gates
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/verify-release.sh 2>&1 | tee release-verification.log
+      - name: Preserve verification log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apple-${{ matrix.generation }}-release-verification
+          path: release-verification.log
+          if-no-files-found: error
