@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "milestone": "M3",
+  "status": "partial_pass",
+  "source_commit": "4054fc800082e14efd4b2115609cb35351518840",
+  "commands": [
+    ".build/release/f64-metal validate",
+    ".build/release/f64-metal bench"
+  ],
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "corpus": {
+    "seed": "0x5749444534384d33",
+    "wide48_cases_per_operation": 16384,
+    "wide48_arithmetic_exponents": [-450, 450],
+    "wide48_codec_exponents": [-1022, 1023],
+    "streaming_elements": 1048576,
+    "streaming_dispatches_per_trial": 20,
+    "streaming_median_trials": 5,
+    "chain_length": 32,
+    "chain_median_trials": 3
+  },
+  "accuracy_bits": {
+    "fast48": {
+      "add_p01": 47.96,
+      "multiply_p01": 47.45,
+      "divide_p01": 47.39,
+      "fma_p01": 47.41
+    },
+    "wide48": {
+      "codec_p01": 48.28,
+      "add_p01": 48.21,
+      "sub_p01": 48.22,
+      "multiply_p01": 47.21,
+      "divide_p01": 47.19,
+      "fma_p01": 47.32
+    },
+    "ieee64": {
+      "contract": "bit-exact under the M2 TestFloat policy"
+    }
+  },
+  "streaming_million_elements_per_second": {
+    "fast48_add": 7559.6,
+    "wide48_add": 6647.9,
+    "ieee64_add": 9914.4,
+    "fast48_multiply": 7693.0,
+    "wide48_multiply": 7299.8,
+    "ieee64_multiply": 9919.1,
+    "fast48_divide": 5808.0,
+    "wide48_divide": 5871.5,
+    "fast48_fma": 5788.8,
+    "wide48_fma": 5398.7
+  },
+  "resident_chain_million_operations_per_second": {
+    "fast48_add": 122108.6,
+    "ieee64_add": 22209.2,
+    "fast48_multiply": 203514.4,
+    "wide48_multiply": 48850.9,
+    "ieee64_multiply": 13388.3
+  },
+  "materialization": {
+    "streaming": "one unpack and one pack per element",
+    "resident_chain": "one unpack and one pack per 32 operations"
+  },
+  "limitations": [
+    "Only one Apple GPU generation is recorded; the M3 cross-device exit is not met",
+    "Metal public runtime APIs do not expose register count or spill count in this harness",
+    "GPU frequency and contention make throughput measurements variable",
+    "Streaming kernels are boundary and memory dominated and do not represent arithmetic throughput"
+  ]
+}

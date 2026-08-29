@@ -42,3 +42,18 @@ Machine-readable evidence:
 
 The earlier core-only flag artifact remains as historical incremental evidence.
 Level 2 exhaustive campaigns are not implied by this level-1 exit.
+
+## M3 precision modes
+
+The `fast48`, `wide48`, and `ieee64` numerical contracts are frozen. A new
+scaled-pair `wide48` implementation covers the full binary64 input exponent
+range and measured 47.19 or more p01 accuracy bits for add, subtract, multiply,
+divide, and multiply-add on its committed corpus.
+
+On the M4 Pro, the resident 32-operation multiply chain measured 203,514 M/s
+for `fast48`, 48,851 M/s for `wide48`, and 13,388 M/s for `ieee64`. These are
+comparative microkernel rates. The machine-readable single-device artifact is
+[`m3/2026-08-29-m4-pro-modes.json`](m3/2026-08-29-m4-pro-modes.json).
+
+M3 remains in progress: cross-generation evidence and register/spill reporting
+are not available from this run.
