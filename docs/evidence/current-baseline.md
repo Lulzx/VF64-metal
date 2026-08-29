@@ -28,12 +28,10 @@ precision or range.
 matched the host's round-to-nearest-even result in 215,172 directed and random
 cases per operation, with NaNs compared by class. This host-oracle smoke corpus
 is evidence for those five operations only and is not Berkeley TestFloat
-conformance. A separate
-pinned TestFloat result bridge
-now covers add, subtract, multiply, divide, and square root; its exception flags
-are not yet checked. FMA, conversions, comparisons, rounding support for the
-remaining operations, exception state, and complete TestFloat coverage remain
-absent.
+conformance. A separate pinned TestFloat result bridge now covers add,
+subtract, multiply, divide, square root, and true fused FMA; its exception flags
+are not yet checked. Conversions, comparisons, exception state, and complete
+release TestFloat coverage remain absent.
 
 On the same M4 Pro on 2026-08-29, Berkeley TestFloat Release 3e level 1
 generated 46,464 cases for each add/subtract/multiply/divide and rounding-mode
@@ -42,6 +40,11 @@ passed result-bit comparison with zero mismatches. The covered
 rounding directions were nearest-even, toward zero, toward negative, toward
 positive, and nearest-away. NaNs were compared by class and exception flags
 were parsed but not checked, so this is not the M1 exit artifact.
+
+True fused `f64_mulAdd` passed 6,133,248 level-1 cases in each of the same five
+rounding directions (30,666,240 result comparisons total) with zero mismatches.
+The implementation retains the exact 106-bit product in a 128-bit aligned
+accumulator and performs one final rounding after adding the third operand.
 
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.

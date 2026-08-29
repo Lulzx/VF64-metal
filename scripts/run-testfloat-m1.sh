@@ -8,7 +8,7 @@ tools_dir=$($script_dir/bootstrap-testfloat.sh | tail -n 1)
 swift build --package-path "$repo_dir" -c release
 
 for rounding in rnear_even rminMag rmin rmax rnear_maxMag; do
-    for function in f64_add f64_sub f64_mul f64_div f64_sqrt; do
+    for function in f64_add f64_sub f64_mul f64_div f64_sqrt f64_mulAdd; do
         "$tools_dir/testfloat_gen" \
             -seed 1 -level 1 "-$rounding" "$function" |
             "$repo_dir/.build/release/f64-metal" testfloat "$function" "$rounding"

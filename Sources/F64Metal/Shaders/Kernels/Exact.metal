@@ -85,6 +85,18 @@ kernel void soft_sqrt_round_kernel(
     if (gid < count) output[gid] = soft_sqrt64_mode(a[gid], roundingMode);
 }
 
+kernel void soft_fma_round_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device const ulong *c [[buffer(5)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        output[gid] = soft_fma64_mode(a[gid], b[gid], c[gid], roundingMode);
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

@@ -11,7 +11,8 @@ scripts/run-testfloat-m1.sh
 The current bridge accepts `testfloat_gen` function records, batches operands
 onto the Metal GPU, and compares returned bits with the generated SoftFloat
 result. Supported operations are currently `f64_add`, `f64_sub`, `f64_mul`,
-`f64_div`, and `f64_sqrt` under all five IEEE rounding directions.
+`f64_div`, `f64_sqrt`, and true fused `f64_mulAdd` under all five IEEE rounding
+directions.
 
 This is deliberately labeled **result conformance**, not full IEEE conformance:
 
@@ -19,7 +20,7 @@ This is deliberately labeled **result conformance**, not full IEEE conformance:
 - NaNs are compared by class;
 - expected TestFloat exception flags are parsed and counted but not yet checked;
 - tininess-after-rounding is the current generator default;
-- true fused FMA remains the blocking M1 operation.
+- the current level-1 matrices are not the complete M1 release corpus.
 
 M2 must extend each GPU result with exception state and freeze signaling-NaN,
 payload, default-NaN, and tininess policies before `testfloat_ver -checkNaNs`

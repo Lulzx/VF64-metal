@@ -364,3 +364,188 @@ inline ulong soft_sqrt64_mode(ulong a, uint roundingMode) {
 inline ulong soft_sqrt64(ulong a) {
     return soft_sqrt64_mode(a, soft_round_near_even);
 }
+
+struct soft_u128 {
+    ulong hi;
+    ulong lo;
+};
+
+inline soft_u128 soft_add128(soft_u128 a, soft_u128 b) {
+    ulong lo = a.lo + b.lo;
+    return soft_u128{a.hi + b.hi + ulong(lo < a.lo), lo};
+}
+
+inline soft_u128 soft_sub128(soft_u128 a, soft_u128 b) {
+    ulong lo = a.lo - b.lo;
+    return soft_u128{a.hi - b.hi - ulong(a.lo < b.lo), lo};
+}
+
+inline soft_u128 soft_shift_right_jam128(soft_u128 a, uint distance) {
+    if (distance == 0) return a;
+    if (distance < 64) {
+        ulong discarded = a.lo & ((1ul << distance) - 1ul);
+        return soft_u128{
+            a.hi >> distance,
+            (a.hi << (64u - distance)) | (a.lo >> distance) |
+                ulong(discarded != 0)
+        };
+    }
+    if (distance == 64) {
+        return soft_u128{0, a.hi | ulong(a.lo != 0)};
+    }
+    if (distance < 128) {
+        uint shift = distance - 64;
+        ulong discarded = a.hi & ((1ul << shift) - 1ul);
+        return soft_u128{
+            0,
+            (a.hi >> shift) | ulong(discarded != 0 || a.lo != 0)
+        };
+    }
+    return soft_u128{0, ulong(a.hi != 0 || a.lo != 0)};
+}
+
+inline soft_u128 soft_shift_left128(soft_u128 a, uint distance) {
+    if (distance == 0) return a;
+    return soft_u128{
+        (a.hi << distance) | (a.lo >> (64u - distance)),
+        a.lo << distance
+    };
+}
+
+inline ulong soft_finish_fma(
+    bool sign, int exponent, ulong significand, uint roundingMode
+) {
+    return soft_round_pack(
+        sign, exponent + 1, shift_right_jam(significand, 7), roundingMode
+    );
+}
+
+inline ulong soft_fma64_mode(ulong a, ulong b, ulong c, uint roundingMode) {
+    bool signProduct = ((a ^ b) >> 63) != 0;
+    bool signC = (c >> 63) != 0;
+    uint expAField = uint((a >> 52) & 0x7fful);
+    uint expBField = uint((b >> 52) & 0x7fful);
+    uint expCField = uint((c >> 52) & 0x7fful);
+    ulong fracA = a & 0x000ffffffffffffful;
+    ulong fracB = b & 0x000ffffffffffffful;
+    ulong fracC = c & 0x000ffffffffffffful;
+    bool zeroA = expAField == 0 && fracA == 0;
+    bool zeroB = expBField == 0 && fracB == 0;
+
+    if (soft_is_nan(a) || soft_is_nan(b)) {
+        ulong ab = soft_propagate_nan(a, b);
+        return soft_is_nan(c) ? soft_propagate_nan(ab, c) : ab;
+    }
+    if (soft_is_nan(c)) return c | 0x0008000000000000ul;
+
+    if (soft_is_inf(a) || soft_is_inf(b)) {
+        if (zeroA || zeroB) return 0x7ff8000000000000ul;
+        ulong productInfinity =
+            (ulong(signProduct) << 63) | 0x7ff0000000000000ul;
+        if (soft_is_inf(c) && signProduct != signC) {
+            return 0x7ff8000000000000ul;
+        }
+        return productInfinity;
+    }
+    if (soft_is_inf(c)) return c;
+    if (zeroA || zeroB) {
+        bool zeroC = expCField == 0 && fracC == 0;
+        if (zeroC && signProduct != signC) {
+            return roundingMode == soft_round_min
+                ? 0x8000000000000000ul : 0ul;
+        }
+        return c;
+    }
+
+    soft_normalized na = soft_normalize_operand(expAField, fracA);
+    soft_normalized nb = soft_normalize_operand(expBField, fracB);
+    int exponent = na.exponent + nb.exponent - 0x3fe;
+    ulong sigA = na.significand << 10;
+    ulong sigB = nb.significand << 10;
+    soft_u128 product = soft_u128{mulhi(sigA, sigB), sigA * sigB};
+    if (product.hi < 0x2000000000000000ul) {
+        exponent -= 1;
+        product = soft_add128(product, product);
+    }
+
+    bool zeroC = expCField == 0 && fracC == 0;
+    if (zeroC) {
+        exponent -= 1;
+        ulong significand = (product.hi << 1) | ulong(product.lo != 0);
+        return soft_finish_fma(
+            signProduct, exponent, significand, roundingMode
+        );
+    }
+
+    soft_normalized nc = soft_normalize_operand(expCField, fracC);
+    ulong sigC = nc.significand << 9;
+    int exponentDifference = exponent - nc.exponent;
+    soft_u128 alignedC = soft_u128{0, 0};
+    if (exponentDifference < 0) {
+        exponent = nc.exponent;
+        if (signProduct == signC || exponentDifference < -1) {
+            product.hi = shift_right_jam(
+                product.hi, uint(-exponentDifference)
+            );
+        } else {
+            product = soft_shift_right_jam128(product, 1);
+        }
+    } else if (exponentDifference > 0) {
+        alignedC = soft_shift_right_jam128(
+            soft_u128{sigC, 0}, uint(exponentDifference)
+        );
+    }
+
+    ulong significand;
+    bool signResult = signProduct;
+    if (signProduct == signC) {
+        if (exponentDifference <= 0) {
+            significand = (sigC + product.hi) | ulong(product.lo != 0);
+        } else {
+            product = soft_add128(product, alignedC);
+            significand = product.hi | ulong(product.lo != 0);
+        }
+        if (significand < 0x4000000000000000ul) {
+            exponent -= 1;
+            significand <<= 1;
+        }
+    } else {
+        if (exponentDifference < 0) {
+            signResult = signC;
+            product = soft_sub128(soft_u128{sigC, 0}, product);
+        } else if (exponentDifference == 0) {
+            product.hi -= sigC;
+            if ((product.hi | product.lo) == 0) {
+                return roundingMode == soft_round_min
+                    ? 0x8000000000000000ul : 0ul;
+            }
+            if ((product.hi >> 63) != 0) {
+                signResult = !signResult;
+                product = soft_sub128(soft_u128{0, 0}, product);
+            }
+        } else {
+            product = soft_sub128(product, alignedC);
+        }
+
+        if (product.hi == 0) {
+            exponent -= 64;
+            product.hi = product.lo;
+            product.lo = 0;
+        }
+        int shiftDistance = int(clz(product.hi)) - 1;
+        if (shiftDistance < 0) {
+            significand = shift_right_jam(product.hi, 1);
+            exponent += 1;
+        } else {
+            exponent -= shiftDistance;
+            product = soft_shift_left128(product, uint(shiftDistance));
+            significand = product.hi;
+        }
+        significand |= ulong(product.lo != 0);
+    }
+    return soft_finish_fma(signResult, exponent, significand, roundingMode);
+}
+
+inline ulong soft_fma64(ulong a, ulong b, ulong c) {
+    return soft_fma64_mode(a, b, c, soft_round_near_even);
+}

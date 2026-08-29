@@ -7,7 +7,7 @@ The status labels below distinguish implemented source from exit evidence.
 
 | Milestone | Status | Current evidence | Earliest blocking exit gap |
 | --- | --- | --- | --- |
-| M1 exact core | In progress | GPU add/sub/mul/div/sqrt TestFloat result bridge for all IEEE rounding directions | true fused FMA and complete TestFloat matrices |
+| M1 exact core | In progress | GPU add/sub/mul/div/sqrt/true-FMA TestFloat result bridge for all IEEE rounding directions | complete release TestFloat matrices and artifacts |
 | M2 IEEE runtime | Not started | Special-value behavior exists in prototypes | conversions, comparisons, remainder, round-to-integer, flags, tininess and NaN policy |
 | M3 precision modes | Research prototype | measured FP32-pair and integer add/mul kernels | frozen `fast48`, `wide48`, `ieee64` contracts and cross-device artifacts |
 | M4 virtual ISA | Designed only | semantic scope documented | versioned machine-readable ISA and independent backend tests |

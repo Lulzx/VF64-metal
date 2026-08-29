@@ -59,6 +59,7 @@ exact mul   bit-exact RNE against the host over 215,172 directed/random cases
 exact div   bit-exact RNE against the host over 215,172 directed/random cases
 exact sqrt  bit-exact RNE against the host over 215,172 directed/random cases
 TestFloat   add/sub/mul/div passed 46,464 cases/mode; sqrt passed 768/mode
+fused FMA   passed 6,133,248 TestFloat result cases in each of 5 rounding modes
 ```
 
 In a compute-bound 32-multiplication dependency chain, the same run measured:
@@ -110,13 +111,13 @@ arithmetic cost and is the relevant comparison for pair-resident CuMetal code.
 
 ## Integer soft-binary64 prototype
 
-`soft_add64`, `soft_sub64`, `soft_mul64`, `soft_div64`, and `soft_sqrt64`
-operate directly on IEEE binary64 bit patterns.
+`soft_add64`, `soft_sub64`, `soft_mul64`, `soft_div64`, `soft_sqrt64`, and
+`soft_fma64` operate directly on IEEE binary64 bit patterns.
 They implement:
 
 - All 53 significand bits.
 - The complete normal and subnormal exponent range.
-- Round-to-nearest, ties-to-even.
+- All five IEEE rounding directions.
 - Signed zero, infinity, invalid-operation NaN, overflow, and underflow results.
 - Exact 53x53 multiplication from the low product and `mulhi` high product.
 
@@ -128,11 +129,13 @@ Non-NaN results must match host binary64 bits exactly; NaNs must match class.
 This is a smoke oracle, not Berkeley TestFloat. The separate pinned TestFloat
 workflow currently validates generated result bits for add, subtract,
 multiply, divide, and square root in all five IEEE rounding directions while
-explicitly leaving exception-flag conformance open.
+explicitly leaving exception-flag conformance open. True fused FMA uses an
+exact 106-bit product in a 128-bit aligned accumulator and rounds only after the
+addend has been combined.
 
-This is not yet a complete soft-FP64 mode: true fused FMA, conversions,
-comparisons, exception flags, and rounding support for the remaining operations
-are absent.
+This is not yet a complete soft-FP64 mode: conversions, comparisons, exception
+flags, and the M2 runtime surface are absent. M1 still requires its complete
+release conformance matrix and reproducible result artifacts.
 
 ## Deliberate limitations
 
@@ -142,8 +145,8 @@ are absent.
 - NaNs remain NaNs, but binary64 payloads are reduced to the payload capacity of
   the FP32 leading limb and repacked as quiet NaNs.
 - The FP32-pair path is ~48-bit arithmetic, not correctly rounded binary64.
-- The integer add/multiply prototype is correctly rounded for those two
-  operations, but it is not yet a complete CUDA FP64 conformance implementation.
+- The integer core operations are correctly rounded for their tested result
+  surfaces, but exception flags and the complete M2 runtime are not implemented.
 - Transcendentals and FP64 atomics are outside this harness.
 
 See [the documentation index](docs/README.md) for the research record, milestone
