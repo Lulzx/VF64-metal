@@ -4,8 +4,8 @@
   "status": "pass",
   "source_commit": "23c57178f986344c88ca81091fbb97287fc15c8b",
   "commands": [
-    ".build/release/f64-metal validate",
-    ".build/release/f64-metal bench"
+    ".build/release/vf64-metal validate",
+    ".build/release/vf64-metal bench"
   ],
   "device": {
     "name": "Apple M4 Pro",

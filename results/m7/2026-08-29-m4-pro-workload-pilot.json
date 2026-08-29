@@ -3,7 +3,7 @@
   "milestone": "M7",
   "status": "partial_pass",
   "source_commit": "5da07acdccc01c8b326f7a1bbd8d3241f3d29a5d",
-  "command": ".build/release/f64-metal workloads",
+  "command": ".build/release/vf64-metal workloads",
   "device": {
     "name": "Apple M4 Pro",
     "gpu_cores": 16,

@@ -14,13 +14,13 @@
   },
   "backend": {
     "kernel": "vf64_interpreter_kernel",
-    "standalone_command": ".build/release/f64-metal vf64-run program.bin input.bin output.bin flags.bin",
+    "standalone_command": ".build/release/vf64-metal vf64-run program.bin input.bin output.bin flags.bin",
     "source_language_independent": true,
     "storage": "slot-major packed IEEE binary64 u64",
     "flags": "sticky u32 per vector lane"
   },
   "commands": [
-    ".build/release/f64-metal validate",
+    ".build/release/vf64-metal validate",
     "scripts/run-testfloat-m4.sh"
   ],
   "oracle": {

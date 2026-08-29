@@ -4,7 +4,7 @@
   "result_scope": "structured batched two-variable LP corpus",
   "status": "pass",
   "source_commit": "0f657f233a8390f14a0c5e45d9daa061a3a4fa9a",
-  "command": ".build/release/f64-metal lp",
+  "command": ".build/release/vf64-metal lp",
   "device": {
     "name": "Apple M4 Pro",
     "gpu_cores": 16,

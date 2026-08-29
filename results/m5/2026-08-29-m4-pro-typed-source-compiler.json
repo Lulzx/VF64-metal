@@ -3,7 +3,7 @@
   "milestone": "M5",
   "status": "partial_pass",
   "source_commit": "a95aadc25191339c8439a12be67bdd181b93d775",
-  "command": ".build/release/f64-metal validate",
+  "command": ".build/release/vf64-metal validate",
   "device": {
     "name": "Apple M4 Pro",
     "gpu_cores": 16,
