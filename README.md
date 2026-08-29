@@ -97,6 +97,9 @@ proof is still required. The
   workload; it fails closed unless run as root.
 - `capture-metal-resource-trace.sh` - capture Xcode Metal System Trace compiler
   spill events and map them to stable `vf64:` encoder labels.
+- `capture-metal-performance-counters.sh` - capture and stream large Xcode
+  counter exports, failing closed when occupancy/register-residency rows are
+  absent; see the [one-time template setup](docs/benchmarks/metal-counter-template.md).
 - `check-conformance-data.sh` - reconcile published conformance artifacts.
 - `verify-release.sh` - run the consolidated local release gate.
 

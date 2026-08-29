@@ -21,6 +21,7 @@ specific implementation, device, workload, and result artifact.
 - [Reproducible result summary](../results/summary.md)
 - [Precision-stack architecture](architecture/precision-stack.md)
 - [Apple Metal capability boundary](platform/apple-metal-capabilities.md)
+- [Metal performance-counter template](benchmarks/metal-counter-template.md)
 - [Experiment roadmap](roadmap/experiments.md)
 - [Claim policy](policies/claims.md)
 - [Publication-time prior-art audit](research/prior-art-2026-08-29.md)

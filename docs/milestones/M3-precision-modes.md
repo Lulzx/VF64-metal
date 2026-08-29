@@ -39,10 +39,14 @@ threadgroup, and static threadgroup memory, while the only public counter set is
 measurement. Xcode's Metal System Trace separately exposes compiler spill
 events; `capture-metal-resource-trace.sh` maps those events to stable `vf64:`
 encoder labels. Its standard command-line template does not select an occupancy
-counter set, and it does not expose physical-register allocation. AIR
-disassembly is intermediate representation, not physical GPU ISA, so it is
-deliberately not used as a substitute. Physical-register and resident-occupancy
-evidence, plus a second Apple GPU generation, remain part of the M3 exit.
+counter set. A locally configured `Performance Limiters` template advertises
+`Kernel Occupancy`, `L1 Register Residency`, and compute SIMD-group counters,
+but Xcode 26.6 emits none of those rows on this M4 Pro; the capture probe fails
+closed instead of publishing empty evidence. The trace also does not expose
+physical-register allocation. AIR disassembly is intermediate representation,
+not physical GPU ISA, so it is deliberately not used as a substitute.
+Physical-register and resident-occupancy evidence, plus a second Apple GPU
+generation, remain part of the M3 exit.
 
 ## Exit criterion
 
