@@ -115,6 +115,44 @@ kernel void cg_update_p_fast48_kernel(
     p[gid] = pack_binary64(fma_ff(scale, pv, rv));
 }
 
+kernel void scalar_copy_fast48_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(1)]])
+{
+    output[0] = input[0];
+}
+
+kernel void cg_check_convergence_fast48_kernel(
+    device const ulong *residualSquared [[buffer(0)]],
+    device const ulong *initialResidualSquared [[buffer(1)]],
+    device uint *completed [[buffer(2)]],
+    device ulong *convergedResidualSquared [[buffer(3)]],
+    constant uint &iteration [[buffer(4)]],
+    constant uint &maximumIterations [[buffer(5)]],
+    constant float &tolerance [[buffer(6)]])
+{
+    bool ignored;
+    emu_f64 rr = unpack_binary64(residualSquared[0], ignored);
+    emu_f64 initial = unpack_binary64(initialResidualSquared[0], ignored);
+    float threshold = tolerance * tolerance * (initial.hi + initial.lo);
+    bool reachedTolerance = rr.hi + rr.lo <= threshold;
+    if (completed[0] == 0u && (reachedTolerance || iteration == maximumIterations)) {
+        completed[0] = iteration;
+        convergedResidualSquared[0] = residualSquared[0];
+    }
+}
+
+kernel void cg_snapshot_solution_fast48_kernel(
+    device const uint *completed [[buffer(0)]],
+    device const ulong *x [[buffer(1)]],
+    device ulong *solution [[buffer(2)]],
+    constant uint &iteration [[buffer(3)]],
+    constant uint &count [[buffer(4)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count && completed[0] == iteration) solution[gid] = x[gid];
+}
+
 kernel void vector_scale_fast48_kernel(
     device const ulong *scale [[buffer(0)]],
     device const ulong *input [[buffer(1)]],
