@@ -18,9 +18,10 @@ for symbol in \
     vf64_lt_quiet vf64_le_quiet vf64_ui32_to_f64 vf64_ui64_to_f64 \
     vf64_i32_to_f64 vf64_i64_to_f64 vf64_f64_to_ui32 vf64_f64_to_ui64 \
     vf64_f64_to_i32 vf64_f64_to_i64 vf64_f64_to_f32 vf64_f64_to_f16 \
-    vf64_f32_to_f64 vf64_f16_to_f64
+    vf64_f32_to_f64 vf64_f16_to_f64 vf64_wide_add vf64_wide_sub \
+    vf64_wide_mul vf64_wide_div vf64_wide_sqrt vf64_wide_fma
 do
     printf '%s\n' "$symbols" | grep -q " T $symbol\$"
 done
 
-printf 'vf64_support=pass symbols=32 output=%s\n' "$output"
+printf 'vf64_support=pass symbols=38 output=%s\n' "$output"

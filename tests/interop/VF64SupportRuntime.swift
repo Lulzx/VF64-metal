@@ -14,7 +14,7 @@ guard let function = library.makeFunction(name: "vf64_support_probe") else {
     fatalError("missing vf64_support_probe")
 }
 let pipeline = try device.makeComputePipelineState(function: function)
-guard let output = device.makeBuffer(length: 7 * MemoryLayout<UInt64>.stride),
+guard let output = device.makeBuffer(length: 9 * MemoryLayout<UInt64>.stride),
       let queue = device.makeCommandQueue(),
       let command = queue.makeCommandBuffer(),
       let encoder = command.makeComputeCommandEncoder() else {
@@ -32,8 +32,8 @@ command.waitUntilCompleted()
 if let error = command.error { throw error }
 
 let observed = Array(UnsafeBufferPointer(
-    start: output.contents().bindMemory(to: UInt64.self, capacity: 7),
-    count: 7
+    start: output.contents().bindMemory(to: UInt64.self, capacity: 9),
+    count: 9
 ))
 let onePlusULP = Double(bitPattern: 0x3ff0000000000001)
 let expected: [UInt64] = [
@@ -47,10 +47,18 @@ let expected: [UInt64] = [
     1,
     Double(UInt64.max).bitPattern,
 ]
-guard observed == expected else {
+guard Array(observed.prefix(7)) == expected else {
     fatalError(
         "VF64 support mismatch got=\(observed.map { String($0, radix: 16) }) " +
         "expected=\(expected.map { String($0, radix: 16) })"
     )
 }
-print("vf64_support_runtime=pass cases=7")
+let wideReferences = [1.0e300 + 1.0e300, 1.0e200 * 1.0e100]
+for (bits, reference) in zip(observed.suffix(2), wideReferences) {
+    let value = Double(bitPattern: bits)
+    let relativeError = abs(value - reference) / abs(reference)
+    guard value.isFinite && relativeError <= Double(sign: .plus, exponent: -45, significand: 1) else {
+        fatalError("wide48 support error \(relativeError) exceeds 2^-45")
+    }
+}
+print("vf64_support_runtime=pass exact_cases=7 wide48_cases=2")

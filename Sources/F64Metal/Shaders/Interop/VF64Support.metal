@@ -1,5 +1,8 @@
 #include "../Core/Preamble.metal"
+#include "../Pair/Arithmetic.metal"
+#include "../Pair/Codec.metal"
 #include "../IEEE/Arithmetic.metal"
+#include "../Wide/Arithmetic.metal"
 
 // Linkable round-to-nearest-even entry points for source-language backends.
 // Arguments and results are raw IEEE-754 binary64 bits so no native FP64 ALU
@@ -193,4 +196,30 @@
 [[visible]] ulong vf64_f16_to_f64(ushort raw) {
     uint flags = 0;
     return soft_format_to_f64_status(ulong(raw), 5u, 10u, 15, flags);
+}
+
+[[visible]] ulong vf64_wide_add(ulong a, ulong b) {
+    return wide_pack64(wide_add(wide_unpack64(a), wide_unpack64(b)));
+}
+
+[[visible]] ulong vf64_wide_sub(ulong a, ulong b) {
+    return wide_pack64(wide_sub(wide_unpack64(a), wide_unpack64(b)));
+}
+
+[[visible]] ulong vf64_wide_mul(ulong a, ulong b) {
+    return wide_pack64(wide_mul(wide_unpack64(a), wide_unpack64(b)));
+}
+
+[[visible]] ulong vf64_wide_div(ulong a, ulong b) {
+    return wide_pack64(wide_div(wide_unpack64(a), wide_unpack64(b)));
+}
+
+[[visible]] ulong vf64_wide_sqrt(ulong a) {
+    return wide_pack64(wide_sqrt(wide_unpack64(a)));
+}
+
+[[visible]] ulong vf64_wide_fma(ulong a, ulong b, ulong c) {
+    return wide_pack64(wide_fma(
+        wide_unpack64(a), wide_unpack64(b), wide_unpack64(c)
+    ));
 }

@@ -30,11 +30,13 @@ gate. `scripts/verify-release.sh` includes this check before device validation.
 ## Linkable Metal support ABI
 
 Source-language backends can build `vf64-support.air` with
-`scripts/build-vf64-support.sh`. The module exports 32 unmangled `vf64_*`
+`scripts/build-vf64-support.sh`. The module exports 38 unmangled `vf64_*`
 symbols over raw IEEE binary64 bits: the six core operations in
 round-to-nearest-even and explicit-rounding forms, remainder,
 round-to-integer, six comparisons, all twelve conversions, and the two
-rounding-independent widening conversions.
+rounding-independent widening conversions. Six additional `vf64_wide_*`
+symbols expose the frozen `wide48` core-arithmetic contract with full binary64
+input range.
 
 Backends issue direct AIR calls and statically link the support module with
 `air-link`; Metal visible-function-table calls are a different ABI and are not
@@ -44,7 +46,7 @@ continues to provide the complete sticky-flag ABI.
 
 The support ABI accepts rounding values from the VF64 v1 C ABI and returns
 integer or raw-bit results. Storage remains ordinary eight-byte IEEE binary64
-at every observable boundary. `scripts/check-vf64-support.sh` verifies all 32
+at every observable boundary. `scripts/check-vf64-support.sh` verifies all 38
 symbols, performs an AIR static link, creates a Metal pipeline, and executes
 arithmetic, comparison, and conversion probes on the GPU.
 

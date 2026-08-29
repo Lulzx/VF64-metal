@@ -9,6 +9,8 @@ declare i64 @vf64_sqrt_rne(i64)
 declare i64 @vf64_fma_rne(i64, i64, i64)
 declare i1 @vf64_lt(i64, i64)
 declare i64 @vf64_ui64_to_f64(i64, i32)
+declare i64 @vf64_wide_add(i64, i64)
+declare i64 @vf64_wide_mul(i64, i64)
 
 define void @vf64_support_probe(float addrspace(1)* %output) #0 {
 entry:
@@ -21,6 +23,8 @@ entry:
   %r5i1 = call i1 @vf64_lt(i64 -4616189618054758400, i64 0)
   %r5 = zext i1 %r5i1 to i64
   %r6 = call i64 @vf64_ui64_to_f64(i64 -1, i32 0)
+  %r7 = call i64 @vf64_wide_add(i64 9094988921128908188, i64 9094988921128908188)
+  %r8 = call i64 @vf64_wide_mul(i64 7598952565167317594, i64 6103021453049119613)
   store i64 %r0, i64 addrspace(1)* %out, align 8
   %p1 = getelementptr i64, i64 addrspace(1)* %out, i64 1
   store i64 %r1, i64 addrspace(1)* %p1, align 8
@@ -34,6 +38,10 @@ entry:
   store i64 %r5, i64 addrspace(1)* %p5, align 8
   %p6 = getelementptr i64, i64 addrspace(1)* %out, i64 6
   store i64 %r6, i64 addrspace(1)* %p6, align 8
+  %p7 = getelementptr i64, i64 addrspace(1)* %out, i64 7
+  store i64 %r7, i64 addrspace(1)* %p7, align 8
+  %p8 = getelementptr i64, i64 addrspace(1)* %out, i64 8
+  store i64 %r8, i64 addrspace(1)* %p8, align 8
   ret void
 }
 
