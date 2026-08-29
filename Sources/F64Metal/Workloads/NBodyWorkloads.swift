@@ -147,18 +147,11 @@ private func runNBodySimulation(_ harness: MetalHarness) throws {
     let ax = try harness.emptyBuffer(count: count, of: UInt64.self)
     let ay = try harness.emptyBuffer(count: count, of: UInt64.self)
     let az = try harness.emptyBuffer(count: count, of: UInt64.self)
-    let gpuStart = ContinuousClock.now
-    for _ in 0..<steps {
-        try harness.run("nbody_fast48_kernel", count: count, buffers: [
-            (0, px), (1, py), (2, pz), (3, massBuffer), (4, ax), (5, ay),
-            (6, az), (7, softeningBuffer),
-        ], countIndex: 8)
-        try harness.run("nbody_integrate_fast48_kernel", count: count, buffers: [
-            (0, dtBuffer), (1, ax), (2, ay), (3, az), (4, px), (5, py),
-            (6, pz), (7, vx), (8, vy), (9, vz),
-        ], countIndex: 10)
-    }
-    let gpuSeconds = gpuStart.duration(to: .now).seconds
+    let gpuSeconds = try harness.runFast48NBodySteps(
+        count: count, steps: steps, positions: (px, py, pz),
+        velocities: (vx, vy, vz), mass: massBuffer,
+        softening: softeningBuffer, dt: dtBuffer, acceleration: (ax, ay, az)
+    )
     func doubles(_ buffer: MTLBuffer) -> [Double] {
         let bits: [UInt64] = harness.read(buffer, count: count)
         return bits.map(Double.init(bitPattern:))
