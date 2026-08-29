@@ -9,6 +9,7 @@ printf 'source_commit=%s\n' "$(git -C "$repo_dir" rev-parse HEAD)"
 sw_vers
 system_profiler SPDisplaysDataType | sed -n '1,24p'
 
+"$script_dir/check-vf64-abi.sh"
 swift build --package-path "$repo_dir" -c release
 "$repo_dir/.build/release/f64-metal" validate
 "$script_dir/run-testfloat-m2.sh"

@@ -21,6 +21,11 @@ An evidence-linked [technical report draft](../report/technical-report-draft.md)
 summarizes the current architecture, methodology, results, and open gates. It
 does not publish the embargoed final claim.
 
+VF64 v1's compiler/backend boundary is published as a versioned
+[C API and ABI](../release/api-abi.md) with a compiled layout/constants gate.
+The CLI, internal Swift/Metal helpers, and CuMetal integration surface are not
+yet declared stable.
+
 Workflow source is not CI evidence. No runner availability or successful
 cross-generation run is claimed until public run artifacts exist. M3, M5, and
 M7 exits also remain open, so tagging 1.0 and publishing the final claim are

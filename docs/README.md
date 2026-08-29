@@ -24,6 +24,7 @@ specific implementation, device, workload, and result artifact.
 - [Experiment roadmap](roadmap/experiments.md)
 - [Claim policy](policies/claims.md)
 - [Technical report draft](report/technical-report-draft.md)
+- [VF64 public API and ABI](release/api-abi.md)
 
 ## Integration
 
