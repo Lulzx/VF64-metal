@@ -13,9 +13,11 @@ Release requirements:
 
 Status: **in progress; release infrastructure only**. The repository now has a
 single [`scripts/verify-release.sh`](../../scripts/verify-release.sh) gate for
-local validation, M2/M4 TestFloat, benchmarks, and scientific workloads. A
-manual self-hosted workflow declares M1, M2, M3, and M4 Apple GPU runner labels
-and preserves each verification log.
+local validation, M2/M4 TestFloat, pipeline resources, benchmarks, synthetic and
+checksum-pinned external scientific workloads. A manual self-hosted workflow
+declares M1, M2, M3, and M4 Apple GPU runner labels, checks out the frozen
+CuMetal integration commit, reruns all three compiler modes, and preserves both
+verification logs.
 
 An evidence-linked [technical report draft](../report/technical-report-draft.md)
 summarizes the current architecture, methodology, results, and open gates. It
@@ -37,6 +39,10 @@ Workflow source is not CI evidence. No runner availability or successful
 cross-generation run is claimed until public run artifacts exist. M3 and M7
 exits also remain open, so tagging 1.0 and publishing the final claim are
 premature.
+
+As of 2026-08-29, the GitHub repository reports zero registered self-hosted
+runners. Dispatching the workflow would only create indefinitely queued jobs,
+so no run is presented as evidence.
 
 ## Exit criterion
 

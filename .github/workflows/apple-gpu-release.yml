@@ -23,16 +23,34 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64, "${{ matrix.runner }}"]
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v4
-      - name: Verify release gates
+      - name: Check out VF64-metal
+        uses: actions/checkout@v4
+      - name: Check out pinned CuMetal integration target
+        uses: actions/checkout@v4
+        with:
+          repository: Lulzx/cuda-metal
+          ref: 15e0bb2812bc4e29adca3bf54ca9c0f5d1c122c9
+          path: cumetal
+          submodules: recursive
+      - name: Verify VF64 release gates
         shell: bash
         run: |
           set -o pipefail
           scripts/verify-release.sh 2>&1 | tee release-verification.log
+      - name: Verify CuMetal source integration
+        shell: bash
+        env:
+          CUMETAL_ROOT: ${{ github.workspace }}/cumetal
+          CUMETAL_BUILD_DIR: ${{ github.workspace }}/cumetal/build-vf64-release
+        run: |
+          set -o pipefail
+          scripts/check-cumetal-integration.sh 2>&1 | tee cumetal-integration.log
       - name: Preserve verification log
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: apple-${{ matrix.generation }}-release-verification
-          path: release-verification.log
+          path: |
+            release-verification.log
+            cumetal-integration.log
           if-no-files-found: error
