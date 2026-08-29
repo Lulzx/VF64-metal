@@ -79,3 +79,38 @@ kernel void spmv_ieee64_kernel(
     }
     output[row] = accumulator;
 }
+
+kernel void cg_update_x_r_fast48_kernel(
+    device const ulong *alpha [[buffer(0)]],
+    device const ulong *p [[buffer(1)]],
+    device const ulong *ap [[buffer(2)]],
+    device ulong *x [[buffer(3)]],
+    device ulong *r [[buffer(4)]],
+    constant uint &count [[buffer(5)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    emu_f64 scale = unpack_binary64(alpha[0], ignored);
+    emu_f64 pv = unpack_binary64(p[gid], ignored);
+    emu_f64 xv = unpack_binary64(x[gid], ignored);
+    emu_f64 rv = unpack_binary64(r[gid], ignored);
+    emu_f64 apv = unpack_binary64(ap[gid], ignored);
+    x[gid] = pack_binary64(fma_ff(scale, pv, xv));
+    r[gid] = pack_binary64(fma_ff(neg_ff(scale), apv, rv));
+}
+
+kernel void cg_update_p_fast48_kernel(
+    device const ulong *beta [[buffer(0)]],
+    device const ulong *r [[buffer(1)]],
+    device ulong *p [[buffer(2)]],
+    constant uint &count [[buffer(3)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    bool ignored;
+    emu_f64 scale = unpack_binary64(beta[0], ignored);
+    emu_f64 rv = unpack_binary64(r[gid], ignored);
+    emu_f64 pv = unpack_binary64(p[gid], ignored);
+    p[gid] = pack_binary64(fma_ff(scale, pv, rv));
+}
