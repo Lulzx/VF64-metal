@@ -25,11 +25,14 @@ recorded explicitly; their O(n) vector and matrix arithmetic executes on Metal.
 The measured corpus demonstrates practical wins for the current shapes,
 including 7.89x CPU for `fast48` GEMM at 41.28 p01 accuracy bits and 4.36x CPU
 for the `fast48` LP batch at 46.43 p01 objective bits. CG and GMRES meet their
-declared convergence tolerances but are currently slowed by synchronous
-dispatch and scalar readback.
+declared convergence tolerances. A later single-command-buffer CG schedule
+moves reductions and alpha/beta to GPU, preserves the 1.453e-12 residual, and
+measures 1.06x CPU; GMRES remains slowed by synchronous scalar readback.
 
 Machine-readable evidence:
 [`results/m7/2026-08-29-m4-pro-workload-pilot.json`](../../results/m7/2026-08-29-m4-pro-workload-pilot.json).
+The device-resident scheduling follow-up is
+[`results/m7/2026-08-29-m4-pro-device-resident-scheduling.json`](../../results/m7/2026-08-29-m4-pro-device-resident-scheduling.json).
 
 The existing CuMetal CUDA `fp64_precision` workload also passes on the same
 device under `CUMETAL_FP64_MODE=emulate`, including pair round trips,

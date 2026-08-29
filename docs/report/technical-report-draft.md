@@ -78,13 +78,16 @@ are workload baselines, not tuned BLAS comparisons.
 | GEMM `ieee64` | bit-identical | 4.61x |
 | batched 2D LP `fast48` | 46.43 p01 objective bits; zero infeasible | 4.36x |
 | N-body force `fast48` | 40.67 p01 bits | 0.96x |
-| CG `fast48` | 11 iterations; 1.453e-12 residual | 0.08x |
+| CG `fast48`, device-resident schedule | 11 iterations; 1.453e-12 residual | 1.06x |
 | GMRES `fast48` | 10 iterations; 2.712e-11 residual | 0.04x |
 
-A 16-step `fast48` symplectic-Euler N-body simulation matches the CPU
+A 16-step device-resident `fast48` symplectic-Euler N-body simulation matches the CPU
 trajectory to 4.109e-15 relative state error and reproduces its 3.340e-6
-relative energy drift, but runs at 0.05x CPU because every step is synchronously
-dispatched.
+relative energy drift, but runs at 0.44x CPU for the measured 256-body shape.
+
+The CG result uses one command buffer for SpMV, reductions, alpha/beta, and
+vector updates. It uses the CPU baseline's fixed iteration count and validates
+only after completion; device-side convergence and early exit remain open.
 
 The existing CuMetal CUDA reduced-pair contract probe also passes shared
 memory, shuffle, reload, aliasing, and precision sentinels. That probe does not

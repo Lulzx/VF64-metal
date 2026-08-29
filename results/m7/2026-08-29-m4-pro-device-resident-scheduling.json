@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "status": "partial_pass",
+  "source_commit": "f3753773717fb98de669c77bb1028598f3181e39",
+  "command": ".build/release/f64-metal workloads",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "cg": {
+    "unknowns": 16384,
+    "iterations": 11,
+    "relative_residual": 1.453e-12,
+    "relative_solution_error": 1.194e-12,
+    "cpu_fp64_ms": 1.048,
+    "synchronized_fast48_gpu_ms": 13.130,
+    "single_command_buffer_fast48_gpu_ms": 0.989,
+    "single_command_buffer_cpu_speedup": 1.06,
+    "scheduling_speedup": 13.28,
+    "device_resident_work": "SpMV, dot reductions, alpha, beta, and vector updates",
+    "host_work": "fixed iteration count selection before dispatch and final-state validation after completion"
+  },
+  "nbody_simulation": {
+    "bodies": 256,
+    "steps": 16,
+    "integrator": "symplectic Euler",
+    "cpu_fp64_ms": 3.412,
+    "single_command_buffer_fast48_gpu_ms": 7.824,
+    "cpu_speedup": 0.44,
+    "relative_state_error": 4.109e-15,
+    "cpu_relative_energy_drift": 3.340e-6,
+    "fast48_relative_energy_drift": 3.340e-6,
+    "device_resident_work": "all force and integration steps",
+    "host_work": "final-state validation after completion"
+  },
+  "limitations": [
+    "CG uses the CPU baseline iteration count for this fixed-iteration device-resident proof",
+    "A device-side convergence predicate and early exit remain future work",
+    "N-body remains slower than the scalar CPU baseline at this small problem size",
+    "Results are from one Apple GPU generation"
+  ]
+}

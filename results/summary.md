@@ -110,12 +110,16 @@ reference at 41.28 p01 accuracy bits; the batched LP workload measured 4.36x at
 bit-identical to the fused CPU reference and measured 4.61x CPU.
 
 CG matched the CPU iteration count and reached a 1.453e-12 relative residual;
-GMRES reached 2.712e-11 with an identical matched CPU FP64 result. Both
-currently lose to CPU because every iteration synchronously returns scalar
-control data. Those host-control boundaries are reported rather than hidden.
+GMRES reached 2.712e-11 with an identical matched CPU FP64 result. A follow-up
+single-command-buffer CG schedule keeps reductions and alpha/beta on GPU and
+measures 0.989 ms versus 1.048 ms CPU, a 1.06x time-to-solution win. GMRES still
+synchronously returns scalar control data; that boundary is reported rather
+than hidden.
 
 Evidence:
 [`m7/2026-08-29-m4-pro-workload-pilot.json`](m7/2026-08-29-m4-pro-workload-pilot.json).
+Device-resident scheduling evidence:
+[`m7/2026-08-29-m4-pro-device-resident-scheduling.json`](m7/2026-08-29-m4-pro-device-resident-scheduling.json).
 
 CuMetal's existing CUDA `fp64_precision` probe also passed its reduced-pair
 contract on the M4 Pro, including shared memory, shuffle, reload, and aliasing
