@@ -2,6 +2,8 @@
 
 ## M1 exact core arithmetic
 
+Status: **complete** for result-bit conformance; M2 semantic state is excluded.
+
 The 2026-08-29 Apple M4 Pro run passed 31,599,360 binary64 result comparisons
 against Berkeley TestFloat/SoftFloat with zero unexplained mismatches.
 
