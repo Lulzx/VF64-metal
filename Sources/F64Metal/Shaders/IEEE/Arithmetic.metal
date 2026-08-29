@@ -12,7 +12,14 @@ inline bool soft_is_signaling_nan(ulong a) {
 }
 
 inline ulong soft_propagate_nan(ulong a, ulong b) {
-    ulong source = soft_is_nan(a) ? a : b;
+    bool signalingA = soft_is_signaling_nan(a);
+    bool signalingB = soft_is_signaling_nan(b);
+    ulong source;
+    if (signalingA || signalingB) {
+        source = signalingA ? a : b;
+    } else {
+        source = soft_is_nan(a) ? a : b;
+    }
     return source | 0x0008000000000000ul;
 }
 
@@ -186,16 +193,23 @@ inline ulong soft_add64(ulong a, ulong b) {
     return soft_add64_mode(a, b, soft_round_near_even);
 }
 
-inline ulong soft_sub64_mode(ulong a, ulong b, uint roundingMode) {
-    return soft_add64_mode(a, b ^ 0x8000000000000000ul, roundingMode);
-}
-
 inline ulong soft_sub64_status(
     ulong a, ulong b, uint roundingMode, thread uint &flags
 ) {
+    if (soft_is_nan(a) || soft_is_nan(b)) {
+        if (soft_is_signaling_nan(a) || soft_is_signaling_nan(b)) {
+            flags |= soft_flag_invalid;
+        }
+        return soft_propagate_nan(a, b);
+    }
     return soft_add64_status(
         a, b ^ 0x8000000000000000ul, roundingMode, flags
     );
+}
+
+inline ulong soft_sub64_mode(ulong a, ulong b, uint roundingMode) {
+    uint ignoredFlags = 0;
+    return soft_sub64_status(a, b, roundingMode, ignoredFlags);
 }
 
 inline ulong soft_sub64(ulong a, ulong b) {
@@ -599,7 +613,10 @@ inline ulong soft_fma64_status(
     if (soft_is_inf(a) || soft_is_inf(b)) {
         if (zeroA || zeroB) {
             flags |= soft_flag_invalid;
-            return 0x7ff8000000000000ul;
+            ulong invalidProduct = 0x7ff8000000000000ul;
+            return soft_is_nan(c)
+                ? soft_propagate_nan(invalidProduct, c)
+                : invalidProduct;
         }
         if (soft_is_nan(c)) {
             if (soft_is_signaling_nan(c)) flags |= soft_flag_invalid;

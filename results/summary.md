@@ -35,5 +35,9 @@ overflow, underflow with tininess detected after rounding, and inexact.
 Machine-readable evidence:
 [`m2/2026-08-29-m4-pro-core-flags-level1.json`](m2/2026-08-29-m4-pro-core-flags-level1.json).
 
-M2 remains incomplete: conversions, comparisons, remainder, round-to-integer,
-and the final NaN payload/signaling contract are still open.
+Since that core-flags artifact, comparisons, remainder, round-to-integer,
+integer conversions, and binary16/binary32 conversions have passed their
+level-1 TestFloat matrices. Floating-result operations also pass bitwise NaN
+sign, quiet-bit, and payload comparison against the ARM-VFPv2 specialization.
+M2 remains incomplete until the full runtime ABI is frozen and a consolidated
+machine-readable exit artifact is committed.

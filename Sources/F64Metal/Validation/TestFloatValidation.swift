@@ -90,6 +90,9 @@ func runTestFloatResultConformance(
     let exactBuffer = try harness.buffer([UInt32(exact ? 1 : 0)])
     let flagsCovered = true
     let exactNaNs = [
+        "f64_add", "f64_sub", "f64_mul", "f64_div", "f64_sqrt",
+        "f64_mulAdd", "f64_rem", "f64_roundToInt",
+        "ui32_to_f64", "ui64_to_f64", "i32_to_f64", "i64_to_f64",
         "f64_to_f32", "f64_to_f16", "f32_to_f64", "f16_to_f64",
     ].contains(function)
 
