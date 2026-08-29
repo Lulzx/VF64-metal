@@ -117,8 +117,14 @@ control data. Those host-control boundaries are reported rather than hidden.
 Evidence:
 [`m7/2026-08-29-m4-pro-workload-pilot.json`](m7/2026-08-29-m4-pro-workload-pilot.json).
 
+CuMetal's existing CUDA `fp64_precision` probe also passed its reduced-pair
+contract on the M4 Pro, including shared memory, shuffle, reload, and aliasing
+boundaries. It is explicitly legacy `CUMETAL_FP64_MODE=emulate` evidence, not a
+VF64-integrated compiler result. Evidence:
+[`m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json`](m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json).
+
 The 16-step `fast48` N-body simulation matched the CPU trajectory to 4.109e-15
 relative state error and reproduced its 3.340e-6 energy drift.
 
-M7 remains open for CuMetal CUDA workloads, energy, broader LP and sparse
-corpora, and cross-device reproduction.
+M7 remains open for VF64-integrated CuMetal CUDA workloads, energy, broader LP
+and sparse corpora, and cross-device reproduction.

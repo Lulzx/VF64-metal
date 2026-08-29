@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "status": "partial_pass",
+  "f64_metal_commit": "d0ff356",
+  "external_checkout": {
+    "path": "/Users/lulzx/work/cumetal",
+    "commit": "a35f76caa4b4fd0ed2ca972bccf64b3102f5b755",
+    "branch": "main",
+    "worktree_clean": true
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "command": "env DYLD_LIBRARY_PATH=/Users/lulzx/work/cumetal/build CUMETAL_BUILD_DIR=/Users/lulzx/work/cumetal/build CUMETAL_FP64_MODE=emulate /Users/lulzx/work/cumetal/build/tests/cuda_projects/fp64/fp64_precision",
+  "exit_code": 0,
+  "result": "PASS: fp64 emulation meets the ~48-bit significand contract",
+  "checks": {
+    "round_trip": {"cases": 4084, "violations": 0, "worst_relative_error": 3.29e-15},
+    "pack_split_idempotent": {"cases": 4096, "violations": 0},
+    "special_values": {"cases": 7, "violations": 0},
+    "range_excluded_values": 5,
+    "five_operation_chain": {"cases": 2213, "violations": 0, "worst_error_over_scale": 3.1e-10},
+    "pair_join": {"cases": 488, "violations": 0},
+    "shared_memory_reduction": "pass",
+    "warp_shuffle_reduction": "pass",
+    "store_reload_arithmetic": "pass",
+    "uint64_alias_bytes": "pass",
+    "integer_2pow24_plus_1_precision_sentinel": "pass"
+  },
+  "limitations": [
+    "This executes CuMetal's existing CUMETAL_FP64_MODE=emulate FP32-pair backend",
+    "It does not execute VF64 bytecode, wide48, ieee64, or --fp64=auto",
+    "It is compatibility evidence, not M5 compiler-integration evidence",
+    "Five values are explicitly outside the binary32 exponent envelope",
+    "No workload timing or energy measurement is reported"
+  ]
+}

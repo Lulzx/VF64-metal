@@ -13,7 +13,7 @@ The status labels below distinguish implemented source from exit evidence.
 | M4 virtual ISA | Complete | frozen VF64 v1 JSON/binary ABI; standalone Metal interpreter; 31,982,976 TestFloat comparisons through bytecode | none within VF64 v1's declared feature boundary |
 | M5 compiler integration | In progress | standalone typed `double` frontend lowers explicit `fast48`, `wide48`, and `ieee64` policies to VF64 bytecode | CuMetal source/PTX `double` integration and observable-boundary regressions |
 | M6 automatic precision | Complete | profiled per-op selector; diagnostics; mixed fast48/wide48 region met 40-bit contract at 1.18x pure ieee64 | none within the declared VF64 accuracy-contract path |
-| M7 workloads | In progress | M4 Pro pilot covers CG, GMRES, SpMV, GEMV, GEMM, batched 2D LP, and multi-step N-body with accuracy, convergence, timing, and conservation | CuMetal CUDA path, energy, broader sparse/LP corpora, and cross-device reproduction |
+| M7 workloads | In progress | M4 Pro pilot covers CG, GMRES, SpMV, GEMV, GEMM, batched 2D LP, multi-step N-body, plus the legacy CuMetal CUDA pair contract | VF64-integrated CuMetal CUDA path, energy, broader sparse/LP corpora, and cross-device reproduction |
 | M8 1.0 | Not started | claim policy documented | all prior exits, cross-generation CI, stable release and public report |
 
 ## Evidence rules

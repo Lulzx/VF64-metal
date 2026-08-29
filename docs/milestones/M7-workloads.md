@@ -31,8 +31,15 @@ dispatch and scalar readback.
 Machine-readable evidence:
 [`results/m7/2026-08-29-m4-pro-workload-pilot.json`](../../results/m7/2026-08-29-m4-pro-workload-pilot.json).
 
-This is not the M7 exit. CuMetal CUDA workloads, energy measurements, broader
-LP and sparse matrices, and cross-device reproduction remain open.
+The existing CuMetal CUDA `fp64_precision` workload also passes on the same
+device under `CUMETAL_FP64_MODE=emulate`, including pair round trips,
+shared-memory and shuffle reductions, store/reload, and `uint64_t` aliasing.
+That is legacy reduced-pair compatibility evidence, not VF64 integration:
+[`results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json`](../../results/m7/2026-08-29-m4-pro-cumetal-legacy-fp64.json).
+
+This is not the M7 exit. VF64-integrated CuMetal CUDA workloads, energy
+measurements, broader LP and sparse matrices, and cross-device reproduction
+remain open.
 The non-privileged `powermetrics` GPU-power probe failed with its explicit
 superuser requirement; no runtime-derived energy estimate is substituted.
 
