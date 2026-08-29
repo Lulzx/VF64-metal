@@ -35,6 +35,11 @@ inline emu_f64 unpack_binary64(ulong bits, thread bool &rangeFlag) {
     }
 
     ulong mantissa = (1ul << 52) | fraction;
+    if (unbiased == 127 &&
+        mantissa > (ulong(0x00ffffffu) << 29)) {
+        rangeFlag = true;
+        return make_emu(signed_float(INFINITY, negative), 0.0f);
+    }
     ulong top = mantissa >> 29;
     ulong tail = mantissa & ((1ul << 29) - 1ul);
     ulong halfway = 1ul << 28;
@@ -44,6 +49,10 @@ inline emu_f64 unpack_binary64(ulong bits, thread bool &rangeFlag) {
 
     long remainder = long(mantissa) - long(top << 29);
     float hi = ldexp(float(top), unbiased - 23);
+    if (!isfinite(hi)) {
+        rangeFlag = true;
+        return make_emu(signed_float(INFINITY, negative), 0.0f);
+    }
     float lo = ldexp(float(remainder), unbiased - 52);
     return make_emu(signed_float(hi, negative), signed_float(lo, negative));
 }
@@ -153,4 +162,3 @@ inline ulong pack_binary64(emu_f64 input) {
 // Integer software binary64. Unlike emu_f64, this path retains all 53 bits,
 // the full binary64 exponent range, and subnormals. Arithmetic rounding is
 // round-to-nearest, ties-to-even.
-

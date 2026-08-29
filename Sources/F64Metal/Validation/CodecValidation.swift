@@ -33,6 +33,7 @@ func validateCodec(_ harness: MetalHarness) throws {
         Double.greatestFiniteMagnitude, Double.leastNormalMagnitude,
         Double.leastNonzeroMagnitude, Foundation.scalbn(1.0, 128),
         Foundation.scalbn(1.0, -127),
+        Double(Float.greatestFiniteMagnitude).nextUp,
     ]
     let rangeInput = try harness.buffer(bitsOf(rangeValues))
     let rangeOutput = try harness.emptyBuffer(count: rangeValues.count, of: UInt64.self)
@@ -57,4 +58,3 @@ func validateCodec(_ harness: MetalHarness) throws {
         percentile(scores, 0.01), percentile(scores, 0.5)
     ))
 }
-
