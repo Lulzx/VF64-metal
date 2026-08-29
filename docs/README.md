@@ -1,7 +1,7 @@
 # VF64-metal documentation
 
 This directory records the evidence, design decisions, and open experiments
-behind F64Metal. Performance claims belong here only when they can be tied to a
+behind VF64Metal. Performance claims belong here only when they can be tied to a
 specific implementation, device, workload, and result artifact.
 
 ## Canonical roadmap

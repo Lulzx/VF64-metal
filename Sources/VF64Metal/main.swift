@@ -14,9 +14,9 @@ do {
             exit(2)
         }
         if CommandLine.arguments.count == 3 {
-            print("{\"tool\":\"\(F64MetalVersion.tool)\",\"vf64_abi\":\"\(F64MetalVersion.vf64ABI)\",\"vf64_binary_version\":\"0x\(String(F64MetalVersion.vf64BinaryVersion, radix: 16))\"}")
+            print("{\"tool\":\"\(VF64MetalVersion.tool)\",\"vf64_abi\":\"\(VF64MetalVersion.vf64ABI)\",\"vf64_binary_version\":\"0x\(String(VF64MetalVersion.vf64BinaryVersion, radix: 16))\"}")
         } else {
-            print("vf64-metal \(F64MetalVersion.tool) (VF64 ABI \(F64MetalVersion.vf64ABI))")
+            print("vf64-metal \(VF64MetalVersion.tool) (VF64 ABI \(VF64MetalVersion.vf64ABI))")
         }
     } else if command == "vf64-compile" {
         let arguments = Array(CommandLine.arguments.dropFirst(2))

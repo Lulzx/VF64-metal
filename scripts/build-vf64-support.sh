@@ -3,7 +3,7 @@ set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_dir=$(CDPATH= cd -- "$script_dir/.." && pwd)
-source_file="$repo_dir/Sources/F64Metal/Shaders/Interop/VF64Support.metal"
+source_file="$repo_dir/Sources/VF64Metal/Shaders/Interop/VF64Support.metal"
 output=${1:-"$repo_dir/.build/vf64/vf64-support.air"}
 
 mkdir -p "$(dirname -- "$output")"

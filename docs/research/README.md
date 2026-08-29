@@ -6,7 +6,7 @@ and update independently.
 
 ## 2026-08-29 landscape review
 
-- [Current F64Metal evidence](../evidence/current-baseline.md)
+- [Current VF64Metal evidence](../evidence/current-baseline.md)
 - [Upstream Metal libraries](upstreams/metal-libraries.md)
 - [Ozaki-II and FP8 paper](papers/arxiv-2606.06510.md)
 - [Apple Metal feasibility](../platform/apple-metal-capabilities.md)

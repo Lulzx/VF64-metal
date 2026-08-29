@@ -13,7 +13,7 @@ Snapshots:
 
 ## Comparison
 
-| Dimension | F64Metal | `metal-float64` | `Metal64` |
+| Dimension | VF64Metal | `metal-float64` | `Metal64` |
 | --- | --- | --- | --- |
 | Status | Runnable measured harness | README says planning stage | Header/package implementation |
 | Fast representation | Normalized FP32 pair | Planned `float32x2_t` | `float2` high/low |
@@ -36,7 +36,7 @@ Its strongest ideas are API and packaging decisions:
 The inspected revision is not a numerical competitor. Its
 [`Double.h`](https://github.com/philipturner/metal-float64/blob/01306dec8f44f4315ad018b2f7b24c162320ffeb/Sources/MetalFloat64/include/MetalFloat64/Double.h)
 contains storage-only declarations, and the Swift unit test merely checks that
-compiled resources exist. F64Metal should borrow ergonomics, not its theoretical
+compiled resources exist. VF64Metal should borrow ergonomics, not its theoretical
 performance or unfinished conformance claims.
 
 Lock-based atomics may matter for CUDA compatibility, but need forward-progress,
@@ -62,7 +62,7 @@ uses one division correction. Its range remains constrained by FP32 limbs. It
 is pseudo-double arithmetic, not a demonstrated 53-bit full-range binary64
 runtime.
 
-F64Metal's own dependency-chain result favors explicit `fma()` residuals: the
+VF64Metal's own dependency-chain result favors explicit `fma()` residuals: the
 full residual multiply was about 1.5 times the throughput of its Dekker variant
 while retaining `lo*lo`. `Metal64` motivates a tested math/complex layer, not a
 replacement core multiply.

@@ -5,7 +5,7 @@ Primary source: Satoshi Matsuoka,
 
 ## Result in one sentence
 
-The paper is strategically relevant to F64Metal because it makes adaptive
+The paper is strategically relevant to VF64Metal because it makes adaptive
 precision and on-chip fusion central, but it is not a portable Apple
 implementation or a scalar IEEE-754 solution.
 
@@ -31,7 +31,7 @@ The FP8 projections choose `r = 12`, but the corrected compute multiplier is
 structure used to emulate signed INT9 residue products on FP8. The paper says
 the earlier draft overstated the dense compute ceiling by about three times.
 
-This is a useful research rule for F64Metal: count substrate emulation,
+This is a useful research rule for VF64Metal: count substrate emulation,
 conversion, reconstruction, and materialization—not only the obvious logical
 arithmetic.
 
@@ -83,7 +83,7 @@ Sparse results depend on layout. Blocked-ELL padding contributes directly to
 effective operational intensity. Irregular corpora need hybrid formats and real
 measurements.
 
-## What transfers to F64Metal
+## What transfers to VF64Metal
 
 - Add `alpha`/`beta`/`gamma` accounting to every emulation backend.
 - Extend pair residency into whole-kernel on-chip residency.

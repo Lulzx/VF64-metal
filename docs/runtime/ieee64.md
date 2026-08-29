@@ -15,7 +15,7 @@ virtual instruction encoding or the eventual M8 stable external ABI.
 - Results retain signed zero, infinities, subnormals, and the NaN policy below.
 
 The implementation is compiled from
-`Sources/F64Metal/Shaders/IEEE/Arithmetic.metal`. Callers include that source
+`Sources/VF64Metal/Shaders/IEEE/Arithmetic.metal`. Callers include that source
 before their kernels and keep exact values packed as `ulong` at every observable
 boundary.
 
