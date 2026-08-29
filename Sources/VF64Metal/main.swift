@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: vf64-metal [version [--json]|validate|bench|workloads|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
+    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
 }
 
 do {
@@ -85,6 +85,16 @@ do {
         try runValidation(harness)
     case "bench":
         try runBenchmarks(harness)
+    case "resources":
+        guard CommandLine.arguments.count == 2 ||
+                (CommandLine.arguments.count == 3 &&
+                 CommandLine.arguments[2] == "--json") else {
+            usage()
+            exit(2)
+        }
+        try runMetalResourceReport(
+            harness, json: CommandLine.arguments.count == 3
+        )
     case "workloads":
         try runScientificWorkloads(harness)
     case "lp":
