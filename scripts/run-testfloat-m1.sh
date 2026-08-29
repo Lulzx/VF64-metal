@@ -17,6 +17,16 @@ done
 
 for rounding in rnear_even rminMag rmin rmax rnear_maxMag
 do
+    for function in ui32_to_f64 ui64_to_f64 i32_to_f64 i64_to_f64
+    do
+        "$tools_dir/testfloat_gen" -seed 1 -level 1 "-$rounding" "$function" |
+            "$repo_dir/.build/release/f64-metal" \
+                testfloat "$function" "$rounding"
+    done
+done
+
+for rounding in rnear_even rminMag rmin rmax rnear_maxMag
+do
     "$tools_dir/testfloat_gen" \
         -seed 1 -level 1 "-$rounding" -notexact f64_roundToInt |
         "$repo_dir/.build/release/f64-metal" \

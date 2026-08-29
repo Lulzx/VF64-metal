@@ -154,6 +154,10 @@ IEEE remainder uses exact integer long division and nearest-even quotient
 selection. Its 46,464-case TestFloat result/invalid-flag corpus passes with zero
 mismatches.
 
+Unsigned and signed 32/64-bit integer-to-binary64 conversions support every
+rounding direction. All 20 TestFloat cells pass, including 64-bit discarded-bit
+rounding and inexact flags.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the

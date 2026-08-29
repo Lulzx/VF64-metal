@@ -59,6 +59,10 @@ the exact policy raises inexact when fractional bits are discarded.
 the modulus exactly, selects the nearest quotient with ties-to-even, and
 preserves the dividend sign on an exact-zero remainder.
 
+`ui32`, `i32`, `ui64`, and `i64` conversions to binary64 passed all five
+rounding directions: 372 cases per 32-bit cell and 756 per 64-bit cell, for
+11,280 result/flag comparisons with zero mismatches.
+
 In 32-operation dependency chains, integer add was 4.38 times slower and
 integer multiply 12.07 times slower than the pair-resident path.
 

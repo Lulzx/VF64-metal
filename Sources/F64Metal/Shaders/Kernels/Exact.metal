@@ -227,6 +227,72 @@ kernel void soft_remainder_kernel(
     }
 }
 
+kernel void soft_ui32_to_f64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_uint_to_f64_status(
+            ulong(uint(input[gid])), false, roundingMode, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_ui64_to_f64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raised = 0;
+        output[gid] = soft_uint_to_f64_status(
+            input[gid], false, roundingMode, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_i32_to_f64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        uint raw = uint(input[gid]);
+        bool sign = (raw >> 31) != 0;
+        ulong magnitude = sign ? ulong((~raw) + 1u) : ulong(raw);
+        uint raised = 0;
+        output[gid] = soft_uint_to_f64_status(
+            magnitude, sign, roundingMode, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
+kernel void soft_i64_to_f64_kernel(
+    device const ulong *input [[buffer(0)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    constant uint &roundingMode [[buffer(4)]],
+    device uint *flags [[buffer(6)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) {
+        ulong raw = input[gid];
+        bool sign = (raw >> 63) != 0;
+        ulong magnitude = sign ? (~raw) + 1ul : raw;
+        uint raised = 0;
+        output[gid] = soft_uint_to_f64_status(
+            magnitude, sign, roundingMode, raised
+        );
+        flags[gid] = raised;
+    }
+}
+
 kernel void soft_add_chain_kernel(
     device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
     device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],

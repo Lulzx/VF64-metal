@@ -892,3 +892,42 @@ inline ulong soft_remainder64_status(
     }
     return soft_pack_exact64(signResult, nb.exponent, remainder);
 }
+
+inline ulong soft_uint_to_f64_status(
+    ulong magnitude, bool sign, uint roundingMode, thread uint &flags
+) {
+    if (magnitude == 0) return ulong(sign) << 63;
+    int leading = 63 - int(clz(magnitude));
+    int exponent = 1023 + leading;
+    ulong significand;
+    if (leading <= 52) {
+        significand = magnitude << uint(52 - leading);
+    } else {
+        uint shift = uint(leading - 52);
+        ulong mask = (1ul << shift) - 1ul;
+        ulong discarded = magnitude & mask;
+        significand = magnitude >> shift;
+        if (discarded != 0) {
+            flags |= soft_flag_inexact;
+            ulong halfValue = 1ul << (shift - 1u);
+            bool increment = false;
+            if (roundingMode == soft_round_near_even) {
+                increment = discarded > halfValue ||
+                    (discarded == halfValue && (significand & 1ul) != 0);
+            } else if (roundingMode == soft_round_near_max_mag) {
+                increment = discarded >= halfValue;
+            } else if (roundingMode == soft_round_min) {
+                increment = sign;
+            } else if (roundingMode == soft_round_max) {
+                increment = !sign;
+            }
+            if (increment) significand += 1ul;
+            if (significand >= (1ul << 53)) {
+                significand >>= 1;
+                exponent += 1;
+            }
+        }
+    }
+    return (ulong(sign) << 63) | (ulong(exponent) << 52) |
+        (significand & 0x000ffffffffffffful);
+}

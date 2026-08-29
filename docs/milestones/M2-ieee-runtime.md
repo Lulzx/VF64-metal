@@ -13,7 +13,9 @@ Add the runtime surface around M1:
 Current progress: M1 core exception flags, the complete six-operation TestFloat
 comparison family, and round-to-integer under every rounding/exactness policy
 pass on the Metal GPU. IEEE remainder also passes its result/flag matrix.
-Conversions and the final NaN payload policy remain.
+Signed and unsigned 32/64-bit integer-to-binary64 conversions pass every
+rounding mode. Binary64-to-integer/format conversions and the final NaN payload
+policy remain.
 
 Operation availability must be explicit. An unsupported exact operation may
 fail compilation or dispatch to an exact implementation, but must never
