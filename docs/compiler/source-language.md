@@ -32,3 +32,22 @@ diagnostics.
 This frontend is not presented as CUDA compatibility. The M5 exit still
 requires CuMetal to lower its source/PTX `double` path into VF64 and to prove
 CUDA-visible materialization boundaries.
+
+## Automatic precision
+
+Create a measured exponent profile from slot-major packed inputs, then compile
+with a declared accumulated accuracy floor:
+
+```bash
+.build/release/f64-metal vf64-profile --slots=3 --lanes=1024 \
+    input.bin profile.json
+.build/release/f64-metal vf64-compile --fp64=auto --lanes=1024 \
+    --accuracy-bits=40 --profile=profile.json \
+    --diagnostics=selection.json examples/axpy.vf64 axpy-auto.bin
+```
+
+The selector chooses per arithmetic instruction. It uses `fast48` only with
+finite proof and exponent headroom, `wide48` when scaling is required, and
+`ieee64` when proof is missing or the accuracy budget is exhausted. The
+diagnostics file records the inferred range, estimated accumulated accuracy,
+selected mode, and reason for every decision.

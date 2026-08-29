@@ -73,3 +73,17 @@ and flag comparisons passed with zero mismatches. Directed validation also
 covers every opcode, all three modes, negative programs, and standalone file
 round trips. Evidence:
 [`m4/2026-08-29-m4-pro-vf64-v1-level1.json`](m4/2026-08-29-m4-pro-vf64-v1-level1.json).
+
+## M6 automatic precision
+
+Status: **complete** for the VF64 compiler's declared accuracy-contract path.
+
+The profiled selector propagates finite exponent intervals and an accumulated
+error budget, emits per-operation diagnostics, and falls back to `ieee64` when
+proof is absent or the budget is exhausted. A 1,048,576-lane, 22-operation
+dependency region selected five `fast48` and seventeen `wide48` operations.
+It measured 43.86 p01 accuracy bits against a required 40 and 6,962 Mops/s
+against 5,876 Mops/s for pure `ieee64`, a 1.18× speedup on the M4 Pro.
+
+Evidence:
+[`m6/2026-08-29-m4-pro-auto-mixed-chain.json`](m6/2026-08-29-m4-pro-auto-mixed-chain.json).

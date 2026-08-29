@@ -12,7 +12,7 @@ The status labels below distinguish implemented source from exit evidence.
 | M3 precision modes | In progress | frozen contracts; implemented wide48; M4 Pro accuracy and mode benchmarks | second Apple GPU generation plus register/occupancy/spill evidence |
 | M4 virtual ISA | Complete | frozen VF64 v1 JSON/binary ABI; standalone Metal interpreter; 31,982,976 TestFloat comparisons through bytecode | none within VF64 v1's declared feature boundary |
 | M5 compiler integration | Designed only | CuMetal boundary and residency plan | source `double` lowering through each declared policy |
-| M6 automatic precision | Proposed | policy shape documented | implemented selector, diagnostics, accuracy contract and speedup proof |
+| M6 automatic precision | Complete | profiled per-op selector; diagnostics; mixed fast48/wide48 region met 40-bit contract at 1.18x pure ieee64 | none within the declared VF64 accuracy-contract path |
 | M7 workloads | Proposed | workload matrix documented | reproducible delivered-device workload corpus and CPU baselines |
 | M8 1.0 | Not started | claim policy documented | all prior exits, cross-generation CI, stable release and public report |
 

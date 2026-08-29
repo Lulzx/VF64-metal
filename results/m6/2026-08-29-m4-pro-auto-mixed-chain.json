@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "milestone": "M6",
+  "status": "pass",
+  "source_commit": "23c57178f986344c88ca81091fbb97287fc15c8b",
+  "commands": [
+    ".build/release/f64-metal validate",
+    ".build/release/f64-metal bench"
+  ],
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "selector": {
+    "policy": "--fp64=auto",
+    "profile_schema": 1,
+    "declared_accuracy_bits": 40,
+    "fast48_range_headroom": [-100, 120],
+    "reduced_single_operation_floor_bits": 44,
+    "safe_fallback": "ieee64",
+    "diagnostics": "per instruction mode, inferred exponent interval, estimated accuracy, and reason"
+  },
+  "workload": {
+    "kind": "source-compiled dependent multiply region",
+    "vector_lanes": 1048576,
+    "operations_per_lane": 22,
+    "input_value_exponents": [109, 110],
+    "input_factor_exponents": [0, 1],
+    "selected_operations": {"fast48": 5, "wide48": 17, "ieee64": 0},
+    "materializations_per_lane": 2,
+    "materialization_note": "one input load boundary and one output store boundary; reduced state remains resident across the SSA chain"
+  },
+  "accuracy": {
+    "reference": "CPU binary64 evaluation of the same 22-operation order",
+    "metric": "p01 relative accuracy bits",
+    "required": 40.0,
+    "observed": 43.86,
+    "contract_met": true
+  },
+  "performance": {
+    "metric": "million virtual FP64 operations per second",
+    "trials": 5,
+    "pure_ieee64": 5875.7,
+    "automatic_mixed": 6962.0,
+    "speedup": 1.18,
+    "faster_than_pure_ieee64": true
+  },
+  "limitations": [
+    "This is a compiler/runtime microkernel accuracy contract, not a scientific convergence claim",
+    "Results are from one delivered Apple GPU and remain subject to frequency and contention variance",
+    "Cross-generation performance belongs to M3 and M8 evidence"
+  ]
+}

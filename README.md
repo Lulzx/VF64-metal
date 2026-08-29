@@ -171,6 +171,13 @@ rounding, comparison, conversion, exception, vector, and storage opcodes. Its
 standalone Metal bytecode backend passes the complete 31,982,976-case M2
 TestFloat matrix through the ISA with exact results and flags.
 
+The VF64 source compiler accepts `double` expressions with explicit
+`--fp64=fast48`, `wide48`, or `ieee64` policies. `--fp64=auto` consumes measured
+input exponent profiles and an accuracy-bit contract, emits per-operation
+selection diagnostics, and has a safe `ieee64` fallback. Its committed mixed
+M4 Pro proof met 43.86 p01 bits for a 40-bit contract while running 1.18× faster
+than the identical pure software-binary64 region.
+
 ## Deliberate limitations
 
 - Finite values outside binary32's normal exponent range are flagged by the
