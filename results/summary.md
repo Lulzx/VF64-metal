@@ -104,19 +104,21 @@ Evidence:
 Status: **in progress**.
 
 The first M4 Pro pilot covers CG, GMRES, SpMV, GEMV, GEMM, batched 2D LP, and
-N-body force evaluation. `fast48` GEMM measured 7.38x the scalar CPU FP64
-reference at 41.28 p01 accuracy bits; the batched LP workload measured 3.71x at
+multi-step N-body simulation. `fast48` GEMM measured 7.89x the scalar CPU FP64
+reference at 41.28 p01 accuracy bits; the batched LP workload measured 4.36x at
 46.43 p01 objective bits with zero infeasible outputs. Exact `ieee64` GEMM was
-bit-identical to the fused CPU reference and measured 4.30x CPU.
+bit-identical to the fused CPU reference and measured 4.61x CPU.
 
 CG matched the CPU iteration count and reached a 1.453e-12 relative residual;
-GMRES reached 2.712e-11. Both currently lose to CPU because every iteration
-synchronously returns scalar control data. Those host-control boundaries are
-reported rather than hidden.
+GMRES reached 2.712e-11 with an identical matched CPU FP64 result. Both
+currently lose to CPU because every iteration synchronously returns scalar
+control data. Those host-control boundaries are reported rather than hidden.
 
 Evidence:
 [`m7/2026-08-29-m4-pro-workload-pilot.json`](m7/2026-08-29-m4-pro-workload-pilot.json).
 
-M7 remains open for CuMetal CUDA workloads, energy, a matched GMRES CPU timing
-baseline, multi-step simulation/conservation, broader LP and sparse corpora,
-and cross-device reproduction.
+The 16-step `fast48` N-body simulation matched the CPU trajectory to 4.109e-15
+relative state error and reproduced its 3.340e-6 energy drift.
+
+M7 remains open for CuMetal CUDA workloads, energy, broader LP and sparse
+corpora, and cross-device reproduction.

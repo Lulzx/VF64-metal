@@ -2,7 +2,7 @@
   "schema_version": 1,
   "milestone": "M7",
   "status": "partial_pass",
-  "source_commit": "11eab5fccc96cca72d663fcda44fe9dbbf5c9a21",
+  "source_commit": "5da07acdccc01c8b326f7a1bbd8d3241f3d29a5d",
   "command": ".build/release/f64-metal workloads",
   "device": {
     "name": "Apple M4 Pro",
@@ -19,68 +19,73 @@
   "workloads": {
     "spmv_cyclic_9": {
       "shape": {"rows": 65536, "columns": 65536, "nonzeros": 589824},
-      "cpu_fp64_ms": 0.381,
-      "fp32": {"ms": 0.210, "p01_accuracy_bits": 22.39, "cpu_speedup": 1.82},
-      "fast48": {"ms": 0.306, "p01_accuracy_bits": 46.83, "cpu_speedup": 1.25},
-      "wide48": {"ms": 0.282, "p01_accuracy_bits": 46.75, "cpu_speedup": 1.35},
-      "ieee64": {"ms": 0.353, "p01_accuracy_bits": 64.0, "cpu_speedup": 1.08}
+      "cpu_fp64_ms": 0.289,
+      "fp32": {"ms": 0.205, "p01_accuracy_bits": 22.39, "cpu_speedup": 1.41},
+      "fast48": {"ms": 0.323, "p01_accuracy_bits": 46.83, "cpu_speedup": 0.90},
+      "wide48": {"ms": 0.285, "p01_accuracy_bits": 46.75, "cpu_speedup": 1.02},
+      "ieee64": {"ms": 0.355, "p01_accuracy_bits": 64.0, "cpu_speedup": 0.82}
     },
     "gemv_dense": {
       "shape": {"rows": 1024, "columns": 2048, "nonzeros": 2097152},
-      "cpu_fp64_ms": 1.704,
-      "fp32": {"ms": 1.832, "p01_accuracy_bits": 16.11, "cpu_speedup": 0.93},
-      "fast48": {"ms": 1.461, "p01_accuracy_bits": 40.66, "cpu_speedup": 1.17},
-      "wide48": {"ms": 1.448, "p01_accuracy_bits": 40.70, "cpu_speedup": 1.18},
-      "ieee64": {"ms": 1.373, "p01_accuracy_bits": 64.0, "cpu_speedup": 1.24}
+      "cpu_fp64_ms": 1.820,
+      "fp32": {"ms": 1.552, "p01_accuracy_bits": 16.11, "cpu_speedup": 1.17},
+      "fast48": {"ms": 1.442, "p01_accuracy_bits": 40.66, "cpu_speedup": 1.26},
+      "wide48": {"ms": 1.446, "p01_accuracy_bits": 40.70, "cpu_speedup": 1.26},
+      "ieee64": {"ms": 1.374, "p01_accuracy_bits": 64.0, "cpu_speedup": 1.32}
     },
     "cg": {
       "unknowns": 16384,
       "tolerance": 1e-11,
-      "cpu_fp64": {"ms": 1.284, "iterations": 11, "relative_residual": 1.453e-12, "relative_solution_error": 1.194e-12},
-      "fast48_gpu": {"ms": 13.075, "iterations": 11, "relative_residual": 1.453e-12, "relative_solution_error": 1.194e-12, "cpu_speedup": 0.10},
+      "cpu_fp64": {"ms": 1.066, "iterations": 11, "relative_residual": 1.453e-12, "relative_solution_error": 1.194e-12},
+      "fast48_gpu": {"ms": 13.513, "iterations": 11, "relative_residual": 1.453e-12, "relative_solution_error": 1.194e-12, "cpu_speedup": 0.08},
       "host_control": "CPU computes alpha and beta and checks the residual; all O(n) solver arithmetic is on GPU"
     },
     "gmres": {
       "unknowns": 8192,
       "restart": 32,
       "tolerance": 1e-10,
-      "fast48_gpu": {"ms": 33.274, "iterations": 10, "relative_residual": 2.712e-11, "relative_solution_error": 2.261e-11},
-      "host_control": "CPU updates Hessenberg and Givens scalars and validates the final residual; all O(n) solver arithmetic is on GPU",
-      "missing": "matched CPU GMRES timing baseline"
+      "cpu_fp64": {"ms": 1.124, "iterations": 10, "relative_residual": 2.712e-11, "relative_solution_error": 2.261e-11},
+      "fast48_gpu": {"ms": 31.543, "iterations": 10, "relative_residual": 2.712e-11, "relative_solution_error": 2.261e-11, "cpu_speedup": 0.04},
+      "host_control": "CPU updates Hessenberg and Givens scalars and validates the final residual; all O(n) solver arithmetic is on GPU"
     },
     "gemm_square_192": {
       "outputs": 36864,
       "fused_multiply_adds": 7077888,
-      "cpu_fp64_ms": 5.213,
-      "fp32": {"ms": 0.341, "p01_accuracy_bits": 16.82, "cpu_speedup": 15.28},
-      "fast48": {"ms": 0.706, "p01_accuracy_bits": 41.28, "cpu_speedup": 7.38},
-      "wide48": {"ms": 0.710, "p01_accuracy_bits": 41.31, "cpu_speedup": 7.35},
-      "ieee64": {"ms": 1.212, "p01_accuracy_bits": 64.0, "cpu_speedup": 4.30}
+      "cpu_fp64_ms": 5.577,
+      "fp32": {"ms": 0.341, "p01_accuracy_bits": 16.82, "cpu_speedup": 16.33},
+      "fast48": {"ms": 0.707, "p01_accuracy_bits": 41.28, "cpu_speedup": 7.89},
+      "wide48": {"ms": 0.711, "p01_accuracy_bits": 41.31, "cpu_speedup": 7.85},
+      "ieee64": {"ms": 1.211, "p01_accuracy_bits": 64.0, "cpu_speedup": 4.61}
     },
     "nbody_force": {
       "bodies": 512,
       "pair_interactions": 262144,
-      "cpu_fp64_ms": 0.754,
-      "fp32": {"ms": 0.380, "p01_accuracy_bits": 15.59, "cpu_speedup": 1.98},
-      "fast48": {"ms": 0.896, "p01_accuracy_bits": 40.67, "cpu_speedup": 0.84},
-      "wide48": {"ms": 2.219, "p01_accuracy_bits": 39.18, "cpu_speedup": 0.34},
-      "ieee64": {"ms": 8.858, "p01_accuracy_bits": 64.0, "cpu_speedup": 0.09}
+      "cpu_fp64_ms": 0.856,
+      "fp32": {"ms": 0.380, "p01_accuracy_bits": 15.59, "cpu_speedup": 2.25},
+      "fast48": {"ms": 0.896, "p01_accuracy_bits": 40.67, "cpu_speedup": 0.96},
+      "wide48": {"ms": 2.213, "p01_accuracy_bits": 39.18, "cpu_speedup": 0.39},
+      "ieee64": {"ms": 8.886, "p01_accuracy_bits": 64.0, "cpu_speedup": 0.10}
+    },
+    "nbody_simulation": {
+      "bodies": 256,
+      "steps": 16,
+      "integrator": "symplectic Euler",
+      "cpu_fp64": {"ms": 3.333, "relative_energy_drift": 3.340e-6},
+      "fast48_gpu": {"ms": 64.401, "relative_state_error": 4.109e-15, "relative_energy_drift": 3.340e-6, "cpu_speedup": 0.05}
     },
     "lp_batch_2d": {
       "problems": 4096,
       "inequalities_per_problem": 8,
       "feasibility_tolerance": 1e-10,
-      "cpu_fp64_ms": 1.418,
-      "fast48": {"ms": 0.382, "p01_objective_bits": 46.43, "cpu_speedup": 3.71, "infeasible_results": 0},
-      "ieee64": {"ms": 0.646, "p01_objective_bits": 52.10, "cpu_speedup": 2.20, "infeasible_results": 0}
+      "cpu_fp64_ms": 1.671,
+      "fast48": {"ms": 0.384, "p01_objective_bits": 46.43, "cpu_speedup": 4.36, "infeasible_results": 0},
+      "ieee64": {"ms": 0.644, "p01_objective_bits": 52.10, "cpu_speedup": 2.59, "infeasible_results": 0}
     }
   },
   "limitations": [
     "Energy was not measured; no non-privileged per-process Apple GPU energy counter was available in this run",
     "CuMetal CUDA workloads were not run from this repository",
-    "The N-body evidence is a force evaluation, not a multi-step conservation study",
     "The LP corpus is batched two-variable vertex enumeration, not a general sparse LP solver",
-    "GMRES lacks a matched CPU timing baseline",
     "Only one Apple GPU generation is represented",
     "M7 exit is not met"
   ]

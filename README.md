@@ -180,10 +180,11 @@ than the identical pure software-binary64 region.
 
 The first scientific workload pilot covers CG, GMRES, SpMV, GEMV, GEMM,
 batched 2D LP, and N-body force evaluation. On the measured M4 Pro, `fast48`
-GEMM reached 7.38x the scalar CPU FP64 reference at 41.28 p01 accuracy bits;
-exact `ieee64` GEMM reached 4.30x with bit-identical outputs. M7 remains open
-for CuMetal CUDA workloads, energy, broader corpora, multi-step simulation,
-and cross-device evidence.
+GEMM reached 7.89x the scalar CPU FP64 reference at 41.28 p01 accuracy bits;
+exact `ieee64` GEMM reached 4.61x with bit-identical outputs. A 16-step
+`fast48` N-body simulation matched the CPU trajectory to 4.109e-15 relative
+state error. M7 remains open for CuMetal CUDA workloads, energy, broader
+corpora, and cross-device evidence.
 
 ## Deliberate limitations
 
