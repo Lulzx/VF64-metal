@@ -17,6 +17,10 @@ local validation, M2/M4 TestFloat, benchmarks, and scientific workloads. A
 manual self-hosted workflow declares M1, M2, M3, and M4 Apple GPU runner labels
 and preserves each verification log.
 
+An evidence-linked [technical report draft](../report/technical-report-draft.md)
+summarizes the current architecture, methodology, results, and open gates. It
+does not publish the embargoed final claim.
+
 Workflow source is not CI evidence. No runner availability or successful
 cross-generation run is claimed until public run artifacts exist. M3, M5, and
 M7 exits also remain open, so tagging 1.0 and publishing the final claim are

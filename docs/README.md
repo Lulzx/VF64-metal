@@ -23,6 +23,7 @@ specific implementation, device, workload, and result artifact.
 - [Apple Metal capability boundary](platform/apple-metal-capabilities.md)
 - [Experiment roadmap](roadmap/experiments.md)
 - [Claim policy](policies/claims.md)
+- [Technical report draft](report/technical-report-draft.md)
 
 ## Integration
 
