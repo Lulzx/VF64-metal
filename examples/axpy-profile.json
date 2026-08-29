@@ -1,0 +1,9 @@
+{
+  "laneCount": 64,
+  "schemaVersion": 1,
+  "slots": [
+    {"finiteOnly": true, "maximum": -1, "minimum": -1},
+    {"finiteOnly": true, "maximum": 5, "minimum": -5},
+    {"finiteOnly": true, "maximum": -1, "minimum": -1}
+  ]
+}

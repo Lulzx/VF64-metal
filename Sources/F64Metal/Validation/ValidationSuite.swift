@@ -8,6 +8,7 @@ func runValidation(_ harness: MetalHarness) throws {
     try validateWideMode(harness)
     try validateVirtualISA(harness)
     try validateVF64SourceCompiler(harness)
+    try validateAutoPrecision(harness)
 
     var rng = SplitMix64(state: 0xdecafbad12345678)
     let count = 32_768
