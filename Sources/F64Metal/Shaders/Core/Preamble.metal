@@ -11,6 +11,11 @@ struct emu_f64 {
     float lo;
 };
 
+struct wide_f64 {
+    emu_f64 significand;
+    int exponent;
+    uint reserved;
+};
+
 inline emu_f64 from_float2(float2 value);
 inline float2 to_float2(emu_f64 value);
-
