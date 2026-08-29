@@ -1,0 +1,10 @@
+# Concatenated in this order by ShaderSourceLoader.
+Core/Preamble.metal
+Pair/Arithmetic.metal
+Pair/Codec.metal
+IEEE/Arithmetic.metal
+Kernels/Exact.metal
+Kernels/BoundaryPair.metal
+Kernels/Pair.metal
+Kernels/BoundaryOperations.metal
+Kernels/Reduction.metal
