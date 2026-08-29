@@ -129,3 +129,79 @@ kernel void vector_scale_fast48_kernel(
         unpack_binary64(input[gid], ignored)
     ));
 }
+
+kernel void gemm_fp32_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &dimension [[buffer(3)]],
+    constant uint &count [[buffer(4)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint row = gid / dimension;
+    uint column = gid % dimension;
+    float accumulator = 0.0f;
+    bool ignored;
+    for (uint k = 0; k < dimension; ++k) {
+        accumulator = fma(
+            unpack_binary64(a[row * dimension + k], ignored).hi,
+            unpack_binary64(b[k * dimension + column], ignored).hi,
+            accumulator
+        );
+    }
+    output[gid] = pack_binary64(make_emu(accumulator, 0.0f));
+}
+
+kernel void gemm_fast48_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &dimension [[buffer(3)]],
+    constant uint &count [[buffer(4)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint row = gid / dimension;
+    uint column = gid % dimension;
+    emu_f64 accumulator = make_emu(0.0f, 0.0f);
+    bool ignored;
+    for (uint k = 0; k < dimension; ++k) {
+        accumulator = fma_ff(
+            unpack_binary64(a[row * dimension + k], ignored),
+            unpack_binary64(b[k * dimension + column], ignored), accumulator
+        );
+    }
+    output[gid] = pack_binary64(accumulator);
+}
+
+kernel void gemm_wide48_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &dimension [[buffer(3)]],
+    constant uint &count [[buffer(4)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint row = gid / dimension;
+    uint column = gid % dimension;
+    wide_f64 accumulator = wide_unpack64(0ul);
+    for (uint k = 0; k < dimension; ++k) {
+        accumulator = wide_fma(
+            wide_unpack64(a[row * dimension + k]),
+            wide_unpack64(b[k * dimension + column]), accumulator
+        );
+    }
+    output[gid] = wide_pack64(accumulator);
+}
+
+kernel void gemm_ieee64_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &dimension [[buffer(3)]],
+    constant uint &count [[buffer(4)]], uint gid [[thread_position_in_grid]])
+{
+    if (gid >= count) return;
+    uint row = gid / dimension;
+    uint column = gid % dimension;
+    ulong accumulator = 0ul;
+    uint ignoredFlags = 0;
+    for (uint k = 0; k < dimension; ++k) {
+        accumulator = soft_fma64_status(
+            a[row * dimension + k], b[k * dimension + column], accumulator,
+            soft_round_near_even, ignoredFlags
+        );
+    }
+    output[gid] = accumulator;
+}
