@@ -142,3 +142,14 @@ inline emu_f64 div_ff_one_correction(emu_f64 a, emu_f64 b) {
     return quick_two_sum(q1, q2);
 }
 
+inline emu_f64 sqrt_ff(emu_f64 a) {
+    if (emu_is_special(a) || a.hi <= 0.0f) {
+        return make_emu(sqrt(a.hi), 0.0f);
+    }
+    float root = sqrt(a.hi);
+    emu_f64 residual = sub_ff(a, mul_ff(
+        make_emu(root, 0.0f), make_emu(root, 0.0f)
+    ));
+    float correction = (residual.hi + residual.lo) / (2.0f * root);
+    return quick_two_sum(root, correction);
+}

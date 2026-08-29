@@ -6,6 +6,7 @@ func runValidation(_ harness: MetalHarness) throws {
     try validateSpecialValues(harness)
     try validateExactHostOracle(harness)
     try validateWideMode(harness)
+    try validateVirtualISA(harness)
 
     var rng = SplitMix64(state: 0xdecafbad12345678)
     let count = 32_768

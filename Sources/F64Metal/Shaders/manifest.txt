@@ -4,6 +4,7 @@ Pair/Arithmetic.metal
 Pair/Codec.metal
 IEEE/Arithmetic.metal
 Wide/Arithmetic.metal
+ISA/Interpreter.metal
 Kernels/Exact.metal
 Kernels/BoundaryPair.metal
 Kernels/Pair.metal

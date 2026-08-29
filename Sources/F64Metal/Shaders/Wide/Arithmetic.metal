@@ -144,6 +144,20 @@ inline wide_f64 wide_div(wide_f64 a, wide_f64 b) {
     ));
 }
 
+inline wide_f64 wide_sqrt(wide_f64 a) {
+    if (wide_is_special(a) || wide_is_zero(a) || a.significand.hi < 0.0f) {
+        return make_wide(make_emu(sqrt(a.significand.hi), 0.0f), 0);
+    }
+    if ((a.exponent & 1) != 0) {
+        a.significand.hi *= 2.0f;
+        a.significand.lo *= 2.0f;
+        a.exponent -= 1;
+    }
+    return wide_normalize(make_wide(
+        sqrt_ff(a.significand), a.exponent / 2
+    ));
+}
+
 inline wide_f64 wide_fma(wide_f64 a, wide_f64 b, wide_f64 c) {
     return wide_add(wide_mul(a, b), c);
 }
