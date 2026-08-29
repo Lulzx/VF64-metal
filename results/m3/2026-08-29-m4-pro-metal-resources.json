@@ -1,0 +1,43 @@
+{
+  "schema": "vf64.m3.metal-resource-evidence.v1",
+  "milestone": "M3",
+  "status": "partial_pass",
+  "date": "2026-08-29",
+  "source_commit": "d155e945a361a1deb5b9eaa26c59e0ca7629496a",
+  "command": ".build/release/vf64-metal resources --json",
+  "device": {
+    "name": "Apple M4 Pro",
+    "registry_id": 4294968896,
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 26.7",
+    "os_build": "25G224"
+  },
+  "toolchain": {
+    "metal": "32023.883",
+    "swift": "6.3.3"
+  },
+  "public_counter_sets": ["timestamp"],
+  "pipelines": [
+    {"kernel":"pair_add_chain_kernel","mode":"fast48","operation":"add","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"pair_mul_chain_kernel","mode":"fast48","operation":"multiply","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"wide_mul_chain_kernel","mode":"wide48","operation":"multiply","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"soft_add_chain_kernel","mode":"ieee64","operation":"add","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"soft_mul_chain_kernel","mode":"ieee64","operation":"multiply","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"dot_partial_kernel","mode":"fast48","operation":"reduction","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"gemm_fast48_kernel","mode":"fast48","operation":"gemm","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"gemm_wide48_kernel","mode":"wide48","operation":"gemm","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128},
+    {"kernel":"gemm_ieee64_kernel","mode":"ieee64","operation":"gemm","thread_execution_width":32,"max_total_threads_per_threadgroup":1024,"static_threadgroup_memory_bytes":0,"benchmark_threadgroup_width":128}
+  ],
+  "unavailable": {
+    "physical_registers_per_thread": "not exposed by public Metal pipeline reflection or the device's public counter sets",
+    "spill_bytes": "not exposed by public Metal pipeline reflection or the device's public counter sets",
+    "resident_occupancy": "not exposed by public Metal pipeline reflection or the device's public counter sets"
+  },
+  "interpretation": [
+    "All measured pipelines retain the device's full 1024-thread single-threadgroup capacity",
+    "All measured pipelines report zero statically allocated threadgroup memory",
+    "Maximum threads per threadgroup is a pipeline resource limit and must not be reported as resident occupancy",
+    "AIR disassembly is compiler intermediate representation and is not evidence of physical Apple GPU register allocation or spills"
+  ]
+}

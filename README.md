@@ -27,6 +27,8 @@ scripts/verify-release.sh
 The executable also provides `vf64-compile`, `vf64-profile`, and `vf64-run`.
 See the [source compiler](docs/compiler/source-language.md) and
 [public API/ABI](docs/release/api-abi.md) for their stable interfaces.
+`resources --json` emits the public Metal pipeline-resource evidence used by
+M3 without presenting threadgroup capacity as resident occupancy.
 
 ## Implementation
 

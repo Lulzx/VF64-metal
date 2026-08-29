@@ -15,6 +15,11 @@ The numerical and resident-layout contracts are frozen in
 a scaled-pair implementation and full-range validation. Single-device accuracy
 and throughput evidence is recorded in
 [`results/m3/2026-08-29-m4-pro-modes.json`](../../results/m3/2026-08-29-m4-pro-modes.json).
+The reproducible `resources --json` probe records public pipeline limits for
+nine representative arithmetic, reduction, and GEMM kernels:
+[`results/m3/2026-08-29-m4-pro-metal-resources.json`](../../results/m3/2026-08-29-m4-pro-metal-resources.json).
+Every measured pipeline reports SIMD width 32, the full 1,024-thread
+single-threadgroup limit, and zero static threadgroup memory.
 
 Current status: **in progress**. The M4 Pro artifact is reproducible, but a
 second Apple GPU generation and compiler register/spill evidence are still
@@ -22,9 +27,13 @@ required by the cross-device exit criterion.
 
 The standalone source compiler now performs last-use allocation to the VF64
 register file; its 96-operation dependency-chain regression uses two virtual
-ISA registers. This is compiler/ISA residency evidence only. Metal hardware
-register allocation, occupancy, and spills remain unmeasured and are still part
-of the M3 exit.
+ISA registers. This is compiler/ISA residency evidence only. On this device,
+public Metal pipeline reflection exposes SIMD width, maximum threads per
+threadgroup, and static threadgroup memory, while the only public counter set is
+`timestamp`. It exposes no physical-register, spill-byte, or resident-occupancy
+measurement. AIR disassembly is intermediate representation, not physical GPU
+ISA, so it is deliberately not used as a substitute. Those measurements and a
+second Apple GPU generation remain part of the M3 exit.
 
 ## Exit criterion
 

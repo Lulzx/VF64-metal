@@ -59,8 +59,15 @@ for `fast48`, 48,851 M/s for `wide48`, and 13,388 M/s for `ieee64`. These are
 comparative microkernel rates. The machine-readable single-device artifact is
 [`m3/2026-08-29-m4-pro-modes.json`](m3/2026-08-29-m4-pro-modes.json).
 
-M3 remains in progress: cross-generation evidence and register/spill reporting
-are not available from this run.
+The resource probe covers nine representative arithmetic, reduction, and GEMM
+pipelines. Each reports SIMD width 32, a 1,024-thread single-threadgroup limit,
+and zero static threadgroup bytes. The device exposes only the public
+`timestamp` counter set. Physical registers, spill bytes, and resident
+occupancy are not exposed and are not inferred from AIR. Evidence:
+[`m3/2026-08-29-m4-pro-metal-resources.json`](m3/2026-08-29-m4-pro-metal-resources.json).
+
+M3 remains in progress: cross-generation evidence and physical-register,
+spill, and resident-occupancy measurements are still unavailable.
 
 ## M4 VF64 virtual ISA
 
