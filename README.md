@@ -113,3 +113,7 @@ proof is still required. The
 The 1.0 claim remains embargoed until every milestone exit is reproduced and
 the release is tagged. The bounded prior-art review does not support “first”;
 the publication-safe claim is descriptive.
+
+## License
+
+BSD 3-Clause, see [LICENSE](LICENSE).
