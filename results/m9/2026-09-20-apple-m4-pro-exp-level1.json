@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "milestone": "M9",
+  "result_scope": "binary64 result bits, exception flags, and per-call certification",
+  "status": "pass",
+  "unexplained_mismatches": 0,
+  "uncertified_results": 0,
+  "source_commit": "4dac875",
+  "command": "scripts/run-mpfr-m9.sh",
+  "oracle": {
+    "name": "GNU MPFR",
+    "mpfr_version": "4.2.2",
+    "method": "mpfr_exp at 53-bit destination precision with the binary64 exponent range installed and mpfr_subnormalize applied; the reference is the correctly rounded value, not an approximation",
+    "generator": "tools/m9/exp_ref.c",
+    "seed": 1,
+    "random_cases_per_mode": 4000000
+  },
+  "policy": {
+    "function": "f64_exp",
+    "rounding_modes": [
+      "rnear_even",
+      "rminMag",
+      "rmin",
+      "rmax",
+      "rnear_maxMag"
+    ],
+    "tininess": "after_rounding",
+    "nan_comparison": "bitwise",
+    "exception_flags_checked": true,
+    "certification_margin_relative": "2^-116",
+    "evaluation_error_bound_relative": "2^-120",
+    "proof_obligation_state": "certified-correctly-rounded"
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 27.0",
+    "os_build": "26A428"
+  },
+  "rounding_modes": {
+    "rnear_even": {
+      "cases": 4001775,
+      "mismatches": 0,
+      "uncertified": 0,
+      "oracle_flagged": 4001764
+    },
+    "rminMag": {
+      "cases": 4001775,
+      "mismatches": 0,
+      "uncertified": 0,
+      "oracle_flagged": 4001764
+    },
+    "rmin": {
+      "cases": 4001775,
+      "mismatches": 0,
+      "uncertified": 0,
+      "oracle_flagged": 4001764
+    },
+    "rmax": {
+      "cases": 4001775,
+      "mismatches": 0,
+      "uncertified": 0,
+      "oracle_flagged": 4001764
+    },
+    "rnear_maxMag": {
+      "cases": 4001775,
+      "mismatches": 0,
+      "uncertified": 0,
+      "oracle_flagged": 4001764
+    }
+  },
+  "total_result_comparisons": 20008875,
+  "limitations": [
+    "Correct rounding is established per call by the certification test, not by a published hardest-to-round search over the whole domain; every case in this run certified, and an uncertified case would have failed the run rather than being delivered as proven",
+    "Ties-away-from-zero vectors are generated with MPFR_RNDN; exp(x) is never exactly halfway between two binary64 values for nonzero x, so the two nearest modes cannot disagree",
+    "The corpus is seeded and stratified, not exhaustive; no claim is made about arguments outside the generated distribution beyond what the certification test establishes per call",
+    "exp is the only function in this artifact; no other transcendental is implemented or claimed"
+  ]
+}
