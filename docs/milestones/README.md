@@ -12,6 +12,10 @@ and be reproducible.
 6. [M6 — Automatic precision selection](M6-auto-precision.md)
 7. [M7 — Scientific workload proof](M7-workloads.md)
 8. [M8 — 1.0 and research claim](M8-release.md)
+9. [M9 — Correctly rounded transcendental layer](M9-transcendentals.md)
+
+M1-M8 are the 1.0 sequence. M9 is planned design only and is not a 1.0 gate;
+it must not block or be folded into M8.
 
 The [experiment roadmap](../roadmap/experiments.md) lists near-term probes and
 the [claim policy](../policies/claims.md) defines the evidence language. Current

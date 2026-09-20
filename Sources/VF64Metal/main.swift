@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|matrix-market FILE...|lp|all|testfloat|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
+    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|matrix-market FILE...|lp|all|testfloat|transcendental <function> <rounding>|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
 }
 
 do {
@@ -106,6 +106,16 @@ do {
     case "all":
         try runValidation(harness)
         try runBenchmarks(harness)
+    case "transcendental":
+        guard CommandLine.arguments.count == 4 else {
+            usage()
+            exit(2)
+        }
+        try runTranscendentalConformance(
+            harness,
+            function: CommandLine.arguments[2],
+            rounding: CommandLine.arguments[3]
+        )
     case "testfloat", "testfloat-isa":
         guard CommandLine.arguments.count >= 4 else {
             usage()

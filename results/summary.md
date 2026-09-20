@@ -212,3 +212,37 @@ cuSPARSE SpMV substitution remains reduced precision. Evidence:
 [`m7/2026-08-29-m4-pro-highs-afiro-vf64.json`](m7/2026-08-29-m4-pro-highs-afiro-vf64.json).
 
 M7 remains open for energy and cross-device reproduction.
+
+## M9 correctly rounded transcendentals
+
+Status: **P1 complete for `exp`**; no other transcendental is implemented.
+
+At the M9 P1 source revision, `scripts/run-mpfr-m9.sh` passed 20,008,875
+result and exception-flag comparisons against GNU MPFR 4.2.2 on the Apple M4
+Pro, with zero unexplained mismatches. Every rounding mode was run over the
+same corpus: 4,000,000 seeded random arguments stratified across the reduction
+range, the closed-form tiny range, and the finite result range, plus 1,775
+boundary arguments covering the overflow, underflow, subnormal, and
+multiple-of-ln-2 edges.
+
+Every delivered result also certified, in the sense the
+[claim policy](../docs/policies/claims.md) reserves for "certified correctly
+rounded". The kernel measures the distance from
+its wide value to the rounding boundary that decides the result and reports
+whether that distance exceeds the evaluation error bound; a result that cannot
+be certified fails the campaign rather than being delivered as proven. That
+makes this a per-call correct-rounding proof over the corpus, not a
+full-domain one, which still needs a hardest-to-round search.
+
+Reproduce with:
+
+```bash
+scripts/bootstrap-mpfr.sh
+scripts/run-mpfr-m9.sh
+```
+
+Machine-readable provenance and policy are in
+[`m9/2026-09-20-apple-m4-pro-exp-level1.json`](m9/2026-09-20-apple-m4-pro-exp-level1.json).
+
+Berkeley TestFloat has no transcendental generators, so this campaign does not
+reuse the M1/M2 oracle and is not covered by the operation matrix.

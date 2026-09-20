@@ -15,6 +15,7 @@ The status labels below distinguish implemented source from exit evidence.
 | M6 automatic precision | Complete | profiled per-op selector; diagnostics; mixed fast48/wide48 region met 40-bit contract at 1.18x pure ieee64 | none within the declared VF64 accuracy-contract path |
 | M7 workloads | In progress | M4 Pro pilot covers CG, GMRES, synthetic and external CSR, GEMV/GEMM, structured LP, N-body, three-mode CuMetal CUDA, and unmodified HiGHS PDLP; GPU-selected CG/GMRES convergence matches 1.453e-12/2.712e-11 residuals without CPU iteration counts (`wide48`/mixed `ieee64` HiGHS pass; `fast48` residual-parity failure documented) | energy and cross-device reproduction |
 | M8 1.0 | In progress | claim policy, dated prior-art audit, explicit support/feature matrix, expanded release gate, self-hosted M1-M4 workflow with pinned CuMetal integration, stable public C/runner ABI, current technical report, and checked operation-by-operation conformance data | zero runners currently registered; successful public cross-generation runs, all prior exits, and stable release |
+| M9 transcendentals | In progress | P1 closed: correctly rounded `exp` on Metal; 20,008,875 MPFR result/flag comparisons across five rounding modes with zero mismatches and zero uncertified results | every function after `exp`; a hardest-to-round search, or an accepted certification state, for a full-domain correct-rounding claim |
 
 ## Evidence rules
 
@@ -24,4 +25,7 @@ The status labels below distinguish implemented source from exit evidence.
 - The M1 artifact compares NaNs by class; current M2 validation compares NaN
   sign, quiet bit, and payload bitwise against ARM-VFPv2 SoftFloat.
 - Pair microkernel measurements do not establish application acceleration.
-- The final M8 claim remains embargoed until every row is complete.
+- M9 is not a 1.0 gate. Its row must not be read as blocking or extending M8.
+- An M9 result is claimed correctly rounded only where the kernel certified it;
+  the campaign fails rather than delivering an uncertified result as proven.
+- The final M8 claim remains embargoed until every M1-M8 row is complete.

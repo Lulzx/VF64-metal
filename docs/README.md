@@ -7,6 +7,7 @@ specific implementation, device, workload, and result artifact.
 ## Canonical roadmap
 
 - [Virtual FP64 milestones M1–M8](milestones/README.md)
+- [M9 — Correctly rounded transcendental layer (planned)](milestones/M9-transcendentals.md)
 
 ## Research notes
 

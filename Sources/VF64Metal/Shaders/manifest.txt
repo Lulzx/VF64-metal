@@ -4,6 +4,8 @@ Pair/Arithmetic.metal
 Pair/Codec.metal
 IEEE/Arithmetic.metal
 Wide/Arithmetic.metal
+Math/WideFloat.metal
+Math/Exp.metal
 ISA/Interpreter.metal
 Kernels/Exact.metal
 Kernels/BoundaryPair.metal
@@ -12,3 +14,4 @@ Kernels/BoundaryOperations.metal
 Kernels/Reduction.metal
 Kernels/Wide.metal
 Kernels/Workloads.metal
+Kernels/Transcendental.metal

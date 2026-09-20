@@ -41,7 +41,8 @@ checksum-bound public artifacts pass the
 | Source-level `double` | Implemented on declared surfaces | Straight-line VF64 language and CuMetal's tested CUDA/PTX subset; not a general C++, Swift, Fortran, or SYCL frontend |
 | `--fp64=auto` | Implemented in standalone compiler | Profile and accuracy-bound selection; not integrated into CuMetal |
 | Control flow and function calls in VF64 v1 | Unsupported | V1 is straight-line with `select` and `halt` only |
-| Transcendental functions | Unsupported | No sin/cos/exp/log/pow contract in runtime or ISA |
+| `exp` | Implemented and MPFR-gated | `ieee64` source-level `soft_exp64_status`; five rounding modes; certified correctly rounded per call under the M9 certification test; not a VF64 opcode and not in the frozen C ABI |
+| All other transcendental functions | Unsupported | No sin/cos/log/pow contract in runtime or ISA |
 | FP64 atomics | Unsupported | No atomic opcode or lock runtime |
 | General BLAS, LAPACK, sparse, or solver API | Unsupported | Repository contains measured kernels and workload pilots, not a library-compatible API |
 | Physical register, spill-byte, resident-occupancy counters | Unavailable | Public Metal interfaces inspected on M4 Pro do not expose them; no values are inferred |

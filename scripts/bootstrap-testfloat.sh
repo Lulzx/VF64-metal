@@ -23,7 +23,9 @@ clone_at_commit() {
     if ! git -C "$target" cat-file -e "$commit^{commit}" 2>/dev/null; then
         git -C "$target" fetch origin "$commit"
     fi
-    git -C "$target" checkout --detach "$commit"
+    # --force also restores tracked files deleted from the worktree, so a
+    # partially cleaned dependency re-bootstraps instead of failing at make.
+    git -C "$target" checkout --force --detach "$commit"
 }
 
 clone_at_commit \
