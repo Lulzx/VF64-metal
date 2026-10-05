@@ -60,7 +60,8 @@ final class MetalHarness {
         count: Int,
         buffers: [(Int, MTLBuffer)],
         countIndex: Int,
-        iterations: Int = 1
+        iterations: Int = 1,
+        simdGroupPerElement: Bool = false
     ) throws -> Double {
         let pipeline = try pipeline(name)
         guard let command = queue.makeCommandBuffer(),
@@ -77,10 +78,12 @@ final class MetalHarness {
             pipeline.maxTotalThreadsPerThreadgroup,
             max(1, pipeline.threadExecutionWidth * 4)
         )
+        let gridWidth = simdGroupPerElement
+            ? count * pipeline.threadExecutionWidth : count
         let start = ContinuousClock.now
         for _ in 0..<iterations {
             encoder.dispatchThreads(
-                MTLSize(width: count, height: 1, depth: 1),
+                MTLSize(width: gridWidth, height: 1, depth: 1),
                 threadsPerThreadgroup: MTLSize(width: width, height: 1, depth: 1)
             )
         }

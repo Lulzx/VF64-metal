@@ -58,9 +58,15 @@ func runNBodyWorkload(_ harness: MetalHarness) throws {
         ("ieee64", "nbody_ieee64_kernel"),
     ]
     for (name, kernel) in modes {
-        try harness.run(kernel, count: count, buffers: buffers, countIndex: 8)
+        try harness.run(
+            kernel, count: count, buffers: buffers, countIndex: 8,
+            simdGroupPerElement: true
+        )
         let seconds = try medianTime(trials: 5) {
-            try harness.run(kernel, count: count, buffers: buffers, countIndex: 8)
+            try harness.run(
+                kernel, count: count, buffers: buffers, countIndex: 8,
+                simdGroupPerElement: true
+            )
         }
         let observedX: [UInt64] = harness.read(ax, count: count)
         let observedY: [UInt64] = harness.read(ay, count: count)

@@ -369,33 +369,87 @@ kernel void gemm_ieee64_kernel(
     output[gid] = accumulator;
 }
 
+// N-body force kernels assign one SIMD group per body. Lanes evaluate the
+// independent per-pair terms (difference, distance, and mass scale) for 32
+// sources at a time. Lanes 0, 1, and 2 then fold those terms into the x, y,
+// and z accumulators in source order, so results match a sequential j loop
+// bit for bit. Only the order-sensitive accumulation stays serial, one axis
+// per lane; the divide and square root that dominate each pair run in
+// parallel.
+
+template <typename T>
+inline T nbody_axis(T dx, T dy, T dz, uint lane) {
+    return lane == 0u ? dx : (lane == 1u ? dy : dz);
+}
+
+inline void nbody_store(
+    device ulong *axOut, device ulong *ayOut, device ulong *azOut,
+    uint body, uint lane, ulong value)
+{
+    if (lane == 0u) axOut[body] = value;
+    else if (lane == 1u) ayOut[body] = value;
+    else if (lane == 2u) azOut[body] = value;
+}
+
+inline emu_f64 nbody_shuffle(emu_f64 value, ushort lane) {
+    return make_emu(simd_shuffle(value.hi, lane), simd_shuffle(value.lo, lane));
+}
+
+inline wide_f64 nbody_shuffle(wide_f64 value, ushort lane) {
+    wide_f64 result;
+    result.significand = nbody_shuffle(value.significand, lane);
+    result.exponent = simd_shuffle(value.exponent, lane);
+    result.reserved = simd_shuffle(value.reserved, lane);
+    return result;
+}
+
+inline ulong nbody_shuffle(ulong value, ushort lane) {
+    return as_type<ulong>(simd_shuffle(as_type<uint2>(value), lane));
+}
+
+#define NBODY_SIMD_PARAMETERS \
+    uint group [[threadgroup_position_in_grid]], \
+    uint threads [[threads_per_threadgroup]], \
+    uint simdIndex [[simdgroup_index_in_threadgroup]], \
+    uint lane [[thread_index_in_simdgroup]], \
+    uint width [[threads_per_simdgroup]]
+
+#define NBODY_BODY_INDEX (group * (threads / width) + simdIndex)
+
 kernel void nbody_fp32_kernel(
     device const ulong *px [[buffer(0)]], device const ulong *py [[buffer(1)]],
     device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
     device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
     device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
-    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+    constant uint &count [[buffer(8)]], NBODY_SIMD_PARAMETERS)
 {
-    if (gid >= count) return;
+    uint body = NBODY_BODY_INDEX;
+    if (body >= count) return;
     bool ignored;
-    float xi = unpack_binary64(px[gid], ignored).hi;
-    float yi = unpack_binary64(py[gid], ignored).hi;
-    float zi = unpack_binary64(pz[gid], ignored).hi;
+    float xi = unpack_binary64(px[body], ignored).hi;
+    float yi = unpack_binary64(py[body], ignored).hi;
+    float zi = unpack_binary64(pz[body], ignored).hi;
     float epsilon2 = unpack_binary64(softening[0], ignored).hi;
-    float ax = 0.0f, ay = 0.0f, az = 0.0f;
-    for (uint j = 0; j < count; ++j) {
-        float dx = unpack_binary64(px[j], ignored).hi - xi;
-        float dy = unpack_binary64(py[j], ignored).hi - yi;
-        float dz = unpack_binary64(pz[j], ignored).hi - zi;
-        float r2 = fma(dx, dx, fma(dy, dy, fma(dz, dz, epsilon2)));
-        float scale = unpack_binary64(mass[j], ignored).hi / (r2 * sqrt(r2));
-        ax = fma(dx, scale, ax);
-        ay = fma(dy, scale, ay);
-        az = fma(dz, scale, az);
+    float acc = 0.0f;
+    for (uint base = 0; base < count; base += width) {
+        uint j = base + lane;
+        float dx = 0.0f, dy = 0.0f, dz = 0.0f, scale = 0.0f;
+        if (j < count) {
+            dx = unpack_binary64(px[j], ignored).hi - xi;
+            dy = unpack_binary64(py[j], ignored).hi - yi;
+            dz = unpack_binary64(pz[j], ignored).hi - zi;
+            float r2 = fma(dx, dx, fma(dy, dy, fma(dz, dz, epsilon2)));
+            scale = unpack_binary64(mass[j], ignored).hi / (r2 * sqrt(r2));
+        }
+        uint valid = min(width, count - base);
+        for (ushort k = 0; k < ushort(valid); ++k) {
+            float d = nbody_axis(
+                simd_shuffle(dx, k), simd_shuffle(dy, k), simd_shuffle(dz, k), lane
+            );
+            acc = fma(d, simd_shuffle(scale, k), acc);
+        }
     }
-    axOut[gid] = pack_binary64(make_emu(ax, 0.0f));
-    ayOut[gid] = pack_binary64(make_emu(ay, 0.0f));
-    azOut[gid] = pack_binary64(make_emu(az, 0.0f));
+    nbody_store(axOut, ayOut, azOut, body, lane, pack_binary64(make_emu(acc, 0.0f)));
 }
 
 kernel void nbody_fast48_kernel(
@@ -403,32 +457,38 @@ kernel void nbody_fast48_kernel(
     device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
     device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
     device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
-    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+    constant uint &count [[buffer(8)]], NBODY_SIMD_PARAMETERS)
 {
-    if (gid >= count) return;
+    uint body = NBODY_BODY_INDEX;
+    if (body >= count) return;
     bool ignored;
-    emu_f64 xi = unpack_binary64(px[gid], ignored);
-    emu_f64 yi = unpack_binary64(py[gid], ignored);
-    emu_f64 zi = unpack_binary64(pz[gid], ignored);
+    emu_f64 xi = unpack_binary64(px[body], ignored);
+    emu_f64 yi = unpack_binary64(py[body], ignored);
+    emu_f64 zi = unpack_binary64(pz[body], ignored);
     emu_f64 epsilon2 = unpack_binary64(softening[0], ignored);
-    emu_f64 ax = make_emu(0.0f, 0.0f);
-    emu_f64 ay = make_emu(0.0f, 0.0f);
-    emu_f64 az = make_emu(0.0f, 0.0f);
-    for (uint j = 0; j < count; ++j) {
-        emu_f64 dx = sub_ff(unpack_binary64(px[j], ignored), xi);
-        emu_f64 dy = sub_ff(unpack_binary64(py[j], ignored), yi);
-        emu_f64 dz = sub_ff(unpack_binary64(pz[j], ignored), zi);
-        emu_f64 r2 = fma_ff(dx, dx, fma_ff(dy, dy, fma_ff(dz, dz, epsilon2)));
-        emu_f64 scale = div_ff(
-            unpack_binary64(mass[j], ignored), mul_ff(r2, sqrt_ff(r2))
-        );
-        ax = fma_ff(dx, scale, ax);
-        ay = fma_ff(dy, scale, ay);
-        az = fma_ff(dz, scale, az);
+    emu_f64 zero = make_emu(0.0f, 0.0f);
+    emu_f64 acc = zero;
+    for (uint base = 0; base < count; base += width) {
+        uint j = base + lane;
+        emu_f64 dx = zero, dy = zero, dz = zero, scale = zero;
+        if (j < count) {
+            dx = sub_ff(unpack_binary64(px[j], ignored), xi);
+            dy = sub_ff(unpack_binary64(py[j], ignored), yi);
+            dz = sub_ff(unpack_binary64(pz[j], ignored), zi);
+            emu_f64 r2 = fma_ff(dx, dx, fma_ff(dy, dy, fma_ff(dz, dz, epsilon2)));
+            scale = div_ff(
+                unpack_binary64(mass[j], ignored), mul_ff(r2, sqrt_ff(r2))
+            );
+        }
+        uint valid = min(width, count - base);
+        for (ushort k = 0; k < ushort(valid); ++k) {
+            emu_f64 d = nbody_axis(
+                nbody_shuffle(dx, k), nbody_shuffle(dy, k), nbody_shuffle(dz, k), lane
+            );
+            acc = fma_ff(d, nbody_shuffle(scale, k), acc);
+        }
     }
-    axOut[gid] = pack_binary64(ax);
-    ayOut[gid] = pack_binary64(ay);
-    azOut[gid] = pack_binary64(az);
+    nbody_store(axOut, ayOut, azOut, body, lane, pack_binary64(acc));
 }
 
 kernel void nbody_wide48_kernel(
@@ -436,29 +496,35 @@ kernel void nbody_wide48_kernel(
     device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
     device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
     device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
-    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+    constant uint &count [[buffer(8)]], NBODY_SIMD_PARAMETERS)
 {
-    if (gid >= count) return;
-    wide_f64 xi = wide_unpack64(px[gid]);
-    wide_f64 yi = wide_unpack64(py[gid]);
-    wide_f64 zi = wide_unpack64(pz[gid]);
+    uint body = NBODY_BODY_INDEX;
+    if (body >= count) return;
+    wide_f64 xi = wide_unpack64(px[body]);
+    wide_f64 yi = wide_unpack64(py[body]);
+    wide_f64 zi = wide_unpack64(pz[body]);
     wide_f64 epsilon2 = wide_unpack64(softening[0]);
-    wide_f64 ax = wide_unpack64(0ul), ay = wide_unpack64(0ul), az = wide_unpack64(0ul);
-    for (uint j = 0; j < count; ++j) {
-        wide_f64 dx = wide_sub(wide_unpack64(px[j]), xi);
-        wide_f64 dy = wide_sub(wide_unpack64(py[j]), yi);
-        wide_f64 dz = wide_sub(wide_unpack64(pz[j]), zi);
-        wide_f64 r2 = wide_fma(dx, dx, wide_fma(dy, dy, wide_fma(dz, dz, epsilon2)));
-        wide_f64 scale = wide_div(
-            wide_unpack64(mass[j]), wide_mul(r2, wide_sqrt(r2))
-        );
-        ax = wide_fma(dx, scale, ax);
-        ay = wide_fma(dy, scale, ay);
-        az = wide_fma(dz, scale, az);
+    wide_f64 zero = wide_unpack64(0ul);
+    wide_f64 acc = zero;
+    for (uint base = 0; base < count; base += width) {
+        uint j = base + lane;
+        wide_f64 dx = zero, dy = zero, dz = zero, scale = zero;
+        if (j < count) {
+            dx = wide_sub(wide_unpack64(px[j]), xi);
+            dy = wide_sub(wide_unpack64(py[j]), yi);
+            dz = wide_sub(wide_unpack64(pz[j]), zi);
+            wide_f64 r2 = wide_fma(dx, dx, wide_fma(dy, dy, wide_fma(dz, dz, epsilon2)));
+            scale = wide_div(wide_unpack64(mass[j]), wide_mul(r2, wide_sqrt(r2)));
+        }
+        uint valid = min(width, count - base);
+        for (ushort k = 0; k < ushort(valid); ++k) {
+            wide_f64 d = nbody_axis(
+                nbody_shuffle(dx, k), nbody_shuffle(dy, k), nbody_shuffle(dz, k), lane
+            );
+            acc = wide_fma(d, nbody_shuffle(scale, k), acc);
+        }
     }
-    axOut[gid] = wide_pack64(ax);
-    ayOut[gid] = wide_pack64(ay);
-    azOut[gid] = wide_pack64(az);
+    nbody_store(axOut, ayOut, azOut, body, lane, wide_pack64(acc));
 }
 
 kernel void nbody_ieee64_kernel(
@@ -466,28 +532,38 @@ kernel void nbody_ieee64_kernel(
     device const ulong *pz [[buffer(2)]], device const ulong *mass [[buffer(3)]],
     device ulong *axOut [[buffer(4)]], device ulong *ayOut [[buffer(5)]],
     device ulong *azOut [[buffer(6)]], device const ulong *softening [[buffer(7)]],
-    constant uint &count [[buffer(8)]], uint gid [[thread_position_in_grid]])
+    constant uint &count [[buffer(8)]], NBODY_SIMD_PARAMETERS)
 {
-    if (gid >= count) return;
+    uint body = NBODY_BODY_INDEX;
+    if (body >= count) return;
     uint flags = 0;
-    ulong ax = 0ul, ay = 0ul, az = 0ul;
-    for (uint j = 0; j < count; ++j) {
-        ulong dx = soft_sub64_status(px[j], px[gid], soft_round_near_even, flags);
-        ulong dy = soft_sub64_status(py[j], py[gid], soft_round_near_even, flags);
-        ulong dz = soft_sub64_status(pz[j], pz[gid], soft_round_near_even, flags);
-        ulong r2 = soft_fma64_status(dz, dz, softening[0], soft_round_near_even, flags);
-        r2 = soft_fma64_status(dy, dy, r2, soft_round_near_even, flags);
-        r2 = soft_fma64_status(dx, dx, r2, soft_round_near_even, flags);
-        ulong root = soft_sqrt64_status(r2, soft_round_near_even, flags);
-        ulong denominator = soft_mul64_status(r2, root, soft_round_near_even, flags);
-        ulong scale = soft_div64_status(mass[j], denominator, soft_round_near_even, flags);
-        ax = soft_fma64_status(dx, scale, ax, soft_round_near_even, flags);
-        ay = soft_fma64_status(dy, scale, ay, soft_round_near_even, flags);
-        az = soft_fma64_status(dz, scale, az, soft_round_near_even, flags);
+    ulong xi = px[body], yi = py[body], zi = pz[body];
+    ulong acc = 0ul;
+    for (uint base = 0; base < count; base += width) {
+        uint j = base + lane;
+        ulong dx = 0ul, dy = 0ul, dz = 0ul, scale = 0ul;
+        if (j < count) {
+            dx = soft_sub64_status(px[j], xi, soft_round_near_even, flags);
+            dy = soft_sub64_status(py[j], yi, soft_round_near_even, flags);
+            dz = soft_sub64_status(pz[j], zi, soft_round_near_even, flags);
+            ulong r2 = soft_fma64_status(dz, dz, softening[0], soft_round_near_even, flags);
+            r2 = soft_fma64_status(dy, dy, r2, soft_round_near_even, flags);
+            r2 = soft_fma64_status(dx, dx, r2, soft_round_near_even, flags);
+            ulong root = soft_sqrt64_status(r2, soft_round_near_even, flags);
+            ulong denominator = soft_mul64_status(r2, root, soft_round_near_even, flags);
+            scale = soft_div64_status(mass[j], denominator, soft_round_near_even, flags);
+        }
+        uint valid = min(width, count - base);
+        for (ushort k = 0; k < ushort(valid); ++k) {
+            ulong d = nbody_axis(
+                nbody_shuffle(dx, k), nbody_shuffle(dy, k), nbody_shuffle(dz, k), lane
+            );
+            acc = soft_fma64_status(
+                d, nbody_shuffle(scale, k), acc, soft_round_near_even, flags
+            );
+        }
     }
-    axOut[gid] = ax;
-    ayOut[gid] = ay;
-    azOut[gid] = az;
+    nbody_store(axOut, ayOut, azOut, body, lane, acc);
 }
 
 kernel void nbody_integrate_fast48_kernel(

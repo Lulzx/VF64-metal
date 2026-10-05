@@ -16,7 +16,8 @@ extension MetalHarness {
         command.label = "vf64:fused_nbody"
         encoder.label = "vf64:fused_nbody"
         func dispatch(
-            _ name: String, buffers: [(Int, MTLBuffer)], countIndex: Int
+            _ name: String, buffers: [(Int, MTLBuffer)], countIndex: Int,
+            simdGroupPerElement: Bool = false
         ) throws {
             let state = try pipeline(name)
             encoder.setComputePipelineState(state)
@@ -29,8 +30,10 @@ extension MetalHarness {
                 state.maxTotalThreadsPerThreadgroup,
                 max(1, state.threadExecutionWidth * 4)
             )
+            let gridWidth = simdGroupPerElement
+                ? count * state.threadExecutionWidth : count
             encoder.dispatchThreads(
-                MTLSize(width: count, height: 1, depth: 1),
+                MTLSize(width: gridWidth, height: 1, depth: 1),
                 threadsPerThreadgroup: MTLSize(width: width, height: 1, depth: 1)
             )
         }
@@ -39,7 +42,7 @@ extension MetalHarness {
                 (0, positions.0), (1, positions.1), (2, positions.2),
                 (3, mass), (4, acceleration.0), (5, acceleration.1),
                 (6, acceleration.2), (7, softening),
-            ], countIndex: 8)
+            ], countIndex: 8, simdGroupPerElement: true)
             encoder.memoryBarrier(scope: .buffers)
             try dispatch("nbody_integrate_fast48_kernel", buffers: [
                 (0, dt), (1, acceleration.0), (2, acceleration.1),
