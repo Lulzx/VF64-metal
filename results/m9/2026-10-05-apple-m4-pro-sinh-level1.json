@@ -10,13 +10,13 @@
   "oracle": {
     "name": "GNU MPFR",
     "mpfr_version": "4.2.2",
-    "method": "mpfr_pow at 53-bit destination precision with the binary64 exponent range installed and mpfr_subnormalize applied; the reference is the correctly rounded value, not an approximation",
+    "method": "mpfr_sinh at 53-bit destination precision with the binary64 exponent range installed and mpfr_subnormalize applied; the reference is the correctly rounded value, not an approximation",
     "generator": "tools/m9/m9_ref.c",
     "seed": 1,
     "random_cases_per_mode": 4000000
   },
   "policy": {
-    "function": "f64_pow",
+    "function": "f64_sinh",
     "rounding_modes": [
       "rnear_even",
       "rminMag",
@@ -28,7 +28,7 @@
     "nan_comparison": "bitwise",
     "exception_flags_checked": true,
     "certification_margin_relative": "2^-116",
-    "evaluation_error_bound_relative": "2^-119.8",
+    "evaluation_error_bound_relative": "2^-118.8",
     "proof_obligation_state": "certified-correctly-rounded"
   },
   "device": {
@@ -40,41 +40,41 @@
   },
   "rounding_modes": {
     "rnear_even": {
-      "cases": 4013334,
+      "cases": 4000779,
       "mismatches": 0,
       "uncertified": 0,
-      "oracle_flagged": 3941578
+      "oracle_flagged": 4000691
     },
     "rminMag": {
-      "cases": 4013334,
+      "cases": 4000779,
       "mismatches": 0,
       "uncertified": 0,
-      "oracle_flagged": 3941578
+      "oracle_flagged": 4000691
     },
     "rmin": {
-      "cases": 4013334,
+      "cases": 4000779,
       "mismatches": 0,
       "uncertified": 0,
-      "oracle_flagged": 3941578
+      "oracle_flagged": 4000691
     },
     "rmax": {
-      "cases": 4013334,
+      "cases": 4000779,
       "mismatches": 0,
       "uncertified": 0,
-      "oracle_flagged": 3941578
+      "oracle_flagged": 4000691
     },
     "rnear_maxMag": {
-      "cases": 4013334,
+      "cases": 4000779,
       "mismatches": 0,
       "uncertified": 0,
-      "oracle_flagged": 3941578
+      "oracle_flagged": 4000691
     }
   },
-  "total_result_comparisons": 20066670,
+  "total_result_comparisons": 20003895,
   "limitations": [
     "Correct rounding is established per call by the certification test, not by a published hardest-to-round search over the whole domain; every case in this run certified, and an uncertified case would have failed the run rather than being delivered as proven",
-    "Ties-away-from-zero vectors are derived from MPFR_RNDN plus an exact midpoint test at 256 bits; pow reaches real binary64 midpoints and exactly representable results (perfect powers with dyadic y), which are computed and rounded exactly in integers; every other result is irrational or a non-dyadic rational and is certified per call",
+    "Ties-away-from-zero vectors are derived from MPFR_RNDN plus an exact midpoint test at 256 bits; sinh of a binary64 is never exactly halfway between two binary64 values, so the nearest modes agree elsewhere",
     "The corpus is seeded and stratified, not exhaustive; no claim is made about arguments outside the generated distribution beyond what the proof-obligation state establishes",
-    "pow is the only function in this artifact; each M9 function is published in its own artifact"
+    "sinh is the only function in this artifact; each M9 function is published in its own artifact"
   ]
 }

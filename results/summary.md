@@ -227,9 +227,11 @@ M7 remains open for energy and cross-device reproduction.
 
 ## M9 correctly rounded transcendentals
 
-Status: **P1 (`exp`), P2 (tranche A), and P3 (tranche B) complete.**
-Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`;
-tranche B adds `pow`, `atan`, `atan2`, `asin`, and `acos`.
+Status: **P1 (`exp`), P2 (tranche A), P3 (tranche B), and P4 (tranche C)
+complete.** Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`,
+and `hypot`; tranche B adds `pow`, `atan`, `atan2`, `asin`, and `acos`;
+tranche C adds `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`,
+and `atanh`.
 
 At the M9 P1 source revision, `scripts/run-mpfr-m9.sh` passed 20,008,875
 result and exception-flag comparisons against GNU MPFR 4.2.2 on the Apple M4
@@ -294,3 +296,27 @@ exactly in integers. Evidence:
 - [`m9/2026-10-05-apple-m4-pro-atan-level1.json`](m9/2026-10-05-apple-m4-pro-atan-level1.json): 20,004,455
 - [`m9/2026-10-05-apple-m4-pro-atan2-level1.json`](m9/2026-10-05-apple-m4-pro-atan2-level1.json): 20,010,315
 - [`m9/2026-10-05-apple-m4-pro-pow-level1.json`](m9/2026-10-05-apple-m4-pro-pow-level1.json): 20,066,670
+
+Tranche C ran the same campaign shape at source commit `1c84069`: 180,126,000
+result and exception-flag comparisons across nine functions and five rounding
+modes, with zero mismatches and zero uncertified results. All nine are
+certified per call, with derived error bounds from 2^-124.3 (`sin`, `cos`) to
+2^-118.8 (`sinh`). `sin`, `cos`, and `tan` use Payne-Hanek reduction over the
+whole binary64 domain; the corpus includes the 3069 arguments closest to a
+multiple of pi/2. Evidence:
+
+- [`m9/2026-10-05-apple-m4-pro-acosh-level1.json`](m9/2026-10-05-apple-m4-pro-acosh-level1.json): 20,008,075
+- [`m9/2026-10-05-apple-m4-pro-asinh-level1.json`](m9/2026-10-05-apple-m4-pro-asinh-level1.json): 20,008,075
+- [`m9/2026-10-05-apple-m4-pro-atanh-level1.json`](m9/2026-10-05-apple-m4-pro-atanh-level1.json): 20,008,075
+- [`m9/2026-10-05-apple-m4-pro-cos-level1.json`](m9/2026-10-05-apple-m4-pro-cos-level1.json): 20,030,030
+- [`m9/2026-10-05-apple-m4-pro-cosh-level1.json`](m9/2026-10-05-apple-m4-pro-cosh-level1.json): 20,003,895
+- [`m9/2026-10-05-apple-m4-pro-sin-level1.json`](m9/2026-10-05-apple-m4-pro-sin-level1.json): 20,030,030
+- [`m9/2026-10-05-apple-m4-pro-sinh-level1.json`](m9/2026-10-05-apple-m4-pro-sinh-level1.json): 20,003,895
+- [`m9/2026-10-05-apple-m4-pro-tan-level1.json`](m9/2026-10-05-apple-m4-pro-tan-level1.json): 20,030,030
+- [`m9/2026-10-05-apple-m4-pro-tanh-level1.json`](m9/2026-10-05-apple-m4-pro-tanh-level1.json): 20,003,895
+
+Tranche C also fixed a carry-detection bug in the shared wide adder. After
+the fix, the thirteen earlier campaigns were re-run at `1c84069` and
+reproduced their published comparison counts with zero mismatches and zero
+uncertified results; the tranche A and B artifacts listed above now record
+that commit, and the original runs remain in git history.

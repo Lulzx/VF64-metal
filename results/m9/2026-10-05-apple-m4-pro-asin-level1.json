@@ -5,7 +5,7 @@
   "status": "pass",
   "unexplained_mismatches": 0,
   "uncertified_results": 0,
-  "source_commit": "78f03f0",
+  "source_commit": "1c84069",
   "command": "scripts/run-mpfr-m9.sh",
   "oracle": {
     "name": "GNU MPFR",

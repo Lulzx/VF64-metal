@@ -1,7 +1,7 @@
 # M9 — Correctly rounded transcendental layer
 
-Status: **P1 complete for `exp`; P2 (tranche A) and P3 (tranche B)
-complete; tranche C not started.**
+Status: **P1 complete for `exp`; P2 (tranche A), P3 (tranche B), and P4
+(tranche C) complete.**
 
 What exists: a wide evaluation core, a correctly rounded `exp`, a pinned MPFR
 oracle, and one published campaign of 20,008,875 result and exception-flag
@@ -12,7 +12,9 @@ Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`,
 each with its own published campaign (see
 [Tranche A, as shipped](#tranche-a-as-shipped)). Tranche B adds `pow`,
 `atan`, `atan2`, `asin`, and `acos`, likewise (see
-[Tranche B, as shipped](#tranche-b-as-shipped)). No claim is made beyond what
+[Tranche B, as shipped](#tranche-b-as-shipped)). Tranche C adds `sin`, `cos`,
+`tan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, and `atanh`, likewise (see
+[Tranche C, as shipped](#tranche-c-as-shipped)). No claim is made beyond what
 each function's published proof-obligation state establishes.
 
 M2 supplies the exact binary64 arithmetic core and deliberately stops there.
@@ -143,10 +145,10 @@ only. That was an analysis decision, not a measured one, and it should be read
 as such: the wide path is a fixed 30-term Horner evaluation with no
 data-dependent control flow, so a fast path would add a branch and a
 divergence cost to skip work that is already bounded and uniform. No cost
-measurement exists for either arrangement yet. Tranche B also shipped
-the wide step only, including `pow`'s 192-bit logarithm, so the fast path
-stays open for tranche C, and the question should be settled there with
-numbers.
+measurement exists for either arrangement yet. Tranches B and C also
+shipped the wide step only, including `pow`'s 192-bit logarithm and the
+trigonometric reduction, so the fast path stays open until a rate can be
+measured on an idle host.
 
 A kernel that cannot terminate is not shippable, so "keep widening until it
 rounds" is not an option here.
@@ -327,18 +329,124 @@ first `pow` overflow path saturated to exactly `2^4096`, which is on the grid,
 and the directed modes reported it uncertified although the delivered result
 was right. It now saturates to `(1.5 + 2^-65) 2^4096`, off every boundary.
 
+### Tranche C, as shipped
+
+Nine functions, with the same calling convention and all five rounding modes.
+
+| Function | Method | Error bound | Proof-obligation state |
+| --- | --- | --- | --- |
+| `sin`, `cos` | Payne-Hanek to `r = x - q pi/2`, \|r\| <= pi/4, then 16- and 17-term Taylor sums in `r^2` | 2^-124.3 | 3, certified per call |
+| `tan` | `sin r / cos r`, or `-cos r / sin r` for odd `q` | 2^-122.8 | 3, certified per call |
+| `sinh` | 14-term odd series for \|x\| < 1/2; `(E - 1/E) / 2`, `E = exp(\|x\|)`, above | 2^-118.8 | 3, certified per call |
+| `cosh` | `(E + 1/E) / 2` | 2^-119.9 | 3, certified per call |
+| `tanh` | `E / (E + 2)`, `E = expm1(2\|x\|)`, for \|x\| < 1/4; `(e - 1) / (e + 1)`, `e = exp(2\|x\|)`, above | 2^-119 | 3, certified per call |
+| `asinh` | `log1p(\|x\| + x^2 / (1 + sqrt(1 + x^2)))` | 2^-120.5 | 3, certified per call |
+| `acosh` | `log1p(d + sqrt(d (x + 1)))`, `d = x - 1` exact | 2^-120.5 | 3, certified per call |
+| `atanh` | `log1p(2\|x\| / (1 - \|x\|)) / 2`, `1 - \|x\|` exact | 2^-120.5 | 3, certified per call |
+
+The bounds are derived in `Shaders/Math/Trig.metal` and
+`Shaders/Math/Hyperbolic.metal`; the trigonometric constants come from
+`tools/m9/generate-trig-constants.py`. The hyperbolic family reuses the `exp`
+polynomial, the `expm1` series, and the `log` reduction, and adds a `log1p`
+for a wide argument. Every argument of `log1p` is built from positive terms
+only, so none of the inverse functions cancels, and a relative error in that
+argument passes into the result at most one to one.
+
+Payne-Hanek reduction multiplies the 53-bit significand by five 64-bit words
+of 2/pi, chosen by the argument's exponent from a 20-word (1280-bit, 160-byte)
+table in the `constant` address space. Every word before the five contributes
+a multiple of 4 to `x 2/pi`, so it cannot change the quadrant or the fraction.
+The 384-bit product is exact, and the words left out after the five cost under
+2^-202 absolute. The error bound is relative, so it needs a floor on \|r\|.
+The generator supplies one: a continued-fraction search over every binary64
+exponent shows that `x 2/pi` is never within 2^-61.5 of an integer for
+`x >= pi/4`, so \|r\| > 2^-60.9. The closest argument, 6381956970095103 2^797,
+is the one in the published worst-case literature. The omitted words therefore
+cost under 2^-140.5 relative, and `r` is within 2^-125.4. The search also
+writes the 3069 arguments closest to a multiple of pi/2, one or more per
+exponent, into `tools/m9/trig_worst_cases.h`, which the oracle's reduction-stress
+corpus uses.
+
+Closed forms:
+
+- \|x\| < 2^-27, nonzero: `sin`, `tan`, `sinh`, `tanh`, `asinh`, and `atanh`
+  lie within x^2/3 of `x` on a known side, and `cos` and `cosh` lie within
+  2^-55 of 1 on a known side.
+- `tanh` for \|x\| >= 22, which lies within 2^-62 of ±1.
+- A cosine branch after reduction with \|r\| < 2^-27, where the result lies
+  strictly between ±(1 - 2^-55) and ±1. The hardest arguments put `cos r`
+  within 2^-122.8 of 1, inside the 2^-116 certification margin, so it could
+  never be certified in a directed mode, although the delivered result was
+  already right.
+- `acosh(1) = 0`, the poles `atanh(±1)` (divide-by-zero), and the domain
+  errors.
+
+`sinh` and `cosh` at \|x\| >= 1024 overflow by range. The wide format cannot
+overflow, so below that the final rounding delivers overflow. No other result
+of a nonzero argument is representable or a midpoint, by
+Lindemann-Weierstrass.
+
+Each campaign ran 4,000,000 seeded random arguments per rounding mode plus its
+boundary corpus, in all five modes, at source commit `1c84069` against MPFR
+4.2.2. Each had zero mismatches in result bits and flags and zero uncertified
+results:
+
+| Function | Comparisons | Evidence |
+| --- | ---: | --- |
+| `acosh` | 20,008,075 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-acosh-level1.json) |
+| `asinh` | 20,008,075 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-asinh-level1.json) |
+| `atanh` | 20,008,075 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-atanh-level1.json) |
+| `cos` | 20,030,030 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-cos-level1.json) |
+| `cosh` | 20,003,895 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-cosh-level1.json) |
+| `sin` | 20,030,030 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-sin-level1.json) |
+| `sinh` | 20,003,895 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-sinh-level1.json) |
+| `tan` | 20,030,030 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-tan-level1.json) |
+| `tanh` | 20,003,895 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-tanh-level1.json) |
+
+The trigonometric corpus is stratified for reduction: arguments within 1024
+ulps of `k pi/2` for `k < 2^20`, the 3069 hardest-to-reduce arguments and
+their neighbours, and every exponent through 2^1023. The hyperbolic corpora
+cover the series and closed-form thresholds, the overflow threshold near
+710.48, and arguments near 1 for `acosh` and `atanh`. The closed form for a
+cosine branch is reached: without it, the boundary corpus alone has
+uncertified `sin` and `cos` results in the directed modes, at those hardest
+arguments.
+
+Two lessons from tranche C:
+
+- The shared core had a carry bug. `soft_wide_add` detected a carry out of
+  bit 127 by comparing high limbs only, so it lost the carry when both high
+  limbs were all ones and the low limbs carried into them. The sum then came
+  out half its true value. `acosh` at x = 2^65 reached it: there `d =
+  2^65 - 1` and `sqrt(d (x + 1))` is just below 2^65. Every function shares the
+  adder, but no tranche A or B corpus had produced two such significands in
+  one addition. The fix compares all 128 bits.
+  After it, all thirteen tranche A, tranche B, and `exp` campaigns were re-run
+  at `1c84069` and reproduced their published comparison counts with zero
+  mismatches and zero uncertified results. The artifacts linked in the
+  tranche A and B tables now record that commit; the original runs at
+  `d10ab14` and `78f03f0` remain in the history of commits `20e03e1` and
+  `d3f679e`.
+- Certification can fail on the reduction side as well. The hardest
+  arguments reduce correctly, with \|r\| near 2^-61. But `cos r` is then
+  within 2^-122.8 of 1, inside the 2^-116 margin, and a correct result was
+  reported uncertified. That is the tranche B lesson again: a value pinned near
+  a rounding boundary by the mathematics needs a closed form, not a tighter
+  bound.
+
 ### Argument reduction
 
 `exp` as shipped needs no table: Cody-Waite plus a Taylor sum keeps the
 reduction local. A table-driven variant, which shortens the series by
 splitting the reduction further, was not needed to meet the error budget and
-was not built. The `log` family will need its own reduction study. The
-trigonometric
-family needs Payne-Hanek against roughly 1280 bits of 2/π for large arguments,
-which puts a real constant table in the `constant` address space. M3 already
-has labeled Metal trace evidence showing interpreter-only 560-byte compiler
-spill events; table placement and its register and spill consequences must be
-*measured* on device, not assumed.
+was not built. The `log` family uses a `sqrt2`-centred split and an `atanh`
+series instead. The trigonometric family uses Payne-Hanek against 1280 bits of
+2/π (see [Tranche C, as shipped](#tranche-c-as-shipped)), a 160-byte table in
+the `constant` address space. M3 already has labeled Metal trace evidence
+showing interpreter-only 560-byte compiler spill events; the table's register
+and spill consequences have not been measured, and the public Metal interfaces
+on M4 Pro do not expose spill bytes (see the
+[support matrix](../release/support-matrix.md)), so none is claimed.
 
 ### Cost, stated up front
 
@@ -430,8 +538,12 @@ public surface checked by `check-vf64-abi.sh`.
   mismatches, zero uncertified, one artifact per function. All five are
   certified per call (state 3); `pow`'s exact and midpoint results are
   decided exactly.
-- **P4 — tranche C.** `sin`, `cos`, `tan` with Payne-Hanek, then the hyperbolic
-  and inverse-hyperbolic family.
+- **P4 — tranche C. Complete.** `sin`, `cos`, and `tan` with Payne-Hanek
+  reduction over the whole binary64 domain, and `sinh`, `cosh`, `tanh`,
+  `asinh`, `acosh`, and `atanh`, in all five rounding modes. Exit met:
+  180,126,000 comparisons across the nine functions, zero mismatches, zero
+  uncertified, one artifact per function. All nine are certified per call
+  (state 3).
 - **P5 — surface reconciliation.** Update the `ieee64` operation surface, the
   support matrix row, the conformance guide, the precision-mode contracts
   (reduced modes refuse), and the operation-matrix reconciliation checked by
@@ -443,9 +555,10 @@ public surface checked by `check-vf64-abi.sh`.
 Settled by P1:
 
 - **Wide format width.** 128-bit. The error budget lands at 2^-120 against a
-  certification margin at 2^-116, so 192 bits buys nothing for `exp`. Tranche C
-  may reopen this: Payne-Hanek reduction has a different budget. (Tranche B
-  reopened it for one step only: `pow`'s logarithm is 192-bit.)
+  certification margin at 2^-116, so 192 bits buys nothing for `exp`.
+  (Tranche B reopened it for one step only: `pow`'s logarithm is 192-bit.
+  Tranche C did not: Payne-Hanek forms a 384-bit fixed-point product and
+  keeps 128 bits of the fraction, which leaves `r` within 2^-125.4.)
 - **Ziv fast path.** Not used for `exp`, by analysis rather than measurement
   (see above). Open, and worth measuring properly, in later tranches.
 - **Proof-obligation states.** Four states, with state 3 added because P1
@@ -470,17 +583,25 @@ Settled by P3:
   decided exactly, and only the irrational or non-dyadic remainder relies on
   the per-call certificate.
 
+Settled by P4:
+
+- **Proof state per function in tranche C.** All nine are state 3. None is
+  algebraic on any subdomain beyond its zero and unit arguments, so there is
+  no exact split like `pow`'s. The trigonometric reduction itself is proven
+  over the whole domain: the continued-fraction bound on \|x mod pi/2\| is a
+  closed computation, not a sample.
+
 Still open:
 
-- Which tranche C functions can reach state 1 or 2, and whether a
+- Whether any certified function should reach state 1 or 2, and whether a
   hardest-to-round search for `pow`, whose worst cases over two arguments are
   not known, is feasible at all.
 - Whether a hardest-to-round search for `exp` is worth running to move it from
   state 3 to state 1, or whether the per-call certificate is the better
   permanent answer for a GPU runtime.
-- What the delivered cost actually is. Neither P1, P2, nor P3 published a
-  rate. Tranches A and B landed while the measurement host carried heavy unrelated CPU and
-  GPU load, which made timings unreliable, so the measurement moves to an
+- What the delivered cost actually is. No phase from P1 to P4 published a
+  rate. Tranches A, B, and C landed while the measurement host carried heavy
+  unrelated CPU and GPU load, which made timings unreliable, so the measurement moves to an
   idle-host capture. The claim policy's rule still applies: a microkernel
   rate is not an application rate.
 

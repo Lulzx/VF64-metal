@@ -102,13 +102,17 @@ caller must implement or reject those operations explicitly. It must never
 substitute the reduced-range `fast48` pair path for an exact operation.
 
 `exp`, `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, `hypot`, `pow`,
-`atan`, `atan2`, `asin`, and `acos` are implemented outside this frozen
-contract by the M9 layer, which supplies `soft_exp64_status`,
-`soft_exp2_64_status`, `soft_expm1_64_status`, `soft_log64_status`,
-`soft_log2_64_status`, `soft_log1p64_status`, `soft_cbrt64_status`,
-`soft_hypot64_status`, `soft_pow64_status`, `soft_atan64_status`,
-`soft_atan2_64_status`, `soft_asin64_status`, and `soft_acos64_status` on top
-of the operations above. They are not part of the M2 surface, not VF64 v1 opcodes, and not in
+`atan`, `atan2`, `asin`, `acos`, `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`,
+`asinh`, `acosh`, and `atanh` are implemented outside this frozen contract by
+the M9 layer, which supplies `soft_exp64_status`, `soft_exp2_64_status`,
+`soft_expm1_64_status`, `soft_log64_status`, `soft_log2_64_status`,
+`soft_log1p64_status`, `soft_cbrt64_status`, `soft_hypot64_status`,
+`soft_pow64_status`, `soft_atan64_status`, `soft_atan2_64_status`,
+`soft_asin64_status`, `soft_acos64_status`, `soft_sin64_status`,
+`soft_cos64_status`, `soft_tan64_status`, `soft_sinh64_status`,
+`soft_cosh64_status`, `soft_tanh64_status`, `soft_asinh64_status`,
+`soft_acosh64_status`, and `soft_atanh64_status` on top of the operations
+above. They are not part of the M2 surface, not VF64 v1 opcodes, and not in
 the frozen C ABI. Their contracts, error budgets, and proof-obligation states
 are in [M9](../milestones/M9-transcendentals.md); every other transcendental
 remains unsupported here and there.

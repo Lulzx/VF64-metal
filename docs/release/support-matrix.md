@@ -45,7 +45,8 @@ checksum-bound public artifacts pass the
 | `exp2`, `expm1`, `log`, `log2`, `log1p` | Implemented and MPFR-gated | `ieee64` source-level `soft_<name>_status`; five rounding modes; certified correctly rounded per call; not VF64 opcodes and not in the frozen C ABI |
 | `cbrt`, `hypot` | Implemented and MPFR-gated | `ieee64` source-level `soft_cbrt64_status`, `soft_hypot64_status`; five rounding modes; correctly rounded for every argument by an exact rounding decision; not VF64 opcodes and not in the frozen C ABI |
 | `pow`, `atan`, `atan2`, `asin`, `acos` | Implemented and MPFR-gated | `ieee64` source-level `soft_pow64_status`, `soft_atan64_status`, `soft_atan2_64_status`, `soft_asin64_status`, `soft_acos64_status`; five rounding modes; certified correctly rounded per call, with `pow`'s exact and midpoint results decided exactly; not VF64 opcodes and not in the frozen C ABI |
-| All other transcendental functions | Unsupported | No sin/cos/tan or hyperbolic contract in runtime or ISA |
+| `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`, `atanh` | Implemented and MPFR-gated | `ieee64` source-level `soft_<name>64_status`; five rounding modes; certified correctly rounded per call, `sin`, `cos`, and `tan` over the whole binary64 domain through Payne-Hanek reduction; not VF64 opcodes and not in the frozen C ABI |
+| All other transcendental functions | Unsupported | No contract in runtime or ISA for any function outside the M9 rows above |
 | FP64 atomics | Unsupported | No atomic opcode or lock runtime |
 | General BLAS, LAPACK, sparse, or solver API | Unsupported | Repository contains measured kernels and workload pilots, not a library-compatible API |
 | Physical register, spill-byte, resident-occupancy counters | Unavailable | Public Metal interfaces inspected on M4 Pro do not expose them; no values are inferred |

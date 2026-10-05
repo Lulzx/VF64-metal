@@ -45,7 +45,7 @@ M3 without presenting threadgroup capacity as resident occupancy.
 
 - [`fast48`, `wide48`, and `ieee64`](docs/runtime/precision-modes.md)
 - [Complete IEEE-754 binary64 runtime](docs/runtime/ieee64.md)
-- [Correctly rounded `exp`, `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, `hypot`, `pow`, `atan`, `atan2`, `asin`, and `acos`, and what M9 does and does not claim](docs/milestones/M9-transcendentals.md)
+- [Correctly rounded `exp`, `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, `hypot`, `pow`, `atan`, `atan2`, `asin`, `acos`, `sin`, `cos`, `tan`, and the hyperbolic and inverse-hyperbolic functions, and what M9 does and does not claim](docs/milestones/M9-transcendentals.md)
 - [Precision-stack architecture](docs/architecture/precision-stack.md)
 - [Apple Metal capability boundary](docs/platform/apple-metal-capabilities.md)
 - [Claim and publication policy](docs/policies/claims.md)
@@ -83,8 +83,9 @@ M1, M2, M4, M5, and M6 are complete under their documented exit criteria.
 M3, M7, and M8 remain open where cross-generation hardware, energy, or release
 proof is still required. M9 adds correctly rounded transcendentals on top of
 the exact core and is not a 1.0 gate; `exp`, tranche A (`exp2`, `expm1`,
-`log`, `log2`, `log1p`, `cbrt`, `hypot`), and tranche B (`pow`, `atan`,
-`atan2`, `asin`, `acos`) are implemented and MPFR-gated. The
+`log`, `log2`, `log1p`, `cbrt`, `hypot`), tranche B (`pow`, `atan`,
+`atan2`, `asin`, `acos`), and tranche C (`sin`, `cos`, `tan`, `sinh`, `cosh`,
+`tanh`, `asinh`, `acosh`, `atanh`) are implemented and MPFR-gated. The
 [status ledger](docs/evidence/milestone-status.md) is authoritative.
 
 ## Reproducibility scripts
