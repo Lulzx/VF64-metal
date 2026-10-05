@@ -117,6 +117,51 @@ FUNCTIONS = {
                 "integers; every other result is irrational or a non-dyadic "
                 "rational and is certified per call",
     },
+    "f64_sin": {
+        "short": "sin", "mpfr": "mpfr_sin", "state": CERTIFIED,
+        "bound": "2^-124.3",
+        "ties": NO_TIES.format(name="sin", exception=""),
+    },
+    "f64_cos": {
+        "short": "cos", "mpfr": "mpfr_cos", "state": CERTIFIED,
+        "bound": "2^-124.3",
+        "ties": NO_TIES.format(name="cos", exception=""),
+    },
+    "f64_tan": {
+        "short": "tan", "mpfr": "mpfr_tan", "state": CERTIFIED,
+        "bound": "2^-122.8",
+        "ties": NO_TIES.format(name="tan", exception=""),
+    },
+    "f64_sinh": {
+        "short": "sinh", "mpfr": "mpfr_sinh", "state": CERTIFIED,
+        "bound": "2^-118.8",
+        "ties": NO_TIES.format(name="sinh", exception=""),
+    },
+    "f64_cosh": {
+        "short": "cosh", "mpfr": "mpfr_cosh", "state": CERTIFIED,
+        "bound": "2^-119.9",
+        "ties": NO_TIES.format(name="cosh", exception=""),
+    },
+    "f64_tanh": {
+        "short": "tanh", "mpfr": "mpfr_tanh", "state": CERTIFIED,
+        "bound": "2^-119",
+        "ties": NO_TIES.format(name="tanh", exception=""),
+    },
+    "f64_asinh": {
+        "short": "asinh", "mpfr": "mpfr_asinh", "state": CERTIFIED,
+        "bound": "2^-120.5",
+        "ties": NO_TIES.format(name="asinh", exception=""),
+    },
+    "f64_acosh": {
+        "short": "acosh", "mpfr": "mpfr_acosh", "state": CERTIFIED,
+        "bound": "2^-120.5",
+        "ties": NO_TIES.format(name="acosh", exception=""),
+    },
+    "f64_atanh": {
+        "short": "atanh", "mpfr": "mpfr_atanh", "state": CERTIFIED,
+        "bound": "2^-120.5",
+        "ties": NO_TIES.format(name="atanh", exception=""),
+    },
 }
 
 

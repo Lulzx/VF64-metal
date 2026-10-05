@@ -12,6 +12,8 @@ Math/ExpVariants.metal
 Math/Algebraic.metal
 Math/Atan.metal
 Math/Pow.metal
+Math/Trig.metal
+Math/Hyperbolic.metal
 ISA/Interpreter.metal
 Kernels/Exact.metal
 Kernels/BoundaryPair.metal

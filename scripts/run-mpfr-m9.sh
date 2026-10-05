@@ -2,7 +2,8 @@
 # M9 differential conformance campaign for one correctly rounded function,
 # selected by VF64_M9_FUNCTION (f64_exp, f64_exp2, f64_expm1, f64_log,
 # f64_log2, f64_log1p, f64_cbrt, f64_hypot, f64_pow, f64_atan, f64_atan2,
-# f64_asin, or f64_acos).
+# f64_asin, f64_acos, f64_sin, f64_cos, f64_tan, f64_sinh, f64_cosh, f64_tanh,
+# f64_asinh, f64_acosh, or f64_atanh).
 #
 # Berkeley TestFloat has no transcendental generators, so this is the M9
 # equivalent of run-testfloat-m1.sh: a pinned oracle, a seeded corpus, every

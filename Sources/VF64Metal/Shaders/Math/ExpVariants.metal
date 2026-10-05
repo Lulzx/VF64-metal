@@ -72,6 +72,18 @@ inline ulong soft_exp2_64_certified(
 // Closed forms: for nonzero |x| < 2^-60, expm1(x) = x + x^2/2 + ... lies
 // strictly above x and within 2^-61 |x| of it. For x <= -45, expm1(x) =
 // -1 + e^x with 0 < e^x < 2^-64, strictly above -1 and far inside half an ulp.
+// The direct series for |x| < 1/2, shared with tanh.
+inline soft_wide soft_expm1_series(soft_wide x) {
+    soft_wide accumulator = SOFT_EXP_RECIPROCAL_FACTORIAL[29];
+    for (int term = 27; term >= 0; --term) {
+        accumulator = soft_wide_add(
+            SOFT_EXP_RECIPROCAL_FACTORIAL[term + 1],
+            soft_wide_mul(x, accumulator)
+        );
+    }
+    return soft_wide_mul(x, accumulator);
+}
+
 inline ulong soft_expm1_64_certified(
     ulong a, uint roundingMode, thread uint &flags, thread bool &certified
 ) {
@@ -102,15 +114,7 @@ inline ulong soft_expm1_64_certified(
 
     soft_wide value;
     if (magnitude < 0x3fe0000000000000ul) {  // |x| < 1/2
-        soft_wide x = soft_wide_from_f64(a);
-        soft_wide accumulator = SOFT_EXP_RECIPROCAL_FACTORIAL[29];
-        for (int term = 27; term >= 0; --term) {
-            accumulator = soft_wide_add(
-                SOFT_EXP_RECIPROCAL_FACTORIAL[term + 1],
-                soft_wide_mul(x, accumulator)
-            );
-        }
-        value = soft_wide_mul(x, accumulator);
+        value = soft_expm1_series(soft_wide_from_f64(a));
     } else {
         value = soft_wide_sub(soft_exp64_wide(a), soft_wide_one());
     }

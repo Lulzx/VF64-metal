@@ -39,6 +39,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "trig_worst_cases.h"
+
 #define FLAG_INEXACT 1u
 #define FLAG_UNDERFLOW 2u
 #define FLAG_OVERFLOW 4u
@@ -351,6 +353,66 @@ static int special_pow(uint64_t x, uint64_t y, uint64_t *result, unsigned *flags
     return 0;
 }
 
+/* sin, cos, tan: infinities are invalid. */
+static int special_trig(uint64_t x, uint64_t *result, unsigned *flags, int even) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_inf(x)) { *result = DEFAULT_NAN; *flags |= FLAG_INVALID; return 1; }
+    if (is_zero(x)) { *result = even ? ONE : x; return 1; }
+    return 0;
+}
+
+static int special_sin(uint64_t x, uint64_t *result, unsigned *flags) {
+    return special_trig(x, result, flags, 0);
+}
+
+static int special_cos(uint64_t x, uint64_t *result, unsigned *flags) {
+    return special_trig(x, result, flags, 1);
+}
+
+/* sinh, asinh: odd, and infinite at infinity. */
+static int special_sinh(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_inf(x) || is_zero(x)) { *result = x; return 1; }
+    return 0;
+}
+
+static int special_cosh(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_inf(x)) { *result = POS_INF; return 1; }
+    if (is_zero(x)) { *result = ONE; return 1; }
+    return 0;
+}
+
+static int special_tanh(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_inf(x)) { *result = (x & 0x8000000000000000ull) | ONE; return 1; }
+    if (is_zero(x)) { *result = x; return 1; }
+    return 0;
+}
+
+/* acosh: x < 1 is invalid, including -0 and +0. */
+static int special_acosh(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_negative(x) || x < ONE) { *result = DEFAULT_NAN; *flags |= FLAG_INVALID; return 1; }
+    if (x == ONE) { *result = 0ull; return 1; }
+    if (is_inf(x)) { *result = POS_INF; return 1; }
+    return 0;
+}
+
+/* atanh: |x| = 1 is a pole, |x| > 1 is invalid. */
+static int special_atanh(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_zero(x)) { *result = x; return 1; }
+    uint64_t magnitude = x & 0x7fffffffffffffffull;
+    if (magnitude == ONE) {
+        *result = (x & 0x8000000000000000ull) | POS_INF;
+        *flags |= FLAG_INFINITE;
+        return 1;
+    }
+    if (magnitude > ONE) { *result = DEFAULT_NAN; *flags |= FLAG_INVALID; return 1; }
+    return 0;
+}
+
 /* MPFR's pow with a negative finite x and integer y already applies the sign
  * rule; the special cases above leave it only finite nonzero operands. */
 
@@ -373,6 +435,15 @@ static const struct unary_function unary_functions[] = {
     {"f64_atan", mpfr_atan, special_atan},
     {"f64_asin", mpfr_asin, special_asin},
     {"f64_acos", mpfr_acos, special_acos},
+    {"f64_sin", mpfr_sin, special_sin},
+    {"f64_cos", mpfr_cos, special_cos},
+    {"f64_tan", mpfr_tan, special_sin},
+    {"f64_sinh", mpfr_sinh, special_sinh},
+    {"f64_cosh", mpfr_cosh, special_cosh},
+    {"f64_tanh", mpfr_tanh, special_tanh},
+    {"f64_asinh", mpfr_asinh, special_sinh},
+    {"f64_acosh", mpfr_acosh, special_acosh},
+    {"f64_atanh", mpfr_atanh, special_atanh},
 };
 
 static const struct unary_function *active = NULL;
@@ -1173,6 +1244,216 @@ static void random_pow(long count, uint64_t seed) {
 }
 
 /* ---------------------------------------------------------------------- */
+/* sin, cos, tan                                                           */
+
+/* The binary64 value nearest k pi/2, by MPFR. */
+static double near_half_pi_multiple(uint64_t k) {
+    mpfr_t value;
+    mpfr_init2(value, 256);
+    mpfr_const_pi(value, MPFR_RNDN);
+    mpfr_mul_ui(value, value, (unsigned long)k, MPFR_RNDN);
+    mpfr_div_2ui(value, value, 1, MPFR_RNDN);
+    mpfr_exp_t savedEmin = mpfr_get_emin();
+    mpfr_set_emin(mpfr_get_emin_min());
+    double result = mpfr_get_d(value, MPFR_RNDN);
+    mpfr_set_emin(savedEmin);
+    mpfr_clear(value);
+    return result;
+}
+
+#define TRIG_WORST_CASES (sizeof trig_worst_cases / sizeof trig_worst_cases[0])
+
+static void boundary_trig(void) {
+    emit_unary_specials();
+    for (uint64_t k = 1; k <= 64; ++k) {
+        emit_near(near_half_pi_multiple(k), 2);
+        emit(bits_of(-near_half_pi_multiple(k)));
+    }
+    emit_near(0.7853981633974483, 4);  /* pi/4: the reduction edge */
+    emit_near(-0.7853981633974483, 2);
+    for (size_t i = 0; i < TRIG_WORST_CASES; ++i) {
+        emit(trig_worst_cases[i]);
+        if (i < 256) emit(trig_worst_cases[i] ^ 0x8000000000000000ull);
+    }
+    for (int exponent = -80; exponent <= -20; ++exponent) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.0, exponent)));
+        emit(bits_of(ldexp(1.9999999999999998, exponent)));
+    }
+    for (int exponent = -19; exponent <= 1023; ++exponent) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.9999999999999998, exponent)));
+    }
+}
+
+/*   0-39: |x| exponents in [-27, 10], both signs;
+ *  40-54: closed-form tiny range, including subnormals;
+ *  55-69: |x| exponents in [10, 1023] (Payne-Hanek range);
+ *  70-79: within 1024 ulps of a multiple of pi/2, k < 2^20;
+ *  80-89: near the hardest-to-reduce arguments;
+ *  90-99: arbitrary bit patterns.
+ */
+static void random_trig(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        int sign = (int)(splitmix64(&state) & 1ull);
+        uint64_t bits;
+        if (stratum < 40u) {
+            bits = bits_of(random_magnitude(&state, -27, 10));
+        } else if (stratum < 55u) {
+            bits = (splitmix64(&state) % 4u == 0u) ? random_subnormal(&state)
+                                                   : bits_of(random_magnitude(&state, -1022, -28));
+        } else if (stratum < 70u) {
+            bits = bits_of(random_magnitude(&state, 10, 1023));
+        } else if (stratum < 80u) {
+            uint64_t k = 1 + splitmix64(&state) % (1ull << 20);
+            int64_t delta = (int64_t)(splitmix64(&state) % 2049ull) - 1024;
+            bits = (uint64_t)((int64_t)bits_of(near_half_pi_multiple(k)) + delta);
+        } else if (stratum < 90u) {
+            int64_t delta = (int64_t)(splitmix64(&state) % 65ull) - 32;
+            bits = (uint64_t)((int64_t)trig_worst_cases[splitmix64(&state) % TRIG_WORST_CASES] + delta);
+        } else {
+            bits = splitmix64(&state);
+        }
+        emit(sign ? bits ^ 0x8000000000000000ull : bits);
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* sinh, cosh, tanh                                                        */
+
+static void boundary_hyperbolic(void) {
+    emit_unary_specials();
+    for (int exponent = -80; exponent <= -20; ++exponent) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.0, exponent)));
+        emit(bits_of(ldexp(1.9999999999999998, exponent)));
+    }
+    static const double edges[] = {
+        0.25, 0.5, 1.0, 2.0, 22.0, 44.0, 709.782712893384, 710.4758600739439,
+        710.475860073944, 711.0, 1024.0,
+    };
+    for (size_t i = 0; i < sizeof edges / sizeof edges[0]; ++i) {
+        emit_near(edges[i], 4);
+        emit_near(-edges[i], 2);
+    }
+    for (int n = 1; n <= 40; ++n) {
+        emit(bits_of((double)n));
+        emit(bits_of(-(double)n / 3.0));
+    }
+    for (int exponent = -19; exponent <= 1023; exponent += 3) emit(bits_of(ldexp(1.0, exponent)));
+}
+
+/*   0-44: |x| exponents in [-27, 4], both signs;
+ *  45-59: closed-form tiny range, including subnormals;
+ *  60-79: |x| uniform in [0, 32];
+ *  80-89: |x| uniform in [700, 720], across the overflow threshold;
+ *  90-99: arbitrary bit patterns.
+ */
+static void random_hyperbolic(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        int sign = (int)(splitmix64(&state) & 1ull);
+        uint64_t bits;
+        double unit = (double)(splitmix64(&state) >> 11) / 9007199254740992.0;
+        if (stratum < 45u) {
+            bits = bits_of(random_magnitude(&state, -27, 4));
+        } else if (stratum < 60u) {
+            bits = (splitmix64(&state) % 4u == 0u) ? random_subnormal(&state)
+                                                   : bits_of(random_magnitude(&state, -1022, -28));
+        } else if (stratum < 80u) {
+            bits = bits_of(32.0 * unit);
+        } else if (stratum < 90u) {
+            bits = bits_of(700.0 + 20.0 * unit);
+        } else {
+            bits = splitmix64(&state);
+        }
+        emit(sign ? bits ^ 0x8000000000000000ull : bits);
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* asinh, acosh, atanh                                                     */
+
+static void boundary_inverse_hyperbolic(void) {
+    emit_unary_specials();
+    for (int exponent = -80; exponent <= -20; ++exponent) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.0, exponent)));
+        emit(bits_of(ldexp(1.9999999999999998, exponent)));
+    }
+    emit_near(1.0, 64);
+    emit_near(-1.0, 16);
+    emit_near(0.5, 4);
+    emit_near(-0.5, 4);
+    emit_near(2.0, 4);
+    for (int e = 1; e <= 60; ++e) {
+        emit(bits_of(1.0 - ldexp(1.0, -e)));
+        emit(bits_of(-1.0 + ldexp(1.0, -e)));
+        emit(bits_of(1.0 + ldexp(1.0, -e)));
+    }
+    for (int exponent = -19; exponent <= 1023; exponent += 2) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.5, exponent)));
+    }
+    emit_near(ldexp(1.0, 1023), 2);
+}
+
+/*   0-34: |x| exponents in [-27, 30], both signs;
+ *  35-49: closed-form tiny range, including subnormals;
+ *  50-64: |x| exponents in [30, 1023];
+ *  65-74: |x| uniform in [0, 1);
+ *  75-89: |x| within 2^-2 of 1, on either side;
+ *  90-99: arbitrary bit patterns.
+ */
+static void random_inverse_hyperbolic(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        int sign = (int)(splitmix64(&state) & 1ull);
+        uint64_t bits;
+        if (stratum < 35u) {
+            bits = bits_of(random_magnitude(&state, -27, 30));
+        } else if (stratum < 50u) {
+            bits = (splitmix64(&state) % 4u == 0u) ? random_subnormal(&state)
+                                                   : bits_of(random_magnitude(&state, -1022, -28));
+        } else if (stratum < 65u) {
+            bits = bits_of(random_magnitude(&state, 30, 1023));
+        } else if (stratum < 75u) {
+            bits = bits_of((double)(splitmix64(&state) >> 11) / 9007199254740992.0);
+        } else if (stratum < 90u) {
+            double offset = random_magnitude(&state, -53, -3);
+            bits = bits_of((splitmix64(&state) & 1ull) ? 1.0 + offset : 1.0 - offset);
+        } else {
+            bits = splitmix64(&state);
+        }
+        emit(sign ? bits ^ 0x8000000000000000ull : bits);
+    }
+}
+
+/* acosh is defined on [1, inf), so its corpus is mostly positive and
+ * concentrated where the result is small. */
+static void random_acosh(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        uint64_t bits;
+        if (stratum < 30u) {
+            bits = bits_of(1.0 + random_magnitude(&state, -52, -1));
+        } else if (stratum < 45u) {
+            bits = ONE + 1 + splitmix64(&state) % (1ull << 20);
+        } else if (stratum < 85u) {
+            bits = bits_of(random_magnitude(&state, 0, 1023));
+        } else {
+            bits = splitmix64(&state);
+        }
+        emit(bits);
+    }
+}
+
+/* ---------------------------------------------------------------------- */
 
 struct corpus {
     const char *name;
@@ -1194,13 +1475,24 @@ static const struct corpus corpora[] = {
     {"f64_acos", boundary_asin, random_asin},
     {"f64_atan2", boundary_atan2, random_atan2},
     {"f64_pow", boundary_pow, random_pow},
+    {"f64_sin", boundary_trig, random_trig},
+    {"f64_cos", boundary_trig, random_trig},
+    {"f64_tan", boundary_trig, random_trig},
+    {"f64_sinh", boundary_hyperbolic, random_hyperbolic},
+    {"f64_cosh", boundary_hyperbolic, random_hyperbolic},
+    {"f64_tanh", boundary_hyperbolic, random_hyperbolic},
+    {"f64_asinh", boundary_inverse_hyperbolic, random_inverse_hyperbolic},
+    {"f64_acosh", boundary_inverse_hyperbolic, random_acosh},
+    {"f64_atanh", boundary_inverse_hyperbolic, random_inverse_hyperbolic},
 };
 
 static int usage(void) {
     fprintf(stderr,
             "usage: m9_ref <function> <rounding> boundary|random <count> <seed>\n"
             "functions: f64_exp f64_exp2 f64_expm1 f64_log f64_log2 f64_log1p "
-            "f64_cbrt f64_hypot f64_atan f64_asin f64_acos f64_atan2 f64_pow\n");
+            "f64_cbrt f64_hypot f64_atan f64_asin f64_acos f64_atan2 f64_pow "
+            "f64_sin f64_cos f64_tan f64_sinh f64_cosh f64_tanh f64_asinh "
+            "f64_acosh f64_atanh\n");
     return 2;
 }
 

@@ -45,6 +45,15 @@ private let transcendentalKernels: [String: String] = [
     "f64_acos": "soft_acos64_round_kernel",
     "f64_atan2": "soft_atan2_64_round_kernel",
     "f64_pow": "soft_pow64_round_kernel",
+    "f64_sin": "soft_sin64_round_kernel",
+    "f64_cos": "soft_cos64_round_kernel",
+    "f64_tan": "soft_tan64_round_kernel",
+    "f64_sinh": "soft_sinh64_round_kernel",
+    "f64_cosh": "soft_cosh64_round_kernel",
+    "f64_tanh": "soft_tanh64_round_kernel",
+    "f64_asinh": "soft_asinh64_round_kernel",
+    "f64_acosh": "soft_acosh64_round_kernel",
+    "f64_atanh": "soft_atanh64_round_kernel",
 ]
 
 private let binaryTranscendentals: Set<String> = ["f64_hypot", "f64_atan2", "f64_pow"]

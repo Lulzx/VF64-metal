@@ -114,7 +114,9 @@ inline soft_wide soft_wide_add(soft_wide a, soft_wide b) {
 
     if (large.sign == small.sign) {
         soft_u128 sum = soft_add128(largeSig, smallSig);
-        if (sum.hi < largeSig.hi) {  // carried out of bit 127
+        // Carried out of bit 127. Comparing the high limbs alone misses the
+        // carry when both are all ones and the low limbs carry into them.
+        if (soft_u128_less(sum, largeSig)) {
             sum = soft_shift_right128(sum, 1u);
             sum.hi |= 1ul << 63;
             return soft_wide{sum.hi, sum.lo, large.exponent + 1, large.sign};
