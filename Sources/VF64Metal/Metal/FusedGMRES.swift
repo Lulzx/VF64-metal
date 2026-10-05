@@ -2,21 +2,35 @@ import Foundation
 import Metal
 
 extension MetalHarness {
+    /// Device-resident fast48 GMRES(m) with modified Gram-Schmidt. The matrix
+    /// is decoded once and the Krylov basis and work vector are kept as
+    /// decoded shadows of their binary64 storage values, so Arnoldi results are
+    /// bit-identical to the separate SpMV, dot, and orthogonalization kernels.
+    /// The GPU selects the converged column, back-substitutes, and assembles
+    /// the solution; Arnoldi columns are submitted in chunks of
+    /// `chunkColumns`, and submission stops once a finished chunk carries the
+    /// device's selection.
     func deviceConvergedFast48GMRES(
         rowOffsets: [UInt32], columns: [UInt32], values: [Double], b: [Double],
-        tolerance: Double, maxIterations: Int
-    ) throws -> (x: [Double], iterations: Int, residualEstimate: Double, seconds: Double) {
+        tolerance: Double, maxIterations: Int, chunkColumns: Int = 1
+    ) throws -> (
+        x: [Double], iterations: Int, residualEstimate: Double, seconds: Double,
+        encodedColumns: Int
+    ) {
         let count = b.count
         let stride = maxIterations
+        let vectorBytes = count * MemoryLayout<SIMD2<Float>>.stride
         let rowBuffer = try buffer(rowOffsets)
         let columnBuffer = try buffer(columns)
-        let valueBuffer = try buffer(bitsOf(values))
-        let bBuffer = try buffer(bitsOf(b))
+        let valueBits = try buffer(bitsOf(values))
+        let valuePairs = try emptyBuffer(count: values.count, of: SIMD2<Float>.self)
+        let bBits = try buffer(bitsOf(b))
+        let bPairs = try emptyBuffer(count: count, of: SIMD2<Float>.self)
         let x = try buffer(bitsOf([Double](repeating: 0, count: count)))
-        let work = try emptyBuffer(count: count, of: UInt64.self)
-        let basis = try (0...maxIterations).map { _ in
-            try emptyBuffer(count: count, of: UInt64.self)
-        }
+        let work = try emptyBuffer(count: count, of: SIMD2<Float>.self)
+        let basis = try emptyBuffer(
+            count: (maxIterations + 1) * count, of: SIMD2<Float>.self
+        )
         let h = try buffer([UInt64](repeating: 0, count: (maxIterations + 1) * stride))
         let cosine = try buffer([UInt64](repeating: 0, count: maxIterations))
         let sine = try buffer([UInt64](repeating: 0, count: maxIterations))
@@ -27,187 +41,90 @@ extension MetalHarness {
         let initialNorm = try emptyBuffer(count: 1, of: UInt64.self)
         let completed = try buffer([UInt32(0)])
         let convergedResidual = try emptyBuffer(count: 1, of: UInt64.self)
-        let threads = 256
-        let maximumPartials = max(1, (count + threads * 4 - 1) / (threads * 4))
-        let partialA = try emptyBuffer(count: maximumPartials, of: SIMD2<Float>.self)
-        let partialB = try emptyBuffer(count: maximumPartials, of: SIMD2<Float>.self)
 
-        guard let command = queue.makeCommandBuffer(),
-              let encoder = command.makeComputeCommandEncoder() else {
-            throw HarnessError.commandEncoding("could not encode fused GMRES")
-        }
-        command.label = "vf64:fused_gmres"
-        encoder.label = "vf64:fused_gmres"
-
-        func barrier() {
-            encoder.memoryBarrier(scope: .buffers)
-        }
-        func dispatch(
-            _ name: String, count dispatchCount: Int,
-            buffers bindings: [(index: Int, buffer: MTLBuffer, offset: Int)],
-            countIndex: Int?
-        ) throws {
-            let state = try pipeline(name)
-            encoder.setComputePipelineState(state)
-            for binding in bindings {
-                encoder.setBuffer(
-                    binding.buffer, offset: binding.offset, index: binding.index
-                )
-            }
-            if let countIndex {
-                var n = UInt32(dispatchCount)
-                encoder.setBytes(&n, length: 4, index: countIndex)
-            }
-            let width = min(
-                state.maxTotalThreadsPerThreadgroup,
-                max(1, state.threadExecutionWidth * 4)
-            )
-            encoder.dispatchThreads(
-                MTLSize(width: dispatchCount, height: 1, depth: 1),
-                threadsPerThreadgroup: MTLSize(width: width, height: 1, depth: 1)
-            )
-        }
-        func encodeDot(
-            _ a: MTLBuffer, _ b: MTLBuffer, output: MTLBuffer,
-            outputOffset: Int = 0
-        ) throws {
-            var partialCount = max(1, (count + threads * 4 - 1) / (threads * 4))
-            var input = partialA
-            var next = partialB
-            var state = try pipeline("dot_partial_kernel")
-            encoder.setComputePipelineState(state)
-            encoder.setBuffer(a, offset: 0, index: 0)
-            encoder.setBuffer(b, offset: 0, index: 1)
-            encoder.setBuffer(input, offset: 0, index: 2)
-            var n = UInt32(count)
-            encoder.setBytes(&n, length: 4, index: 3)
-            encoder.setThreadgroupMemoryLength(
-                threads * MemoryLayout<SIMD2<Float>>.stride, index: 0
-            )
-            encoder.dispatchThreadgroups(
-                MTLSize(width: partialCount, height: 1, depth: 1),
-                threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1)
-            )
-            barrier()
-            while partialCount > 1 {
-                let nextCount = (partialCount + threads * 4 - 1) / (threads * 4)
-                state = try pipeline("reduce_partial_kernel")
-                encoder.setComputePipelineState(state)
-                encoder.setBuffer(input, offset: 0, index: 0)
-                encoder.setBuffer(next, offset: 0, index: 1)
-                n = UInt32(partialCount)
-                encoder.setBytes(&n, length: 4, index: 2)
-                encoder.setThreadgroupMemoryLength(
-                    threads * MemoryLayout<SIMD2<Float>>.stride, index: 0
-                )
-                encoder.dispatchThreadgroups(
-                    MTLSize(width: nextCount, height: 1, depth: 1),
-                    threadsPerThreadgroup: MTLSize(width: threads, height: 1, depth: 1)
-                )
-                barrier()
-                swap(&input, &next)
-                partialCount = nextCount
-            }
-            state = try pipeline("pack_partial_kernel")
-            encoder.setComputePipelineState(state)
-            encoder.setBuffer(input, offset: 0, index: 0)
-            encoder.setBuffer(output, offset: outputOffset, index: 1)
-            encoder.dispatchThreads(
-                MTLSize(width: 1, height: 1, depth: 1),
-                threadsPerThreadgroup: MTLSize(width: 1, height: 1, depth: 1)
-            )
-            barrier()
-        }
-
-        try encodeDot(bBuffer, bBuffer, output: normSquared)
-        try dispatch("gmres_initialize_fast48_kernel", count: 1, buffers: [
+        let start = ContinuousClock.now
+        let submission = try DeviceTerminatedSubmission(
+            queue: queue, label: "vf64:fused_gmres", completed: completed
+        )
+        let krylov = try KrylovEncoding(
+            harness: self, submission: submission, count: count
+        )
+        let n = UInt32(count)
+        try krylov.decode(valueBits, into: valuePairs, elements: values.count)
+        try krylov.decode(bBits, into: bPairs, elements: count)
+        try krylov.dot(bPairs, bPairs, into: normSquared)
+        try krylov.dispatch("gmres_initialize_fast48_kernel", elements: 1, [
             (0, normSquared, 0), (1, inverseNorm, 0), (2, g, 0),
             (3, initialNorm, 0),
-        ], countIndex: nil)
-        barrier()
-        try dispatch("vector_scale_fast48_kernel", count: count, buffers: [
-            (0, inverseNorm, 0), (1, bBuffer, 0), (2, basis[0], 0),
-        ], countIndex: 3)
-        barrier()
+        ])
+        try krylov.dispatch("krylov_scale_fast48_kernel", elements: count, [
+            (0, inverseNorm, 0), (1, bPairs, 0), (2, basis, 0),
+        ], words: [(3, n)])
 
-        for column in 0..<maxIterations {
-            try dispatch("spmv_fast48_kernel", count: count, buffers: [
-                (0, rowBuffer, 0), (1, columnBuffer, 0), (2, valueBuffer, 0),
-                (3, basis[column], 0), (4, work, 0),
-            ], countIndex: 5)
-            barrier()
+        func encodeColumn(_ column: Int) throws {
+            try krylov.dispatch("krylov_spmv_fast48_kernel", elements: count, [
+                (0, rowBuffer, 0), (1, columnBuffer, 0), (2, valuePairs, 0),
+                (3, basis, column * vectorBytes), (4, work, 0),
+            ], words: [(5, n)])
             for row in 0...column {
                 let coefficientOffset = (row * stride + column) * MemoryLayout<UInt64>.stride
-                try encodeDot(
-                    basis[row], work, output: h, outputOffset: coefficientOffset
+                try krylov.dot(
+                    basis, work, aOffset: row * vectorBytes,
+                    into: h, offset: coefficientOffset
                 )
-                try dispatch("gmres_orthogonalize_fast48_kernel", count: count, buffers: [
-                    (0, h, coefficientOffset), (1, basis[row], 0), (2, work, 0),
-                ], countIndex: 3)
-                barrier()
+                try krylov.dispatch("gmres_orthogonalize_shadow_fast48_kernel", elements: count, [
+                    (0, h, coefficientOffset), (1, basis, row * vectorBytes),
+                    (2, work, 0),
+                ], words: [(3, n)])
             }
-            try encodeDot(work, work, output: normSquared)
-            var columnValue = UInt32(column)
-            var strideValue = UInt32(stride)
-            var toleranceValue = Float(tolerance)
+            try krylov.dot(work, work, into: normSquared)
             let finalize = try pipeline("gmres_finalize_column_fast48_kernel")
-            encoder.setComputePipelineState(finalize)
-            encoder.setBuffer(h, offset: 0, index: 0)
-            encoder.setBuffer(normSquared, offset: 0, index: 1)
-            encoder.setBuffer(cosine, offset: 0, index: 2)
-            encoder.setBuffer(sine, offset: 0, index: 3)
-            encoder.setBuffer(g, offset: 0, index: 4)
-            encoder.setBuffer(inverseNorm, offset: 0, index: 5)
-            encoder.setBuffer(initialNorm, offset: 0, index: 6)
-            encoder.setBuffer(completed, offset: 0, index: 7)
-            encoder.setBuffer(convergedResidual, offset: 0, index: 8)
-            encoder.setBytes(&columnValue, length: 4, index: 9)
-            encoder.setBytes(&strideValue, length: 4, index: 10)
-            encoder.setBytes(&toleranceValue, length: 4, index: 11)
-            encoder.dispatchThreads(
+            krylov.encoder.setComputePipelineState(finalize)
+            krylov.bind([
+                (0, h, 0), (1, normSquared, 0), (2, cosine, 0), (3, sine, 0),
+                (4, g, 0), (5, inverseNorm, 0), (6, initialNorm, 0),
+                (7, completed, 0), (8, convergedResidual, 0),
+            ], words: [(9, UInt32(column)), (10, UInt32(stride))],
+               floats: [(11, Float(tolerance))])
+            krylov.encoder.dispatchThreads(
                 MTLSize(width: 1, height: 1, depth: 1),
                 threadsPerThreadgroup: MTLSize(width: 1, height: 1, depth: 1)
             )
-            barrier()
-            try dispatch("vector_scale_fast48_kernel", count: count, buffers: [
-                (0, inverseNorm, 0), (1, work, 0), (2, basis[column + 1], 0),
-            ], countIndex: 3)
-            barrier()
+            krylov.barrier()
+            try krylov.dispatch("krylov_scale_fast48_kernel", elements: count, [
+                (0, inverseNorm, 0), (1, work, 0),
+                (2, basis, (column + 1) * vectorBytes),
+            ], words: [(3, n)])
         }
 
-        var strideValue = UInt32(stride)
+        var encodedColumns = 0
+        while encodedColumns < maxIterations {
+            let chunkEnd = min(maxIterations, encodedColumns + chunkColumns)
+            while encodedColumns < chunkEnd {
+                try encodeColumn(encodedColumns)
+                encodedColumns += 1
+            }
+            if try submission.commitChunk() { break }
+        }
         let backsolve = try pipeline("gmres_backsolve_fast48_kernel")
-        encoder.setComputePipelineState(backsolve)
-        encoder.setBuffer(h, offset: 0, index: 0)
-        encoder.setBuffer(g, offset: 0, index: 1)
-        encoder.setBuffer(y, offset: 0, index: 2)
-        encoder.setBuffer(completed, offset: 0, index: 3)
-        encoder.setBytes(&strideValue, length: 4, index: 4)
-        encoder.dispatchThreads(
+        krylov.encoder.setComputePipelineState(backsolve)
+        krylov.bind([
+            (0, h, 0), (1, g, 0), (2, y, 0), (3, completed, 0),
+        ], words: [(4, UInt32(stride))])
+        krylov.encoder.dispatchThreads(
             MTLSize(width: 1, height: 1, depth: 1),
             threadsPerThreadgroup: MTLSize(width: 1, height: 1, depth: 1)
         )
-        barrier()
-        for index in 0..<maxIterations {
-            try dispatch("axpy_kernel", count: count, buffers: [
-                (0, y, index * MemoryLayout<UInt64>.stride),
-                (1, basis[index], 0), (2, x, 0), (3, x, 0),
-            ], countIndex: 4)
-            barrier()
-        }
-
-        encoder.endEncoding()
-        let start = ContinuousClock.now
-        command.commit()
-        command.waitUntilCompleted()
-        if let error = command.error {
-            throw HarnessError.commandEncoding(error.localizedDescription)
-        }
+        krylov.barrier()
+        try krylov.dispatch("gmres_assemble_fast48_kernel", elements: count, [
+            (0, y, 0), (1, basis, 0), (2, x, 0), (3, completed, 0),
+        ], words: [(4, n)])
+        try submission.finish()
         let wallSeconds = start.duration(to: .now).seconds
+
         let outputBits: [UInt64] = read(x, count: count)
-        let completedValue: [UInt32] = read(completed, count: 1)
         let residualBits: [UInt64] = read(convergedResidual, count: 1)
-        let observedIterations = Int(completedValue[0])
+        let observedIterations = Int(submission.deviceCompleted)
         guard observedIterations > 0, observedIterations <= maxIterations else {
             throw HarnessError.commandEncoding(
                 "device GMRES returned invalid iteration count \(observedIterations)"
@@ -218,7 +135,7 @@ extension MetalHarness {
             outputBits.map(Double.init(bitPattern:)),
             observedIterations,
             Double(bitPattern: residualBits[0]) / bNorm,
-            wallSeconds
+            wallSeconds, encodedColumns
         )
     }
 }

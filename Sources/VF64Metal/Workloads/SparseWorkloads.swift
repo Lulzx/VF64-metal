@@ -387,10 +387,23 @@ private func runCGWorkload(_ harness: MetalHarness) throws {
     let gpu = try gpuFast48CG(
         harness, workload: system, b: b, tolerance: tolerance, maxIterations: 200
     )
-    let fused = try harness.deviceConvergedFast48CG(
-        rowOffsets: system.rowOffsets, columns: system.columnIndices,
-        values: system.values, b: b, tolerance: tolerance, maxIterations: 200
-    )
+    // The first solve compiles pipelines; report the median of five more.
+    func solveCG() throws -> (
+        x: [Double], iterations: Int, residualSquared: Double, seconds: Double,
+        encodedIterations: Int
+    ) {
+        try harness.deviceConvergedFast48CG(
+            rowOffsets: system.rowOffsets, columns: system.columnIndices,
+            values: system.values, b: b, tolerance: tolerance, maxIterations: 200
+        )
+    }
+    var fused = try solveCG()
+    var fusedTimes: [Double] = []
+    for _ in 0..<5 {
+        fused = try solveCG()
+        fusedTimes.append(fused.seconds)
+    }
+    let fusedSeconds = fusedTimes.sorted()[fusedTimes.count / 2]
     let fusedResidual = sqrt(fused.residualSquared) / l2Norm(b)
     let fusedError = relativeSolutionError(fused.x, expected)
     guard fusedResidual <= tolerance, fusedError <= 1.0e-10 else {
@@ -417,12 +430,12 @@ private func runCGWorkload(_ harness: MetalHarness) throws {
         cpu.seconds / gpu.seconds
     ))
     print(String(
-        format: "fast48-device %2d iterations; residual %.3e; solution error %.3e; %8.3f ms; %.2fx CPU",
-        fused.iterations, fusedResidual, fusedError, fused.seconds * 1.0e3,
-        cpu.seconds / fused.seconds
+        format: "fast48-device %2d iterations; residual %.3e; solution error %.3e; %8.3f ms; %.2fx CPU; %d encoded",
+        fused.iterations, fusedResidual, fusedError, fusedSeconds * 1.0e3,
+        cpu.seconds / fusedSeconds, fused.encodedIterations
     ))
     print("cg control: CPU computes alpha/beta and checks residual; all O(n) arithmetic is GPU")
-    print("cg fused: one command buffer; GPU selects convergence, snapshots the solution, and computes reductions and alpha/beta; CPU validates final state")
+    print("cg device: chunked command buffers; GPU selects convergence, snapshots the solution, and computes reductions and alpha/beta; host stops submitting after the device selection; CPU validates final state")
 }
 
 private func gpuFast48GMRES(
@@ -614,10 +627,23 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
     let gpu = try gpuFast48GMRES(
         harness, workload: system, b: b, tolerance: tolerance, restart: 32
     )
-    let fused = try harness.deviceConvergedFast48GMRES(
-        rowOffsets: system.rowOffsets, columns: system.columnIndices,
-        values: system.values, b: b, tolerance: tolerance, maxIterations: 32
-    )
+    // The first solve compiles pipelines; report the median of five more.
+    func solveGMRES() throws -> (
+        x: [Double], iterations: Int, residualEstimate: Double, seconds: Double,
+        encodedColumns: Int
+    ) {
+        try harness.deviceConvergedFast48GMRES(
+            rowOffsets: system.rowOffsets, columns: system.columnIndices,
+            values: system.values, b: b, tolerance: tolerance, maxIterations: 32
+        )
+    }
+    var fused = try solveGMRES()
+    var fusedTimes: [Double] = []
+    for _ in 0..<5 {
+        fused = try solveGMRES()
+        fusedTimes.append(fused.seconds)
+    }
+    let fusedSeconds = fusedTimes.sorted()[fusedTimes.count / 2]
     let gpuError = relativeSolutionError(gpu.x, expected)
     let observedSystem = CSRWorkload(
         name: system.name, rows: system.rows, columns: system.columns,
@@ -656,12 +682,12 @@ private func runGMRESWorkload(_ harness: MetalHarness) throws {
         cpu.seconds / gpu.seconds
     ))
     print(String(
-        format: "fast48-device %2d iterations; residual %.3e; estimate %.3e; solution error %.3e; %8.3f ms; %.2fx CPU",
+        format: "fast48-device %2d iterations; residual %.3e; estimate %.3e; solution error %.3e; %8.3f ms; %.2fx CPU; %d encoded",
         fused.iterations, fusedTrueResidual, fused.residualEstimate, fusedError,
-        fused.seconds * 1.0e3, cpu.seconds / fused.seconds
+        fusedSeconds * 1.0e3, cpu.seconds / fusedSeconds, fused.encodedColumns
     ))
     print("gmres control: CPU updates Hessenberg/Givens scalars and validates final residual; solver O(n) arithmetic is GPU")
-    print("gmres fused: one command buffer; GPU selects convergence and performs Arnoldi, Givens, normalization, backsolve, and vector assembly; CPU validates final state")
+    print("gmres device: chunked command buffers; GPU selects convergence and performs Arnoldi, Givens, normalization, backsolve, and vector assembly; host stops submitting after the device selection; CPU validates final state")
 }
 
 func runScientificWorkloads(_ harness: MetalHarness) throws {
