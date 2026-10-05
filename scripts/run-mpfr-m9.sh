@@ -1,5 +1,7 @@
 #!/bin/sh
-# M9 differential conformance campaign for correctly rounded exp.
+# M9 differential conformance campaign for one correctly rounded function,
+# selected by VF64_M9_FUNCTION (f64_exp, f64_exp2, f64_expm1, f64_log,
+# f64_log2, f64_log1p, f64_cbrt, or f64_hypot).
 #
 # Berkeley TestFloat has no transcendental generators, so this is the M9
 # equivalent of run-testfloat-m1.sh: a pinned oracle, a seeded corpus, every
@@ -26,8 +28,8 @@ trap 'rm -rf "$work"' EXIT
 
 for rounding in rnear_even rminMag rmin rmax rnear_maxMag; do
     {
-        "$generator" "$rounding" boundary
-        "$generator" "$rounding" random "$cases" "$seed"
+        "$generator" "$function" "$rounding" boundary
+        "$generator" "$function" "$rounding" random "$cases" "$seed"
     } | "$binary" transcendental "$function" "$rounding" |
         tee -a "$work/log.txt" | grep '^{' >> "$work/summaries.jsonl"
 done
@@ -48,5 +50,5 @@ artifact=$(python3 "$repo_dir/scripts/summarize-m9-campaign.py" \
     --work "$work" --repo "$repo_dir" --cases "$cases" --seed "$seed" \
     --function "$function")
 
-printf 'm9_exp_conformance=pass\n'
+printf 'm9_%s_conformance=pass\n' "${function#f64_}"
 printf 'artifact=%s\n' "$artifact"

@@ -6,6 +6,9 @@ IEEE/Arithmetic.metal
 Wide/Arithmetic.metal
 Math/WideFloat.metal
 Math/Exp.metal
+Math/Log.metal
+Math/ExpVariants.metal
+Math/Algebraic.metal
 ISA/Interpreter.metal
 Kernels/Exact.metal
 Kernels/BoundaryPair.metal

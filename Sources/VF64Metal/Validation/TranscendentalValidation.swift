@@ -3,10 +3,11 @@ import Foundation
 // M9 differential conformance against the pinned MPFR oracle.
 //
 // Berkeley TestFloat has no transcendental generators, so this path consumes
-// vectors from tools/m9/exp_ref.c instead. The line format is deliberately the
+// vectors from tools/m9/m9_ref.c instead. The line format is deliberately the
 // same as the TestFloat vectors the runner already accepts:
 //
 //     <argument bits> <result bits> <exception flags>
+//     <first bits> <second bits> <result bits> <exception flags>   (hypot)
 //
 // Two things are checked per case: the delivered bits and flags against the
 // oracle, and the per-call certification the kernel reports. An uncertified
@@ -17,6 +18,7 @@ import Foundation
 
 private struct TranscendentalCase {
     let argument: UInt64
+    let second: UInt64
     let expected: UInt64
     let expectedFlags: UInt8
 }
@@ -31,7 +33,16 @@ let transcendentalRoundingModes: [String: UInt32] = [
 
 private let transcendentalKernels: [String: String] = [
     "f64_exp": "soft_exp_round_kernel",
+    "f64_exp2": "soft_exp2_64_round_kernel",
+    "f64_expm1": "soft_expm1_64_round_kernel",
+    "f64_log": "soft_log64_round_kernel",
+    "f64_log2": "soft_log2_64_round_kernel",
+    "f64_log1p": "soft_log1p64_round_kernel",
+    "f64_cbrt": "soft_cbrt64_round_kernel",
+    "f64_hypot": "soft_hypot64_round_kernel",
 ]
+
+private let binaryTranscendentals: Set<String> = ["f64_hypot"]
 
 func runTranscendentalConformance(
     _ harness: MetalHarness,
@@ -53,6 +64,7 @@ func runTranscendentalConformance(
         )
     }
     let roundingBuffer = try harness.buffer([roundingMode])
+    let binary = binaryTranscendentals.contains(function)
 
     var batch: [TranscendentalCase] = []
     batch.reserveCapacity(batchSize)
@@ -65,14 +77,15 @@ func runTranscendentalConformance(
     func validateBatch(_ cases: [TranscendentalCase]) throws {
         guard !cases.isEmpty else { return }
         let argumentBuffer = try harness.buffer(cases.map(\.argument))
+        let secondBuffer = try harness.buffer(cases.map(\.second))
         let output = try harness.emptyBuffer(count: cases.count, of: UInt64.self)
         let flags = try harness.emptyBuffer(count: cases.count, of: UInt32.self)
         let certified = try harness.emptyBuffer(count: cases.count, of: UInt32.self)
         _ = try harness.run(
             kernel, count: cases.count,
             buffers: [
-                (0, argumentBuffer), (2, output), (4, roundingBuffer),
-                (6, flags), (7, certified),
+                (0, argumentBuffer), (1, secondBuffer), (2, output),
+                (4, roundingBuffer), (6, flags), (7, certified),
             ],
             countIndex: 3
         )
@@ -88,10 +101,11 @@ func runTranscendentalConformance(
                     observedCertification[index] == 0 else { continue }
             if mismatches.count < 20 {
                 mismatches.append(String(
-                    format: "case %d: a=%016llx got=%016llx want=%016llx " +
-                            "flags=%02x wantFlags=%02x certified=%u",
+                    format: "case %d: a=%016llx b=%016llx got=%016llx " +
+                            "want=%016llx flags=%02x wantFlags=%02x certified=%u",
                     total + index,
                     cases[index].argument,
+                    cases[index].second,
                     observed[index],
                     cases[index].expected,
                     observedFlags[index],
@@ -104,15 +118,18 @@ func runTranscendentalConformance(
 
     while let line = inputLine() {
         let fields = line.split(whereSeparator: \.isWhitespace)
-        guard fields.count == 3,
+        let operands = binary ? 2 : 1
+        guard fields.count == operands + 2,
               let argument = UInt64(fields[0], radix: 16),
-              let expected = UInt64(fields[1], radix: 16),
-              let flags = UInt8(fields[2], radix: 16) else {
+              let second = binary ? UInt64(fields[1], radix: 16) : 0,
+              let expected = UInt64(fields[operands], radix: 16),
+              let flags = UInt8(fields[operands + 1], radix: 16) else {
             malformed += 1
             continue
         }
         batch.append(TranscendentalCase(
-            argument: argument, expected: expected, expectedFlags: flags
+            argument: argument, second: second, expected: expected,
+            expectedFlags: flags
         ))
         if flags != 0 { flagged += 1 }
         if batch.count == batchSize {
@@ -154,49 +171,55 @@ func runTranscendentalConformance(
     )
 }
 
-// Built-in smoke coverage so that `validate` exercises M9 without the external
-// oracle. These vectors were produced by the same pinned MPFR generator; they
-// are a self-check, not the M9 gate, which remains scripts/run-mpfr-m9.sh.
+// Built-in smoke coverage so that `validate` exercises every M9 function
+// without the external oracle. These vectors were produced by the same pinned
+// MPFR generator; they are a self-check, not the M9 gate, which remains
+// scripts/run-mpfr-m9.sh.
 func validateTranscendental(_ harness: MetalHarness) throws {
-    for (rounding, vectors) in m9ExpSmokeVectors.sorted(by: { $0.key < $1.key }) {
-        let roundingMode = transcendentalRoundingModes[rounding]!
-        let arguments = vectors.map(\.0)
-        let argumentBuffer = try harness.buffer(arguments)
-        let roundingBuffer = try harness.buffer([roundingMode])
-        let output = try harness.emptyBuffer(count: arguments.count, of: UInt64.self)
-        let flags = try harness.emptyBuffer(count: arguments.count, of: UInt32.self)
-        let certified = try harness.emptyBuffer(count: arguments.count, of: UInt32.self)
-        _ = try harness.run(
-            "soft_exp_round_kernel", count: arguments.count,
-            buffers: [
-                (0, argumentBuffer), (2, output), (4, roundingBuffer),
-                (6, flags), (7, certified),
-            ],
-            countIndex: 3
-        )
-        let observed: [UInt64] = harness.read(output, count: arguments.count)
-        let observedFlags: [UInt32] = harness.read(flags, count: arguments.count)
-        let observedCertification: [UInt32] = harness.read(
-            certified, count: arguments.count
-        )
-        for index in vectors.indices {
-            let (argument, expected, expectedFlags) = vectors[index]
-            guard observed[index] == expected,
-                  observedFlags[index] == UInt32(expectedFlags),
-                  observedCertification[index] == 1 else {
-                throw HarnessError.validation(String(
-                    format: "exp %@ mismatch: a=%016llx got=%016llx want=%016llx " +
-                            "flags=%02x wantFlags=%02x certified=%u",
-                    rounding, argument, observed[index], expected,
-                    observedFlags[index], expectedFlags,
-                    observedCertification[index]
-                ))
+    for (function, modes) in m9SmokeVectors.sorted(by: { $0.key < $1.key }) {
+        let kernel = transcendentalKernels[function]!
+        var total = 0
+        for (rounding, vectors) in modes.sorted(by: { $0.key < $1.key }) {
+            let roundingBuffer = try harness.buffer([transcendentalRoundingModes[rounding]!])
+            let first = try harness.buffer(vectors.map(\.0))
+            let second = try harness.buffer(vectors.map(\.1))
+            let output = try harness.emptyBuffer(count: vectors.count, of: UInt64.self)
+            let flags = try harness.emptyBuffer(count: vectors.count, of: UInt32.self)
+            let certified = try harness.emptyBuffer(count: vectors.count, of: UInt32.self)
+            _ = try harness.run(
+                kernel, count: vectors.count,
+                buffers: [
+                    (0, first), (1, second), (2, output), (4, roundingBuffer),
+                    (6, flags), (7, certified),
+                ],
+                countIndex: 3
+            )
+            let observed: [UInt64] = harness.read(output, count: vectors.count)
+            let observedFlags: [UInt32] = harness.read(flags, count: vectors.count)
+            let observedCertification: [UInt32] = harness.read(
+                certified, count: vectors.count
+            )
+            for index in vectors.indices {
+                let (a, b, expected, expectedFlags) = vectors[index]
+                guard observed[index] == expected,
+                      observedFlags[index] == UInt32(expectedFlags),
+                      observedCertification[index] == 1 else {
+                    throw HarnessError.validation(String(
+                        format: "%@ %@ mismatch: a=%016llx b=%016llx got=%016llx " +
+                                "want=%016llx flags=%02x wantFlags=%02x certified=%u",
+                        function, rounding, a, b, observed[index], expected,
+                        observedFlags[index], expectedFlags,
+                        observedCertification[index]
+                    ))
+                }
             }
+            total += vectors.count
         }
+        let name = String(function.dropFirst(4))
+        print(
+            "\(name.padding(toLength: 12, withPad: " ", startingAt: 0))" +
+            "\(total) pinned MPFR vectors across five rounding modes " +
+            "passed with bitwise results, flags, and certification"
+        )
     }
-    let total = m9ExpSmokeVectors.values.reduce(0) { $0 + $1.count }
-    print(
-        "exp         \(total) pinned MPFR vectors across five rounding modes " +
-        "passed with bitwise results, flags, and certification"
-    )
 }

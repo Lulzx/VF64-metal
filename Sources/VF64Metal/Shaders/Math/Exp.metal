@@ -63,6 +63,17 @@ constant soft_wide SOFT_EXP_RECIPROCAL_FACTORIAL[31] = {
 
 // truncated Taylor tail at |r| <= ln2/2: < 2^-160.1
 
+// exp(r) for |r| <= ln2/2: the 30-term Taylor sum by Horner, error < 2^-120.
+inline soft_wide soft_exp_poly(soft_wide r) {
+    soft_wide accumulator = SOFT_EXP_RECIPROCAL_FACTORIAL[SOFT_EXP_TERMS];
+    for (int term = SOFT_EXP_TERMS - 1; term >= 0; --term) {
+        accumulator = soft_wide_add(
+            SOFT_EXP_RECIPROCAL_FACTORIAL[term], soft_wide_mul(r, accumulator)
+        );
+    }
+    return accumulator;
+}
+
 // Reduction and Horner evaluation for the main path: finite arguments with
 // 2^-60 <= |x| < 1024. Every special case is decided before this is reached.
 inline soft_wide soft_exp64_wide(ulong a) {
@@ -71,14 +82,7 @@ inline soft_wide soft_exp64_wide(ulong a) {
     soft_wide scaled = soft_wide_from_int(k);
     soft_wide r = soft_wide_sub(x, soft_wide_mul(scaled, SOFT_EXP_LN2_HI));
     r = soft_wide_sub(r, soft_wide_mul(scaled, SOFT_EXP_LN2_LO));
-
-    soft_wide accumulator = SOFT_EXP_RECIPROCAL_FACTORIAL[SOFT_EXP_TERMS];
-    for (int term = SOFT_EXP_TERMS - 1; term >= 0; --term) {
-        accumulator = soft_wide_add(
-            SOFT_EXP_RECIPROCAL_FACTORIAL[term], soft_wide_mul(r, accumulator)
-        );
-    }
-    return soft_wide_scale2(accumulator, k);
+    return soft_wide_scale2(soft_exp_poly(r), k);
 }
 
 // |x| < 2^-60 is handled in closed form. There exp(x) lies strictly between
@@ -87,6 +91,22 @@ inline soft_wide soft_exp64_wide(ulong a) {
 // The binary64 neighbours of 1 are 2^-53 below and 2^-52 above, both far
 // outside that interval, so no other value is reachable.
 constant uint soft_exp_tiny_exponent_field = 963u;  // 1023 - 60
+
+// The result for nonzero |x| < 2^-60, shared with exp2, whose value there lies
+// within 2^-59 of 1 by the same argument.
+inline ulong soft_exp_tiny(bool negative, uint roundingMode, thread uint &flags) {
+    flags |= soft_flag_inexact;
+    bool above = !negative;
+    if (roundingMode == soft_round_near_even ||
+        roundingMode == soft_round_near_max_mag) {
+        return 0x3ff0000000000000ul;
+    }
+    if (roundingMode == soft_round_max) {
+        return above ? 0x3ff0000000000001ul : 0x3ff0000000000000ul;
+    }
+    // Toward zero and toward negative infinity agree on a positive result.
+    return above ? 0x3ff0000000000000ul : 0x3feffffffffffffful;
+}
 
 inline ulong soft_exp64_certified(
     ulong a, uint roundingMode, thread uint &flags, thread bool &certified
@@ -106,17 +126,7 @@ inline ulong soft_exp64_certified(
     if (exponentField == 0u && fraction == 0ul) return 0x3ff0000000000000ul;
 
     if (exponentField < soft_exp_tiny_exponent_field) {
-        flags |= soft_flag_inexact;
-        bool above = !sign;
-        if (roundingMode == soft_round_near_even ||
-            roundingMode == soft_round_near_max_mag) {
-            return 0x3ff0000000000000ul;
-        }
-        if (roundingMode == soft_round_max) {
-            return above ? 0x3ff0000000000001ul : 0x3ff0000000000000ul;
-        }
-        // Toward zero and toward negative infinity agree on a positive result.
-        return above ? 0x3ff0000000000000ul : 0x3feffffffffffffful;
+        return soft_exp_tiny(sign, roundingMode, flags);
     }
 
     // |x| >= 1024 cannot be reduced by this path and is decided by range.

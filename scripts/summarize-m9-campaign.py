@@ -26,6 +26,97 @@ def gpu_details(text: str) -> dict:
     }
 
 
+CERTIFIED = "certified-correctly-rounded"
+PROVEN = "proven-correctly-rounded"
+NO_TIES = (
+    "Ties-away-from-zero vectors are derived from MPFR_RNDN plus an exact "
+    "midpoint test at 256 bits; {name} of a binary64 is never exactly halfway "
+    "between two binary64 values{exception}, so the nearest modes agree "
+    "elsewhere"
+)
+
+# Per-function policy published with each artifact. Error bounds are the
+# derivations in the shader sources and docs/milestones/M9-transcendentals.md.
+FUNCTIONS = {
+    "f64_exp": {
+        "short": "exp", "mpfr": "mpfr_exp", "state": CERTIFIED,
+        "bound": "2^-120",
+        "ties": NO_TIES.format(name="exp", exception=""),
+    },
+    "f64_exp2": {
+        "short": "exp2", "mpfr": "mpfr_exp2", "state": CERTIFIED,
+        "bound": "2^-119.9",
+        "ties": NO_TIES.format(
+            name="exp2", exception=" except at x = -1075, whose exact result "
+            "2^-1075 is the midpoint of 0 and the smallest subnormal and is "
+            "rounded exactly"),
+    },
+    "f64_expm1": {
+        "short": "expm1", "mpfr": "mpfr_expm1", "state": CERTIFIED,
+        "bound": "2^-118.6",
+        "ties": NO_TIES.format(name="expm1", exception=""),
+    },
+    "f64_log": {
+        "short": "log", "mpfr": "mpfr_log", "state": CERTIFIED,
+        "bound": "2^-121",
+        "ties": NO_TIES.format(name="log", exception=""),
+    },
+    "f64_log2": {
+        "short": "log2", "mpfr": "mpfr_log2", "state": CERTIFIED,
+        "bound": "2^-121",
+        "ties": NO_TIES.format(name="log2", exception=""),
+    },
+    "f64_log1p": {
+        "short": "log1p", "mpfr": "mpfr_log1p", "state": CERTIFIED,
+        "bound": "2^-121",
+        "ties": NO_TIES.format(name="log1p", exception=""),
+    },
+    "f64_cbrt": {
+        "short": "cbrt", "mpfr": "mpfr_cbrt", "state": PROVEN,
+        "bound": "exact rounding decision",
+        "ties": NO_TIES.format(name="cbrt", exception=""),
+    },
+    "f64_hypot": {
+        "short": "hypot", "mpfr": "mpfr_hypot", "state": PROVEN,
+        "bound": "exact rounding decision",
+        "ties": "Ties-away-from-zero vectors are derived from MPFR_RNDN plus an "
+                "exact midpoint test at 256 bits; the corpus includes odd "
+                "54-bit Pythagorean hypotenuses, which are real binary64 "
+                "midpoints",
+    },
+}
+
+
+def limitations(policy: dict) -> list:
+    entries = []
+    if policy["state"] == CERTIFIED:
+        entries.append(
+            "Correct rounding is established per call by the certification test, "
+            "not by a published hardest-to-round search over the whole domain; "
+            "every case in this run certified, and an uncertified case would have "
+            "failed the run rather than being delivered as proven"
+        )
+    else:
+        entries.append(
+            "The rounding decision is made by exact integer comparison against "
+            "the rounding boundaries, so it is correct for every argument; this "
+            "run tests that implementation against the oracle, and a guess the "
+            "bounded correction could not confirm would have been reported "
+            "uncertified and failed the run"
+        )
+    entries.append(policy["ties"])
+    entries.append(
+        "The corpus is seeded and stratified, not exhaustive; no claim is made "
+        "about arguments outside the generated distribution beyond what the "
+        "proof-obligation state establishes"
+    )
+    entries.append(
+        f"{policy['short']} is the only function in this artifact; each M9 "
+        "function is published in its own artifact"
+    )
+    return entries
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--work", required=True)
@@ -35,6 +126,10 @@ def main() -> int:
     parser.add_argument("--function", required=True)
     arguments = parser.parse_args()
 
+    policy = FUNCTIONS.get(arguments.function)
+    if policy is None:
+        print(f"unknown function {arguments.function}", file=sys.stderr)
+        return 1
     work = pathlib.Path(arguments.work)
     repo = pathlib.Path(arguments.repo)
 
@@ -82,10 +177,11 @@ def main() -> int:
         "oracle": {
             "name": "GNU MPFR",
             "mpfr_version": mpfr_version,
-            "method": "mpfr_exp at 53-bit destination precision with the binary64 "
-                      "exponent range installed and mpfr_subnormalize applied; the "
-                      "reference is the correctly rounded value, not an approximation",
-            "generator": "tools/m9/exp_ref.c",
+            "method": f"{policy['mpfr']} at 53-bit destination precision with the "
+                      "binary64 exponent range installed and mpfr_subnormalize "
+                      "applied; the reference is the correctly rounded value, not "
+                      "an approximation",
+            "generator": "tools/m9/m9_ref.c",
             "seed": arguments.seed,
             "random_cases_per_mode": arguments.cases,
         },
@@ -95,9 +191,9 @@ def main() -> int:
             "tininess": "after_rounding",
             "nan_comparison": "bitwise",
             "exception_flags_checked": True,
-            "certification_margin_relative": "2^-116",
-            "evaluation_error_bound_relative": "2^-120",
-            "proof_obligation_state": "certified-correctly-rounded",
+            "certification_margin_relative": "2^-116" if policy["state"] == CERTIFIED else None,
+            "evaluation_error_bound_relative": policy["bound"],
+            "proof_obligation_state": policy["state"],
         },
         "device": device,
         "rounding_modes": {
@@ -110,24 +206,11 @@ def main() -> int:
             for entry in summaries
         },
         "total_result_comparisons": total,
-        "limitations": [
-            "Correct rounding is established per call by the certification test, "
-            "not by a published hardest-to-round search over the whole domain; "
-            "every case in this run certified, and an uncertified case would have "
-            "failed the run rather than being delivered as proven",
-            "Ties-away-from-zero vectors are generated with MPFR_RNDN; exp(x) is "
-            "never exactly halfway between two binary64 values for nonzero x, so "
-            "the two nearest modes cannot disagree",
-            "The corpus is seeded and stratified, not exhaustive; no claim is made "
-            "about arguments outside the generated distribution beyond what the "
-            "certification test establishes per call",
-            "exp is the only function in this artifact; no other transcendental is "
-            "implemented or claimed",
-        ],
+        "limitations": limitations(policy),
     }
 
     destination = repo / "results" / "m9" / (
-        f"{stamp}-{device['name'].lower().replace(' ', '-')}-exp-level1.json"
+        f"{stamp}-{device['name'].lower().replace(' ', '-')}-{policy['short']}-level1.json"
     )
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(artifact, indent=2) + "\n")

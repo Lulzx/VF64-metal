@@ -44,7 +44,7 @@ if [ "$found_gmp" != "$gmp_version" ]; then
 fi
 
 mkdir -p "$build_dir"
-cc -O2 -Wall -Wextra -o "$build_dir/exp_ref" "$repo_dir/tools/m9/exp_ref.c" \
+cc -O2 -Wall -Wextra -o "$build_dir/m9_ref" "$repo_dir/tools/m9/m9_ref.c" \
     -I"$prefix/include" -L"$prefix/lib" -lmpfr -lgmp
 
-printf '%s\n' "$build_dir/exp_ref"
+printf '%s\n' "$build_dir/m9_ref"

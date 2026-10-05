@@ -309,3 +309,86 @@ inline ulong soft_wide_to_f64_status(
     return (ulong(a.sign) << 63) | (ulong(exponent) << 52) |
            (significand & 0x000ffffffffffffful);
 }
+
+inline soft_wide soft_wide_one() {
+    return soft_wide{1ul << 63, 0ul, 1, false};
+}
+
+inline soft_wide soft_wide_abs(soft_wide a) {
+    a.sign = false;
+    return a;
+}
+
+inline bool soft_wide_magnitude_greater(soft_wide a, soft_wide b) {
+    if (a.exponent != b.exponent) return a.exponent > b.exponent;
+    return soft_u128_less(soft_u128{b.hi, b.lo}, soft_u128{a.hi, a.lo});
+}
+
+// Reciprocal by Newton iteration, r <- r + r(1 - b r), from an FP32 seed.
+//
+// Write |b| = m 2^(E-1) with m in [1, 2). The seed divides by m truncated to
+// 24 bits, a relative error below 2^-23, in FP32 with at most a few ulps of
+// error under fast math, so the seed's relative error e0 is below 2^-20.
+// One step maps e to e^2 plus the truncation of the product, the difference,
+// and the sum, together below 3 * 2^-127. Three steps therefore reach
+// 2^-40, 2^-80, and then 2^-160 + 3 * 2^-127 < 2^-125.4: the reciprocal's
+// relative error is below 2^-125.
+inline soft_wide soft_wide_reciprocal(soft_wide b) {
+    bool sign = b.sign;
+    b.sign = false;
+    float leading = float(b.hi >> 40) * 0x1.0p-23f;  // m truncated to 24 bits
+    float seed = 1.0f / leading;                       // in (0.5, 1]
+    ulong seedBits = ulong(seed * 0x1.0p24f);          // exact: 24-bit seed
+    // 1/|b| = seed 2^(1-E) = seedBits 2^(-23-E), so the wide exponent is
+    // 128 - 23 - E.
+    soft_wide r = soft_wide_normalize(
+        soft_u128{0ul, seedBits}, 105 - b.exponent, false
+    );
+    soft_wide one = soft_wide_one();
+    for (int step = 0; step < 3; ++step) {
+        soft_wide error = soft_wide_sub(one, soft_wide_mul(b, r));
+        r = soft_wide_add(r, soft_wide_mul(r, error));
+    }
+    r.sign = sign;
+    return r;
+}
+
+// a / b with relative error below 2^-125 + 2^-127 < 2^-124.6.
+inline soft_wide soft_wide_div(soft_wide a, soft_wide b) {
+    return soft_wide_mul(a, soft_wide_reciprocal(b));
+}
+
+// Closed-form rounding for a value the caller has proven to lie strictly
+// between binary64 `base` and its neighbour toward +infinity (`above`) or
+// toward -infinity, less than half an ulp from `base`. Nearest modes return
+// base; directed modes return base or that neighbour. The result is always
+// inexact, tiny when delivered subnormal or zero, and overflows only when the
+// neighbour is infinite.
+inline ulong soft_round_beside(
+    ulong base, bool above, uint roundingMode, thread uint &flags
+) {
+    bool negative = (base >> 63) != 0ul;
+    bool towardZero = above == negative;
+    ulong neighbour = towardZero ? base - 1ul : base + 1ul;
+    ulong result = base;
+    if (roundingMode == soft_round_max) {
+        if (above) result = neighbour;
+    } else if (roundingMode == soft_round_min) {
+        if (!above) result = neighbour;
+    } else if (roundingMode == soft_round_min_mag) {
+        if (towardZero) result = neighbour;
+    }
+    flags |= soft_flag_inexact;
+    uint field = uint((result >> 52) & 0x7fful);
+    if (field == 0x7ffu) flags |= soft_flag_overflow;
+    if (field == 0u) flags |= soft_flag_underflow;
+    return result;
+}
+
+// Rounds a wide value that is exact, so no certificate is needed.
+inline ulong soft_wide_exact_to_f64_status(
+    soft_wide a, uint roundingMode, thread uint &flags
+) {
+    bool ignored = true;
+    return soft_wide_to_f64_status(a, roundingMode, flags, ignored);
+}
