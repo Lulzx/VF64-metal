@@ -1,7 +1,7 @@
 # M9 — Correctly rounded transcendental layer
 
-Status: **P1 complete for `exp`; P2 (tranche A) complete; tranches B and C
-not started.**
+Status: **P1 complete for `exp`; P2 (tranche A) and P3 (tranche B)
+complete; tranche C not started.**
 
 What exists: a wide evaluation core, a correctly rounded `exp`, a pinned MPFR
 oracle, and one published campaign of 20,008,875 result and exception-flag
@@ -10,7 +10,9 @@ uncertified results
 ([artifact](../../results/m9/2026-09-20-apple-m4-pro-exp-level1.json)).
 Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`,
 each with its own published campaign (see
-[Tranche A, as shipped](#tranche-a-as-shipped)). No claim is made beyond what
+[Tranche A, as shipped](#tranche-a-as-shipped)). Tranche B adds `pow`,
+`atan`, `atan2`, `asin`, and `acos`, likewise (see
+[Tranche B, as shipped](#tranche-b-as-shipped)). No claim is made beyond what
 each function's published proof-obligation state establishes.
 
 M2 supplies the exact binary64 arithmetic core and deliberately stops there.
@@ -141,9 +143,10 @@ only. That was an analysis decision, not a measured one, and it should be read
 as such: the wide path is a fixed 30-term Horner evaluation with no
 data-dependent control flow, so a fast path would add a branch and a
 divergence cost to skip work that is already bounded and uniform. No cost
-measurement exists for either arrangement yet. The fast path stays open for
-tranches B and C, where the wide step is more expensive, and the question
-should be settled there with numbers.
+measurement exists for either arrangement yet. Tranche B also shipped
+the wide step only, including `pow`'s 192-bit logarithm, so the fast path
+stays open for tranche C, and the question should be settled there with
+numbers.
 
 A kernel that cannot terminate is not shippable, so "keep widening until it
 rounds" is not an option here.
@@ -252,6 +255,78 @@ Two lessons from tranche A:
   below 64 only, and placing a 54-bit root at bit 127 needs up to 74.
   `Algebraic.metal` adds a full-range shift instead of relying on the old one.
 
+### Tranche B, as shipped
+
+Five functions, with the same calling convention and all five rounding modes.
+`atan2` and `pow` take two operands, through the same binary kernel entry
+points as `hypot`.
+
+| Function | Method | Error bound | Proof-obligation state |
+| --- | --- | --- | --- |
+| `atan` | `atan(c) + atan((w-c)/(1+wc))`, `c = j/16` tabulated, 14-term odd series at \|t\| <= 1/32; `pi/2 - atan(1/w)` above 1 | 2^-120 | 3, certified per call |
+| `atan2` | `atan` of the wide quotient of the smaller over the larger magnitude, then quadrant by `pi/2` and `pi` | 2^-120 | 3, certified per call |
+| `asin` | `atan(x / sqrt((1-x)(1+x)))`, the factors exact | 2^-120 | 3, certified per call |
+| `acos` | `atan(sqrt((1-x)(1+x)) / x)`, `pi - ...` for x < 0 | 2^-120 | 3, certified per call |
+| `pow` | `2^(y log2 x)`: `log2` of the reduced argument in a 192-bit format, `y e` exact, `exp2` on the `exp` polynomial; exact cases in integers | 2^-119.8 | 3, certified per call; exact cases decided exactly |
+
+The bounds are derived in `Shaders/Math/Atan.metal` and
+`Shaders/Math/Pow.metal`; constants come from
+`tools/m9/generate-atan-constants.py` and
+`tools/m9/generate-pow-constants.py`.
+
+`pow` is the first function that needs more than 128 bits. `y log2 x` turns a
+relative error in `log2 m` into an absolute error in the exponent `z` that is
+amplified by up to `|z| < 2^11`, so a 128-bit `log2` would leave only about
+2^-117 against the 2^-116 margin. `Shaders/Math/Wide3.metal` adds a 192-bit
+truncating format (multiply, add, Newton reciprocal) used only for
+`log2 m`, which comes out within 2^-186. The rest of `pow` stays on the 128-bit
+core.
+
+`pow` is also not transcendental everywhere. With `x = X 2^E`, `X` odd, and
+`y = n / 2^k`, `x^y` is a dyadic rational exactly when `X` is a perfect
+`2^k`-th power and `2^k` divides `E`, which needs `k <= 5` once `X > 1`, and
+`y > 0`. Those cases, and powers of two raised to any `y` with `E y` an
+integer, are computed in integers and rounded exactly, including the real
+midpoints they reach (`pow(x, 2)` of a 27-bit odd `x`, for example). Every
+other result is irrational or not dyadic, so it is neither representable nor a
+midpoint, and certification applies. Special values follow IEEE 754-2019
+9.2.1; a signaling NaN raises invalid and propagates even in `pow(sNaN, 0)`
+and `pow(1, sNaN)`, where a quiet NaN would give 1.
+
+Closed forms cover the results within half an ulp of a known value: `atan`
+and `asin` for \|x\| < 2^-27, where the cubic offset is below half an ulp;
+`pow` when \|y log2 x\| < 2^-60; and `atan2` for x > 0 with \|y/x\| < 2^-55,
+where the exact quotient is rounded by exact integer division because
+`atan(q)` lies strictly between `q` and the next boundary toward zero.
+Results beyond the overflow and underflow thresholds are decided directly.
+
+Each campaign ran 4,000,000 seeded random arguments per rounding mode plus its
+boundary corpus, in all five modes, at source commit `78f03f0` against MPFR
+4.2.2. Each had zero mismatches in result bits and flags and zero uncertified
+results:
+
+| Function | Comparisons | Evidence |
+| --- | ---: | --- |
+| `acos` | 20,002,170 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-acos-level1.json) |
+| `asin` | 20,002,170 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-asin-level1.json) |
+| `atan` | 20,004,455 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-atan-level1.json) |
+| `atan2` | 20,010,315 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-atan2-level1.json) |
+| `pow` | 20,066,670 | [artifact](../../results/m9/2026-10-05-apple-m4-pro-pow-level1.json) |
+
+The `pow` corpus is stratified for the cases that break implementations: `x`
+within 2^-13 of 1 with \|y\| up to 2^60, integer `y`, perfect squares and
+fourth powers with dyadic `y`, `y log2 x` at the overflow and underflow
+thresholds, and powers of two across the whole exponent range. Two mutation
+checks confirm the corpus reaches the exact paths: disabling `pow`'s exact
+cases, or the exact-division adjustment in `atan2`'s small-quotient path,
+makes the campaign fail.
+
+One lesson from tranche B: certification is a statement about distance to
+rounding boundaries, so a stand-in value has to stay away from them too. The
+first `pow` overflow path saturated to exactly `2^4096`, which is on the grid,
+and the directed modes reported it uncertified although the delivered result
+was right. It now saturates to `(1.5 + 2^-65) 2^4096`, off every boundary.
+
 ### Argument reduction
 
 `exp` as shipped needs no table: Cody-Waite plus a Taylor sum keeps the
@@ -349,7 +424,12 @@ public surface checked by `check-vf64-abi.sh`.
   zero mismatches, zero uncertified, one artifact per function. `cbrt` and
   `hypot` are proven (state 1); the other five are certified per call
   (state 3).
-- **P3 — tranche B.** `pow`, `atan`, `atan2`, `asin`, `acos`.
+- **P3 — tranche B. Complete.** `pow`, `atan`, `atan2`, `asin`, and `acos`
+  in all five rounding modes, with a 192-bit format for `pow`'s logarithm.
+  Exit met: 100,085,780 comparisons across the five functions, zero
+  mismatches, zero uncertified, one artifact per function. All five are
+  certified per call (state 3); `pow`'s exact and midpoint results are
+  decided exactly.
 - **P4 — tranche C.** `sin`, `cos`, `tan` with Payne-Hanek, then the hyperbolic
   and inverse-hyperbolic family.
 - **P5 — surface reconciliation.** Update the `ieee64` operation surface, the
@@ -364,7 +444,8 @@ Settled by P1:
 
 - **Wide format width.** 128-bit. The error budget lands at 2^-120 against a
   certification margin at 2^-116, so 192 bits buys nothing for `exp`. Tranche C
-  may reopen this: Payne-Hanek reduction has a different budget.
+  may reopen this: Payne-Hanek reduction has a different budget. (Tranche B
+  reopened it for one step only: `pow`'s logarithm is 192-bit.)
 - **Ziv fast path.** Not used for `exp`, by analysis rather than measurement
   (see above). Open, and worth measuring properly, in later tranches.
 - **Proof-obligation states.** Four states, with state 3 added because P1
@@ -382,14 +463,23 @@ Settled by P2:
   general but algebraic on some subdomains, should split its claim the same
   way.
 
+Settled by P3:
+
+- **Proof state per function in tranche B.** All five are state 3. `pow`
+  splits its claim as P2 predicted: the rational results it can reach are
+  decided exactly, and only the irrational or non-dyadic remainder relies on
+  the per-call certificate.
+
 Still open:
 
-- Which tranche B and C functions can reach state 1 or 2.
+- Which tranche C functions can reach state 1 or 2, and whether a
+  hardest-to-round search for `pow`, whose worst cases over two arguments are
+  not known, is feasible at all.
 - Whether a hardest-to-round search for `exp` is worth running to move it from
   state 3 to state 1, or whether the per-call certificate is the better
   permanent answer for a GPU runtime.
-- What the delivered cost actually is. Neither P1 nor P2 published a rate.
-  Tranche A landed while the measurement host carried heavy unrelated CPU and
+- What the delivered cost actually is. Neither P1, P2, nor P3 published a
+  rate. Tranches A and B landed while the measurement host carried heavy unrelated CPU and
   GPU load, which made timings unreliable, so the measurement moves to an
   idle-host capture. The claim policy's rule still applies: a microkernel
   rate is not an application rate.

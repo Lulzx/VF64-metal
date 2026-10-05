@@ -7,7 +7,7 @@ specific implementation, device, workload, and result artifact.
 ## Canonical roadmap
 
 - [Virtual FP64 milestones M1–M8](milestones/README.md)
-- [M9 — Correctly rounded transcendental layer (`exp` and tranche A shipped)](milestones/M9-transcendentals.md)
+- [M9 — Correctly rounded transcendental layer (`exp` and tranches A and B shipped)](milestones/M9-transcendentals.md)
 
 ## Research notes
 

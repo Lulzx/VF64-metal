@@ -227,8 +227,9 @@ M7 remains open for energy and cross-device reproduction.
 
 ## M9 correctly rounded transcendentals
 
-Status: **P1 (`exp`) and P2 (tranche A) complete.** Tranche A adds `exp2`,
-`expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`.
+Status: **P1 (`exp`), P2 (tranche A), and P3 (tranche B) complete.**
+Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`;
+tranche B adds `pow`, `atan`, `atan2`, `asin`, and `acos`.
 
 At the M9 P1 source revision, `scripts/run-mpfr-m9.sh` passed 20,008,875
 result and exception-flag comparisons against GNU MPFR 4.2.2 on the Apple M4
@@ -278,3 +279,18 @@ comparisons after the shared code was refactored. Evidence:
 - [`m9/2026-10-05-apple-m4-pro-log-level1.json`](m9/2026-10-05-apple-m4-pro-log-level1.json): 20,018,410
 - [`m9/2026-10-05-apple-m4-pro-log1p-level1.json`](m9/2026-10-05-apple-m4-pro-log1p-level1.json): 20,002,730
 - [`m9/2026-10-05-apple-m4-pro-log2-level1.json`](m9/2026-10-05-apple-m4-pro-log2-level1.json): 20,018,410
+
+Tranche B ran the same campaign shape at source commit `78f03f0`: 100,085,780
+result and exception-flag comparisons across five functions and five rounding
+modes, with zero mismatches and zero uncertified results. All five are
+certified per call, with derived error bounds of 2^-120 (`atan`, `atan2`,
+`asin`, `acos`) and 2^-119.8 (`pow`, whose logarithm is evaluated in 192
+bits). `pow`'s exactly representable results and real midpoints, which arise
+for perfect powers raised to dyadic exponents, are computed and rounded
+exactly in integers. Evidence:
+
+- [`m9/2026-10-05-apple-m4-pro-acos-level1.json`](m9/2026-10-05-apple-m4-pro-acos-level1.json): 20,002,170
+- [`m9/2026-10-05-apple-m4-pro-asin-level1.json`](m9/2026-10-05-apple-m4-pro-asin-level1.json): 20,002,170
+- [`m9/2026-10-05-apple-m4-pro-atan-level1.json`](m9/2026-10-05-apple-m4-pro-atan-level1.json): 20,004,455
+- [`m9/2026-10-05-apple-m4-pro-atan2-level1.json`](m9/2026-10-05-apple-m4-pro-atan2-level1.json): 20,010,315
+- [`m9/2026-10-05-apple-m4-pro-pow-level1.json`](m9/2026-10-05-apple-m4-pro-pow-level1.json): 20,066,670

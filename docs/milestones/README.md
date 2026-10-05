@@ -15,7 +15,7 @@ and be reproducible.
 9. [M9 — Correctly rounded transcendental layer](M9-transcendentals.md)
 
 M1-M8 are the 1.0 sequence. M9 is not a 1.0 gate (it has shipped `exp` and
-tranche A so far); it must not block or be folded into M8.
+tranches A and B so far); it must not block or be folded into M8.
 
 The [experiment roadmap](../roadmap/experiments.md) lists near-term probes and
 the [claim policy](../policies/claims.md) defines the evidence language. Current
