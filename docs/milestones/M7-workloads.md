@@ -65,6 +65,14 @@ measured 8.65x for device-selected CG, 6.26x for device-selected GMRES,
 heavily loaded by unrelated work, so these are relative results, not a new
 baseline:
 [`results/m7/2026-10-05-m4-pro-dispatch-and-codec-ab.json`](../../results/m7/2026-10-05-m4-pro-dispatch-and-codec-ab.json).
+A single-threadgroup GMRES schedule was also tried and rejected. It ran the
+whole restart cycle in one threadgroup with barriers instead of dispatches,
+and reproduced the chunked results bit for bit, but its best GPU time was
+4.50 ms against 2.60 ms for the chunked schedule on the same loaded host. One
+GPU core lacks the pair-arithmetic throughput the distributed schedule gets
+from all sixteen. At 8,192 unknowns, device-selected GMRES remains bounded by
+the latency of its dependent modified Gram-Schmidt dispatches.
+
 The cross-mode CSR corpus adds periodic, symmetric positive-definite, and
 nonsymmetric matrix structures:
 [`results/m7/2026-08-29-m4-pro-sparse-corpus.json`](../../results/m7/2026-08-29-m4-pro-sparse-corpus.json).
