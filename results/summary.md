@@ -227,7 +227,8 @@ M7 remains open for energy and cross-device reproduction.
 
 ## M9 correctly rounded transcendentals
 
-Status: **P1 complete for `exp`**; no other transcendental is implemented.
+Status: **P1 (`exp`) and P2 (tranche A) complete.** Tranche A adds `exp2`,
+`expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`.
 
 At the M9 P1 source revision, `scripts/run-mpfr-m9.sh` passed 20,008,875
 result and exception-flag comparisons against GNU MPFR 4.2.2 on the Apple M4
@@ -258,3 +259,22 @@ Machine-readable provenance and policy are in
 
 Berkeley TestFloat has no transcendental generators, so this campaign does not
 reuse the M1/M2 oracle and is not covered by the operation matrix.
+
+Tranche A ran the same campaign shape for each new function at source commit
+`d10ab14`: 140,181,830 result and exception-flag comparisons across seven
+functions and five rounding modes, with zero mismatches and zero uncertified
+results. `cbrt` and `hypot` decide their rounding exactly with integer
+arithmetic, which makes them correctly rounded for every argument, including
+the real ties-away midpoints that `hypot` reaches. The other five are
+certified per call against the 2^-116 margin, with derived error bounds
+between 2^-118.6 and 2^-121. The same run reproduced the 20,008,875 `exp`
+comparisons after the shared code was refactored. Evidence:
+
+- [`m9/2026-10-05-apple-m4-pro-cbrt-level1.json`](m9/2026-10-05-apple-m4-pro-cbrt-level1.json): 20,111,100
+- [`m9/2026-10-05-apple-m4-pro-exp-level1.json`](m9/2026-10-05-apple-m4-pro-exp-level1.json): 20,008,875
+- [`m9/2026-10-05-apple-m4-pro-exp2-level1.json`](m9/2026-10-05-apple-m4-pro-exp2-level1.json): 20,016,930
+- [`m9/2026-10-05-apple-m4-pro-expm1-level1.json`](m9/2026-10-05-apple-m4-pro-expm1-level1.json): 20,005,650
+- [`m9/2026-10-05-apple-m4-pro-hypot-level1.json`](m9/2026-10-05-apple-m4-pro-hypot-level1.json): 20,008,600
+- [`m9/2026-10-05-apple-m4-pro-log-level1.json`](m9/2026-10-05-apple-m4-pro-log-level1.json): 20,018,410
+- [`m9/2026-10-05-apple-m4-pro-log1p-level1.json`](m9/2026-10-05-apple-m4-pro-log1p-level1.json): 20,002,730
+- [`m9/2026-10-05-apple-m4-pro-log2-level1.json`](m9/2026-10-05-apple-m4-pro-log2-level1.json): 20,018,410

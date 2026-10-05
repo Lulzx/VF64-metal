@@ -42,7 +42,9 @@ checksum-bound public artifacts pass the
 | `--fp64=auto` | Implemented in standalone compiler | Profile and accuracy-bound selection; not integrated into CuMetal |
 | Control flow and function calls in VF64 v1 | Unsupported | V1 is straight-line with `select` and `halt` only |
 | `exp` | Implemented and MPFR-gated | `ieee64` source-level `soft_exp64_status`; five rounding modes; certified correctly rounded per call under the M9 certification test; not a VF64 opcode and not in the frozen C ABI |
-| All other transcendental functions | Unsupported | No sin/cos/log/pow contract in runtime or ISA |
+| `exp2`, `expm1`, `log`, `log2`, `log1p` | Implemented and MPFR-gated | `ieee64` source-level `soft_<name>_status`; five rounding modes; certified correctly rounded per call; not VF64 opcodes and not in the frozen C ABI |
+| `cbrt`, `hypot` | Implemented and MPFR-gated | `ieee64` source-level `soft_cbrt64_status`, `soft_hypot64_status`; five rounding modes; correctly rounded for every argument by an exact rounding decision; not VF64 opcodes and not in the frozen C ABI |
+| All other transcendental functions | Unsupported | No sin/cos/tan/pow/atan contract in runtime or ISA |
 | FP64 atomics | Unsupported | No atomic opcode or lock runtime |
 | General BLAS, LAPACK, sparse, or solver API | Unsupported | Repository contains measured kernels and workload pilots, not a library-compatible API |
 | Physical register, spill-byte, resident-occupancy counters | Unavailable | Public Metal interfaces inspected on M4 Pro do not expose them; no values are inferred |

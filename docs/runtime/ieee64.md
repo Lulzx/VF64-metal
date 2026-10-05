@@ -101,12 +101,15 @@ binary128, FP64 atomics, total ordering, or language/compiler lowering. A
 caller must implement or reject those operations explicitly. It must never
 substitute the reduced-range `fast48` pair path for an exact operation.
 
-`exp` is implemented outside this frozen contract by the M9 layer, which
-supplies `soft_exp64_status` on top of the operations above. It is not part of
-the M2 surface, not a VF64 v1 opcode, and not in the frozen C ABI. Its own
-contract, error budget, and certification rule are in
-[M9](../milestones/M9-transcendentals.md); every other transcendental remains
-unsupported here and there.
+`exp`, `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot` are
+implemented outside this frozen contract by the M9 layer, which supplies
+`soft_exp64_status`, `soft_exp2_64_status`, `soft_expm1_64_status`,
+`soft_log64_status`, `soft_log2_64_status`, `soft_log1p64_status`,
+`soft_cbrt64_status`, and `soft_hypot64_status` on top of the operations
+above. They are not part of the M2 surface, not VF64 v1 opcodes, and not in
+the frozen C ABI. Their contracts, error budgets, and proof-obligation states
+are in [M9](../milestones/M9-transcendentals.md); every other transcendental
+remains unsupported here and there.
 
 Kernel buffer indices in `Shaders/Kernels/Exact.metal` belong to the validation
 harness, not this runtime contract. M4 will define the independent virtual ISA

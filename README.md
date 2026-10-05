@@ -45,7 +45,7 @@ M3 without presenting threadgroup capacity as resident occupancy.
 
 - [`fast48`, `wide48`, and `ieee64`](docs/runtime/precision-modes.md)
 - [Complete IEEE-754 binary64 runtime](docs/runtime/ieee64.md)
-- [Correctly rounded `exp`, and what M9 does and does not claim](docs/milestones/M9-transcendentals.md)
+- [Correctly rounded `exp`, `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, and `hypot`, and what M9 does and does not claim](docs/milestones/M9-transcendentals.md)
 - [Precision-stack architecture](docs/architecture/precision-stack.md)
 - [Apple Metal capability boundary](docs/platform/apple-metal-capabilities.md)
 - [Claim and publication policy](docs/policies/claims.md)
@@ -82,15 +82,15 @@ The standalone compiler additionally supports `auto` selection.
 M1, M2, M4, M5, and M6 are complete under their documented exit criteria.
 M3, M7, and M8 remain open where cross-generation hardware, energy, or release
 proof is still required. M9 adds correctly rounded transcendentals on top of
-the exact core and is not a 1.0 gate; its first function, `exp`, is
-implemented and MPFR-gated. The
+the exact core and is not a 1.0 gate; `exp` and tranche A (`exp2`, `expm1`,
+`log`, `log2`, `log1p`, `cbrt`, `hypot`) are implemented and MPFR-gated. The
 [status ledger](docs/evidence/milestone-status.md) is authoritative.
 
 ## Reproducibility scripts
 
 - `bootstrap-testfloat.sh` - fetch and pin Berkeley SoftFloat/TestFloat.
 - `bootstrap-mpfr.sh`, `run-mpfr-m9.sh` - pin the MPFR oracle and run the M9
-  correctly rounded `exp` conformance campaign.
+  conformance campaign for one function (`VF64_M9_FUNCTION`).
 - `run-testfloat-m1.sh`, `run-testfloat-m2.sh`, `run-testfloat-m4.sh` - exact
   arithmetic, complete-runtime, and ISA differential conformance.
 - `build-vf64-support.sh`, `check-vf64-support.sh` - build and validate the
