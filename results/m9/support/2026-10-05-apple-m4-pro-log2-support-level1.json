@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "milestone": "M9",
+  "result_scope": "binary64 result bits through the linkable support ABI (vf64_log2_rne for rnear_even, vf64_log2_round otherwise)",
+  "status": "pass",
+  "unexplained_mismatches": 0,
+  "uncertified_results": null,
+  "source_commit": "ebc0212",
+  "command": "VF64_M9_PATH=support scripts/run-mpfr-m9.sh",
+  "oracle": {
+    "name": "GNU MPFR",
+    "mpfr_version": "4.2.2",
+    "method": "mpfr_log2 at 53-bit destination precision with the binary64 exponent range installed and mpfr_subnormalize applied; the reference is the correctly rounded value, not an approximation",
+    "generator": "tools/m9/m9_ref.c",
+    "seed": 1,
+    "random_cases_per_mode": 4000000
+  },
+  "policy": {
+    "function": "f64_log2",
+    "rounding_modes": [
+      "rnear_even",
+      "rminMag",
+      "rmin",
+      "rmax",
+      "rnear_maxMag"
+    ],
+    "tininess": "after_rounding",
+    "nan_comparison": "bitwise",
+    "exception_flags_checked": false,
+    "certification_margin_relative": "2^-116",
+    "evaluation_error_bound_relative": "2^-121",
+    "proof_obligation_state": "certified-correctly-rounded"
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 27.0.1",
+    "os_build": "26A434"
+  },
+  "rounding_modes": {
+    "rnear_even": {
+      "cases": 4003682,
+      "mismatches": 0,
+      "uncertified": null,
+      "oracle_flagged": 3839404
+    },
+    "rminMag": {
+      "cases": 4003682,
+      "mismatches": 0,
+      "uncertified": null,
+      "oracle_flagged": 3839404
+    },
+    "rmin": {
+      "cases": 4003682,
+      "mismatches": 0,
+      "uncertified": null,
+      "oracle_flagged": 3839404
+    },
+    "rmax": {
+      "cases": 4003682,
+      "mismatches": 0,
+      "uncertified": null,
+      "oracle_flagged": 3839404
+    },
+    "rnear_maxMag": {
+      "cases": 4003682,
+      "mismatches": 0,
+      "uncertified": null,
+      "oracle_flagged": 3839404
+    }
+  },
+  "total_result_comparisons": 20018410,
+  "limitations": [
+    "The support ABI is flag-free: exception flags and the per-call certificate are discarded, so neither is compared here; the soft path artifact for the same function gates both",
+    "The kernels call the symbols as unresolved externals statically linked against vf64-support.air with air-link, as a source-language backend does",
+    "Correct rounding is established per call by the certification test, not by a published hardest-to-round search over the whole domain; every case in this run certified, and an uncertified case would have failed the run rather than being delivered as proven",
+    "Ties-away-from-zero vectors are derived from MPFR_RNDN plus an exact midpoint test at 256 bits; log2 of a binary64 is never exactly halfway between two binary64 values, so the nearest modes agree elsewhere",
+    "The corpus is seeded and stratified, not exhaustive; no claim is made about arguments outside the generated distribution beyond what the proof-obligation state establishes",
+    "log2 is the only function in this artifact; each M9 function is published in its own artifact"
+  ]
+}

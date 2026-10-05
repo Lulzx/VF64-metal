@@ -43,7 +43,13 @@ jq -e '
   .totals.policy_cells == 110 and
   .totals.result_comparisons == 440402485 and
   .totals.mismatches == 0 and
-  .totals.uncertified_results == 0
+  .totals.uncertified_results == 0 and
+  ([.functions[].support_result_comparisons] | add) == .totals.support_result_comparisons and
+  ([.functions[].support_mismatches] | add) == .totals.support_mismatches and
+  (all(.functions[]; .support_result_comparisons == .result_comparisons and .support_mismatches == 0)) and
+  (.support_path.source_commit | test("dirty") | not) and
+  .totals.support_result_comparisons == 440402485 and
+  .totals.support_mismatches == 0
 ' "$m9_matrix" >/dev/null
 
 # Every matrix row must agree with the per-function artifact it cites.
@@ -67,6 +73,26 @@ jq -c '.functions[]' "$m9_matrix" | while IFS= read -r row; do
     ' "$artifact" >/dev/null
 done
 
+# The support-path rows must agree with their own artifacts: flag-free, so
+# result bits only, from one clean commit.
+m9_support_commit=$(jq -r '.support_path.source_commit' "$m9_matrix")
+jq -c '.functions[]' "$m9_matrix" | while IFS= read -r row; do
+    artifact="$repo_dir/$(printf '%s' "$row" | jq -r '.support_artifact')"
+    jq -e --argjson row "$row" --arg commit "$m9_support_commit" '
+      .milestone == "M9" and
+      .status == "pass" and
+      .source_commit == $commit and
+      .policy.function == $row.function and
+      .policy.exception_flags_checked == false and
+      .uncertified_results == null and
+      (.result_scope | test("support ABI")) and
+      (.policy.rounding_modes | length) == $row.policy_cells and
+      .total_result_comparisons == $row.support_result_comparisons and
+      .unexplained_mismatches == $row.support_mismatches and
+      ([.rounding_modes[] | .mismatches] | add) == 0
+    ' "$artifact" >/dev/null
+done
+
 m9_total=$(jq -r '.totals.result_comparisons' "$m9_matrix")
 
-printf 'conformance_data=pass operations=26 cells=119 comparisons_per_path=%s m9_functions=22 m9_cells=110 m9_comparisons=%s\n' "$matrix_total" "$m9_total"
+printf 'conformance_data=pass operations=26 cells=119 comparisons_per_path=%s m9_functions=22 m9_cells=110 m9_comparisons=%s m9_support_comparisons=%s\n' "$matrix_total" "$m9_total" "$(jq -r '.totals.support_result_comparisons' "$m9_matrix")"

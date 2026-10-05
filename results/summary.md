@@ -330,3 +330,14 @@ row against each artifact and its source commit by
 `scripts/check-conformance-data.sh`. `vf64-compile` refuses every M9 function
 in `fast48`, `wide48`, `ieee64`, and `auto`, because VF64 v1 has no
 transcendental opcode; `scripts/check-cli-api.sh` gates that refusal.
+
+After P6, the 22 functions are also exported through the linkable support ABI
+as flag-free `vf64_<name>_rne` and `vf64_<name>_round` symbols. At source
+commit `ebc0212`, `VF64_M9_PATH=support scripts/run-mpfr-m9.sh` drove the same
+corpus through kernels that reach those symbols only as unresolved externals
+statically linked with `air-link`: 440,402,485 result comparisons across the
+22 functions and five rounding modes, with zero mismatches. That ABI returns
+neither flags nor the certificate, so this path compares result bits only; the
+soft-path artifacts above gate both. The 22 artifacts are in
+[`m9/support/`](m9/support/) and are reconciled row by row in the same
+function matrix.

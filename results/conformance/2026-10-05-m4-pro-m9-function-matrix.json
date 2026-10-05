@@ -41,7 +41,9 @@
     "mismatches": 0,
     "uncertified_results": 0,
     "proven_functions": 2,
-    "certified_functions": 20
+    "certified_functions": 20,
+    "support_result_comparisons": 440402485,
+    "support_mismatches": 0
   },
   "functions": [
     {
@@ -53,7 +55,10 @@
       "policy_cells": 5,
       "result_comparisons": 20002170,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-acos-support-level1.json",
+      "support_result_comparisons": 20002170,
+      "support_mismatches": 0
     },
     {
       "function": "f64_acosh",
@@ -64,7 +69,10 @@
       "policy_cells": 5,
       "result_comparisons": 20008075,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-acosh-support-level1.json",
+      "support_result_comparisons": 20008075,
+      "support_mismatches": 0
     },
     {
       "function": "f64_asin",
@@ -75,7 +83,10 @@
       "policy_cells": 5,
       "result_comparisons": 20002170,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-asin-support-level1.json",
+      "support_result_comparisons": 20002170,
+      "support_mismatches": 0
     },
     {
       "function": "f64_asinh",
@@ -86,7 +97,10 @@
       "policy_cells": 5,
       "result_comparisons": 20008075,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-asinh-support-level1.json",
+      "support_result_comparisons": 20008075,
+      "support_mismatches": 0
     },
     {
       "function": "f64_atan",
@@ -97,7 +111,10 @@
       "policy_cells": 5,
       "result_comparisons": 20004455,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-atan-support-level1.json",
+      "support_result_comparisons": 20004455,
+      "support_mismatches": 0
     },
     {
       "function": "f64_atan2",
@@ -108,7 +125,10 @@
       "policy_cells": 5,
       "result_comparisons": 20010315,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-atan2-support-level1.json",
+      "support_result_comparisons": 20010315,
+      "support_mismatches": 0
     },
     {
       "function": "f64_atanh",
@@ -119,7 +139,10 @@
       "policy_cells": 5,
       "result_comparisons": 20008075,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-atanh-support-level1.json",
+      "support_result_comparisons": 20008075,
+      "support_mismatches": 0
     },
     {
       "function": "f64_cbrt",
@@ -130,7 +153,10 @@
       "policy_cells": 5,
       "result_comparisons": 20111100,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-cbrt-support-level1.json",
+      "support_result_comparisons": 20111100,
+      "support_mismatches": 0
     },
     {
       "function": "f64_cos",
@@ -141,7 +167,10 @@
       "policy_cells": 5,
       "result_comparisons": 20030030,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-cos-support-level1.json",
+      "support_result_comparisons": 20030030,
+      "support_mismatches": 0
     },
     {
       "function": "f64_cosh",
@@ -152,7 +181,10 @@
       "policy_cells": 5,
       "result_comparisons": 20003895,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-cosh-support-level1.json",
+      "support_result_comparisons": 20003895,
+      "support_mismatches": 0
     },
     {
       "function": "f64_exp",
@@ -163,7 +195,10 @@
       "policy_cells": 5,
       "result_comparisons": 20008875,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-exp-support-level1.json",
+      "support_result_comparisons": 20008875,
+      "support_mismatches": 0
     },
     {
       "function": "f64_exp2",
@@ -174,7 +209,10 @@
       "policy_cells": 5,
       "result_comparisons": 20016930,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-exp2-support-level1.json",
+      "support_result_comparisons": 20016930,
+      "support_mismatches": 0
     },
     {
       "function": "f64_expm1",
@@ -185,7 +223,10 @@
       "policy_cells": 5,
       "result_comparisons": 20005650,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-expm1-support-level1.json",
+      "support_result_comparisons": 20005650,
+      "support_mismatches": 0
     },
     {
       "function": "f64_hypot",
@@ -196,7 +237,10 @@
       "policy_cells": 5,
       "result_comparisons": 20008600,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-hypot-support-level1.json",
+      "support_result_comparisons": 20008600,
+      "support_mismatches": 0
     },
     {
       "function": "f64_log",
@@ -207,7 +251,10 @@
       "policy_cells": 5,
       "result_comparisons": 20018410,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-log-support-level1.json",
+      "support_result_comparisons": 20018410,
+      "support_mismatches": 0
     },
     {
       "function": "f64_log1p",
@@ -218,7 +265,10 @@
       "policy_cells": 5,
       "result_comparisons": 20002730,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-log1p-support-level1.json",
+      "support_result_comparisons": 20002730,
+      "support_mismatches": 0
     },
     {
       "function": "f64_log2",
@@ -229,7 +279,10 @@
       "policy_cells": 5,
       "result_comparisons": 20018410,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-log2-support-level1.json",
+      "support_result_comparisons": 20018410,
+      "support_mismatches": 0
     },
     {
       "function": "f64_pow",
@@ -240,7 +293,10 @@
       "policy_cells": 5,
       "result_comparisons": 20066670,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-pow-support-level1.json",
+      "support_result_comparisons": 20066670,
+      "support_mismatches": 0
     },
     {
       "function": "f64_sin",
@@ -251,7 +307,10 @@
       "policy_cells": 5,
       "result_comparisons": 20030030,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-sin-support-level1.json",
+      "support_result_comparisons": 20030030,
+      "support_mismatches": 0
     },
     {
       "function": "f64_sinh",
@@ -262,7 +321,10 @@
       "policy_cells": 5,
       "result_comparisons": 20003895,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-sinh-support-level1.json",
+      "support_result_comparisons": 20003895,
+      "support_mismatches": 0
     },
     {
       "function": "f64_tan",
@@ -273,7 +335,10 @@
       "policy_cells": 5,
       "result_comparisons": 20030030,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-tan-support-level1.json",
+      "support_result_comparisons": 20030030,
+      "support_mismatches": 0
     },
     {
       "function": "f64_tanh",
@@ -284,7 +349,10 @@
       "policy_cells": 5,
       "result_comparisons": 20003895,
       "mismatches": 0,
-      "uncertified_results": 0
+      "uncertified_results": 0,
+      "support_artifact": "results/m9/support/2026-10-05-apple-m4-pro-tanh-support-level1.json",
+      "support_result_comparisons": 20003895,
+      "support_mismatches": 0
     }
   ],
   "comparison_contract": {
@@ -297,6 +365,12 @@
     "Certified functions are correctly rounded per call under the certification test, not by a published hardest-to-round search over the whole domain",
     "Each corpus is seeded and stratified, not exhaustive",
     "Reduced-precision fast48 and wide48 modes have no transcendental contract and refuse rather than downgrade",
-    "The functions are ieee64 Metal source-level calls, not VF64 v1 opcodes and not in the frozen C ABI"
-  ]
+    "The functions are ieee64 Metal source-level calls, not VF64 v1 opcodes and not in the frozen C ABI",
+    "The support-path rows compare result bits only, because the flag-free support ABI discards exception flags and the certificate; the soft-path rows gate both"
+  ],
+  "support_path": {
+    "scope": "binary64 result bits through the linkable support-ABI symbols vf64_<name>_rne (rnear_even) and vf64_<name>_round (other modes), statically linked with air-link; flags and the certificate are not returned by that ABI and are not compared",
+    "source_commit": "ebc0212",
+    "command": "VF64_M9_PATH=support scripts/run-mpfr-m9.sh"
+  }
 }

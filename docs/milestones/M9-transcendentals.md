@@ -582,7 +582,10 @@ built after the decision:
   through the same symbols and writes to `results/m9/support/`. That gates the
   support path directly, not by inference from the `soft_*_status` path. It
   compares result bits only, because this ABI returns no flags or
-  certificate.
+  certificate. At `ebc0212` it passed 440,402,485 result comparisons across
+  all 22 functions and five rounding modes, with zero mismatches, matching the
+  soft path case for case. The matrix in `results/conformance/` reconciles
+  those artifacts too.
 
 Reopen Option B only if a bytecode consumer appears that needs these
 functions, and only after an idle-host cost capture and an interpreter-pressure

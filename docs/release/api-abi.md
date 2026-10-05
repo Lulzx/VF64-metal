@@ -78,7 +78,9 @@ arithmetic, comparison, and conversion probes on the GPU.
 44 M9 symbols only as unresolved externals, then runs the pinned MPFR smoke
 vectors for all 22 functions in five rounding modes through them, comparing
 result bits. `VF64_M9_PATH=support scripts/run-mpfr-m9.sh` runs a full MPFR
-campaign through the same symbols.
+campaign through the same symbols. At `ebc0212` that campaign passed
+440,402,485 result comparisons across the 22 functions with zero mismatches
+([artifacts](../../results/m9/support/)).
 
 ## Standalone runner API
 

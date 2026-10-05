@@ -67,6 +67,10 @@ certify, no artifact is written. Each function's artifact lands in
 [M9 function matrix](../../results/conformance/2026-10-05-m4-pro-m9-function-matrix.json)
 indexes all 22 artifacts, and `scripts/check-conformance-data.sh` checks that
 its 22 functions, 110 policy cells, and 440,402,485 comparisons agree, row by
-row, with the per-function artifacts and one clean source commit. The proof
+row, with the per-function artifacts and one clean source commit. The same
+matrix carries the support-ABI rows from
+`VF64_M9_PATH=support scripts/run-mpfr-m9.sh`: 440,402,485 result-bit
+comparisons through the flag-free `vf64_<name>_rne`/`_round` symbols, with
+artifacts in `results/m9/support/`. The proof
 state each function reaches, and what that state does and does not claim, is
 in [M9](../milestones/M9-transcendentals.md).
