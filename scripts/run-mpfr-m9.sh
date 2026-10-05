@@ -12,6 +12,11 @@
 # The run fails closed. A mismatch against MPFR fails, and so does any case the
 # kernel could not certify as correctly rounded, because an uncertified case is
 # a result whose rounding is not proven even when it happens to be right.
+#
+# VF64_M9_PATH=support runs the same corpus through the linkable support-ABI
+# symbols (vf64_<name>_rne/_round) instead. That ABI is flag-free, so the
+# support path compares result bits only and writes its artifact under
+# results/m9/support/.
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -22,17 +27,30 @@ binary="$repo_dir/.build/release/vf64-metal"
 cases=${VF64_M9_CASES:-4000000}
 seed=${VF64_M9_SEED:-1}
 function=${VF64_M9_FUNCTION:-f64_exp}
+path=${VF64_M9_PATH:-soft}
 
 swift build --package-path "$repo_dir" -c release
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
+case $path in
+    soft) set -- ;;
+    support)
+        "$script_dir/build-vf64-m9-support-kernels.sh" "$work/m9-support.metallib" >/dev/null
+        set -- --support-library="$work/m9-support.metallib"
+        ;;
+    *)
+        printf 'unknown VF64_M9_PATH %s; expected soft or support\n' "$path" >&2
+        exit 2
+        ;;
+esac
+
 for rounding in rnear_even rminMag rmin rmax rnear_maxMag; do
     {
         "$generator" "$function" "$rounding" boundary
         "$generator" "$function" "$rounding" random "$cases" "$seed"
-    } | "$binary" transcendental "$function" "$rounding" |
+    } | "$binary" transcendental "$function" "$rounding" "$@" |
         tee -a "$work/log.txt" | grep '^{' >> "$work/summaries.jsonl"
 done
 
@@ -50,7 +68,11 @@ sed -n 's/^#define MPFR_VERSION_STRING "\([^"]*\)".*/\1/p' \
 
 artifact=$(python3 "$repo_dir/scripts/summarize-m9-campaign.py" \
     --work "$work" --repo "$repo_dir" --cases "$cases" --seed "$seed" \
-    --function "$function")
+    --function "$function" --path "$path")
 
-printf 'm9_%s_conformance=pass\n' "${function#f64_}"
+if [ "$path" = soft ]; then
+    printf 'm9_%s_conformance=pass\n' "${function#f64_}"
+else
+    printf 'm9_%s_support_conformance=pass\n' "${function#f64_}"
+fi
 printf 'artifact=%s\n' "$artifact"

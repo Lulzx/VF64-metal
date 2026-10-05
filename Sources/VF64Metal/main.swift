@@ -1,7 +1,7 @@
 import Foundation
 
 private func usage() {
-    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|matrix-market FILE...|lp|all|testfloat|transcendental <function> <rounding>|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
+    print("Usage: vf64-metal [version [--json]|validate|bench|resources [--json]|workloads|matrix-market FILE...|lp|all|testfloat|transcendental <function> <rounding> [--support-library=FILE]|transcendental --support-library=FILE|testfloat-isa <function> <rounding> [exact]|testfloat-suite-isa <tools-directory>|vf64-profile --slots=N --lanes=N <input.bin> <profile.json>|vf64-compile --fp64=<fast48|wide48|ieee64|auto> --lanes=N [--accuracy-bits=N --profile=FILE --diagnostics=FILE] <source> <program.bin>|vf64-run <program.bin> <input.bin> <output.bin> <flags.bin>]")
 }
 
 do {
@@ -107,15 +107,32 @@ do {
         try runValidation(harness)
         try runBenchmarks(harness)
     case "transcendental":
-        guard CommandLine.arguments.count == 4 else {
-            usage()
-            exit(2)
+        // An optional --support-library=PATH selects the linked support-ABI
+        // kernels; with only that argument, the pinned smoke vectors run.
+        let supportPrefix = "--support-library="
+        let arguments = Array(CommandLine.arguments.dropFirst(2))
+        let supportLibrary = arguments.first { $0.hasPrefix(supportPrefix) }
+            .map { String($0.dropFirst(supportPrefix.count)) }
+        let positional = arguments.filter { !$0.hasPrefix(supportPrefix) }
+        if let supportLibrary {
+            try harness.loadPipelines(
+                fromLibraryAt: URL(fileURLWithPath: supportLibrary)
+            )
         }
-        try runTranscendentalConformance(
-            harness,
-            function: CommandLine.arguments[2],
-            rounding: CommandLine.arguments[3]
-        )
+        if positional.isEmpty, supportLibrary != nil {
+            try validateTranscendental(harness, support: true)
+        } else {
+            guard positional.count == 2 else {
+                usage()
+                exit(2)
+            }
+            try runTranscendentalConformance(
+                harness,
+                function: positional[0],
+                rounding: positional[1],
+                support: supportLibrary != nil
+            )
+        }
     case "testfloat", "testfloat-isa":
         guard CommandLine.arguments.count >= 4 else {
             usage()

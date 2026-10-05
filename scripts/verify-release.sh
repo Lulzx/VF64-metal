@@ -15,6 +15,7 @@ system_profiler SPDisplaysDataType | sed -n '1,24p'
 "$script_dir/check-vf64-support.sh"
 swift build --package-path "$repo_dir" -c release
 "$script_dir/check-cli-api.sh"
+"$script_dir/check-vf64-m9-support.sh"
 "$repo_dir/.build/release/vf64-metal" resources --json
 "$repo_dir/.build/release/vf64-metal" validate
 "$script_dir/run-testfloat-m2.sh"

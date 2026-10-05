@@ -3,6 +3,16 @@
 #include "../Pair/Codec.metal"
 #include "../IEEE/Arithmetic.metal"
 #include "../Wide/Arithmetic.metal"
+#include "../Math/WideFloat.metal"
+#include "../Math/Wide3.metal"
+#include "../Math/Exp.metal"
+#include "../Math/Log.metal"
+#include "../Math/ExpVariants.metal"
+#include "../Math/Algebraic.metal"
+#include "../Math/Atan.metal"
+#include "../Math/Pow.metal"
+#include "../Math/Trig.metal"
+#include "../Math/Hyperbolic.metal"
 
 // Linkable round-to-nearest-even entry points for source-language backends.
 // Arguments and results are raw IEEE-754 binary64 bits so no native FP64 ALU
@@ -223,3 +233,55 @@
         wide_unpack64(a), wide_unpack64(b), wide_unpack64(c)
     ));
 }
+
+// M9 correctly rounded transcendentals. Like the rest of this module they
+// return no flags, so the per-call certificate is discarded: cbrt and hypot
+// are correctly rounded for every argument, and the certified functions are
+// correctly rounded wherever the certificate holds and faithfully rounded by
+// their error bound otherwise. See docs/release/api-abi.md.
+#define VF64_M9_UNARY_SUPPORT(name, soft) \
+[[visible]] ulong vf64_##name##_rne(ulong a) { \
+    uint flags = 0; \
+    bool certified = true; \
+    return soft_##soft##_certified(a, soft_round_near_even, flags, certified); \
+} \
+[[visible]] ulong vf64_##name##_round(ulong a, uint roundingMode) { \
+    uint flags = 0; \
+    bool certified = true; \
+    return soft_##soft##_certified(a, roundingMode, flags, certified); \
+}
+
+#define VF64_M9_BINARY_SUPPORT(name, soft) \
+[[visible]] ulong vf64_##name##_rne(ulong a, ulong b) { \
+    uint flags = 0; \
+    bool certified = true; \
+    return soft_##soft##_certified(a, b, soft_round_near_even, flags, certified); \
+} \
+[[visible]] ulong vf64_##name##_round(ulong a, ulong b, uint roundingMode) { \
+    uint flags = 0; \
+    bool certified = true; \
+    return soft_##soft##_certified(a, b, roundingMode, flags, certified); \
+}
+
+VF64_M9_UNARY_SUPPORT(exp, exp64)
+VF64_M9_UNARY_SUPPORT(exp2, exp2_64)
+VF64_M9_UNARY_SUPPORT(expm1, expm1_64)
+VF64_M9_UNARY_SUPPORT(log, log64)
+VF64_M9_UNARY_SUPPORT(log2, log2_64)
+VF64_M9_UNARY_SUPPORT(log1p, log1p64)
+VF64_M9_UNARY_SUPPORT(cbrt, cbrt64)
+VF64_M9_BINARY_SUPPORT(hypot, hypot64)
+VF64_M9_BINARY_SUPPORT(pow, pow64)
+VF64_M9_UNARY_SUPPORT(atan, atan64)
+VF64_M9_BINARY_SUPPORT(atan2, atan2_64)
+VF64_M9_UNARY_SUPPORT(asin, asin64)
+VF64_M9_UNARY_SUPPORT(acos, acos64)
+VF64_M9_UNARY_SUPPORT(sin, sin64)
+VF64_M9_UNARY_SUPPORT(cos, cos64)
+VF64_M9_UNARY_SUPPORT(tan, tan64)
+VF64_M9_UNARY_SUPPORT(sinh, sinh64)
+VF64_M9_UNARY_SUPPORT(cosh, cosh64)
+VF64_M9_UNARY_SUPPORT(tanh, tanh64)
+VF64_M9_UNARY_SUPPORT(asinh, asinh64)
+VF64_M9_UNARY_SUPPORT(acosh, acosh64)
+VF64_M9_UNARY_SUPPORT(atanh, atanh64)

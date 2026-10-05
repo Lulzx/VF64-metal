@@ -31,6 +31,18 @@ final class MetalHarness {
         return pipeline
     }
 
+    /// Adds every function in a prebuilt metallib, such as a library linked
+    /// against vf64-support.air, so `run` can dispatch it by name.
+    func loadPipelines(fromLibraryAt url: URL) throws {
+        let external = try device.makeLibrary(URL: url)
+        for name in external.functionNames {
+            // Linked support modules also carry their [[visible]] callees.
+            guard let function = external.makeFunction(name: name),
+                  function.functionType == .kernel else { continue }
+            pipelines[name] = try device.makeComputePipelineState(function: function)
+        }
+    }
+
     func buffer<T>(_ values: [T]) throws -> MTLBuffer {
         let length = MemoryLayout<T>.stride * values.count
         guard let result = values.withUnsafeBytes({ bytes in

@@ -556,8 +556,8 @@ to weigh has still not been measured (see [Open questions](#open-questions)):
 The support ABI is where demand exists, and an addition there is additive:
 existing symbols and their meaning do not change, the bytecode version and C
 header are untouched, and a consumer built against a module without the new
-symbols fails at `air-link` rather than silently falling back. The planned
-shape, which P6 records but does not implement:
+symbols fails at `air-link` rather than silently falling back. The shape,
+built after the decision:
 
 - `vf64_<name>_rne(ulong ...)` and `vf64_<name>_round(ulong ..., uint
   rounding)` for each of the 22 functions, over raw binary64 bits, following
@@ -573,11 +573,16 @@ shape, which P6 records but does not implement:
   binary64 neighbours of the exact value, so it is faithfully rounded. That
   last statement follows from the bound alone. It is untested, because no
   campaign has produced an uncertified case.
-- `scripts/build-vf64-support.sh` and `scripts/check-vf64-support.sh` extend
-  their symbol lists and GPU probes, and the support module's symbol count
-  rises from 38. The MPFR campaign gains a lane that drives the linked symbols,
-  so the support path is gated directly, not by inference from the
-  `soft_*_status` path.
+- `scripts/build-vf64-support.sh` checks all 82 symbols, up from 38.
+  `scripts/check-vf64-m9-support.sh`, part of the release gate, links
+  conformance kernels that reach the 44 symbols only as unresolved externals,
+  as CuMetal would. It then runs the pinned MPFR smoke vectors for all 22
+  functions in five rounding modes through them and compares result bits.
+  `VF64_M9_PATH=support scripts/run-mpfr-m9.sh` runs the full MPFR corpus
+  through the same symbols and writes to `results/m9/support/`. That gates the
+  support path directly, not by inference from the `soft_*_status` path. It
+  compares result bits only, because this ABI returns no flags or
+  certificate.
 
 Reopen Option B only if a bytecode consumer appears that needs these
 functions, and only after an idle-host cost capture and an interpreter-pressure
@@ -629,9 +634,9 @@ comparison exist.
   P5 exit.
 - **P6 — ISA and ABI decision. Complete.** Option B is rejected for now on
   consumer and interpreter-pressure grounds, without a measured cost, which
-  still does not exist. The next step is additive `vf64_<name>_rne` and
-  `vf64_<name>_round` support-ABI symbols for CuMetal (see
-  [P6 decision](#p6-decision)).
+  still does not exist. The decision's follow-on, additive
+  `vf64_<name>_rne` and `vf64_<name>_round` support-ABI symbols for CuMetal,
+  is built and gated (see [P6 decision](#p6-decision)).
 
 ## Open questions
 

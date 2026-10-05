@@ -35,8 +35,33 @@ Source-language backends can build `vf64-support.air` with
 round-to-nearest-even and explicit-rounding forms, remainder,
 round-to-integer, six comparisons, all twelve conversions, and the two
 rounding-independent widening conversions. Six `vf64_wide_*` symbols expose
-the frozen `wide48` core-arithmetic contract with full binary64 input range,
-for 38 support symbols in total.
+the frozen `wide48` core-arithmetic contract with full binary64 input range.
+Those 38 symbols are the 1.0 support surface.
+
+An additive M9 extension exports the 22 correctly rounded transcendentals as
+`vf64_<name>_rne` and `vf64_<name>_round` over raw binary64 bits, for `exp`,
+`exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, `hypot`, `pow`, `atan`,
+`atan2`, `asin`, `acos`, `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`,
+`acosh`, and `atanh`. `hypot`, `pow`, and `atan2` take two operands. That
+makes 44 symbols, for 82 in total. They change no existing symbol, VF64
+bytecode version, or C header, and a backend that needs one fails at
+`air-link` against an older module rather than falling back. These symbols
+carry an `ieee64` contract only.
+
+Like the rest of the module they are flag-free, so the per-call certificate
+is discarded, and their contract is stated per proof state:
+
+- `cbrt` and `hypot` are correctly rounded for every argument;
+- the other twenty are correctly rounded wherever the certificate holds, which
+  covers every published M9 comparison; where it does not hold, the derived
+  error bound (2^-116 relative or better) places the result on one of the two
+  binary64 neighbours of the exact value, so it is faithfully rounded. That
+  last case follows from the bound and is untested, because no campaign has
+  produced an uncertified result.
+
+Callers that need the certificate or IEEE flags use the Metal source-level
+`soft_<name>_status` functions instead. See
+[M9](../milestones/M9-transcendentals.md#p6-decision).
 
 Backends issue direct AIR calls and statically link the support module with
 `air-link`; Metal visible-function-table calls are a different ABI and are not
@@ -46,9 +71,14 @@ continues to provide the complete sticky-flag ABI.
 
 The support ABI accepts rounding values from the VF64 v1 C ABI and returns
 integer or raw-bit results. Storage remains ordinary eight-byte IEEE binary64
-at every observable boundary. `scripts/check-vf64-support.sh` verifies all 38
+at every observable boundary. `scripts/check-vf64-support.sh` verifies all 82
 symbols, performs an AIR static link, creates a Metal pipeline, and executes
 arithmetic, comparison, and conversion probes on the GPU.
+`scripts/check-vf64-m9-support.sh` links conformance kernels that reach the
+44 M9 symbols only as unresolved externals, then runs the pinned MPFR smoke
+vectors for all 22 functions in five rounding modes through them, comparing
+result bits. `VF64_M9_PATH=support scripts/run-mpfr-m9.sh` runs a full MPFR
+campaign through the same symbols.
 
 ## Standalone runner API
 

@@ -97,6 +97,10 @@ the exact core and is not a 1.0 gate; `exp`, tranche A (`exp2`, `expm1`,
   arithmetic, complete-runtime, and ISA differential conformance.
 - `build-vf64-support.sh`, `check-vf64-support.sh` - build and validate the
   linkable Metal support module.
+- `build-vf64-m9-support-kernels.sh`, `check-vf64-m9-support.sh` - link the
+  M9 support-ABI conformance kernels and gate the 44 transcendental symbols on
+  the GPU; `VF64_M9_PATH=support run-mpfr-m9.sh` runs a full campaign through
+  them.
 - `check-vf64-abi.sh`, `check-cli-api.sh` - freeze public ABI/API surfaces.
 - `check-cumetal-integration.sh` - verify all three CuMetal FP64 modes.
 - `fetch-matrix-market.sh` - fetch the checksum-pinned external sparse corpus.

@@ -15,6 +15,11 @@ import Foundation
 // provably smaller than the distance to the rounding boundary, so correct
 // rounding cannot be claimed for it. Both counts are reported and both must be
 // zero for the run to pass.
+//
+// With a support library, the same corpus drives the linkable support-ABI
+// symbols (vf64_<name>_rne/_round) through kernels statically linked against
+// vf64-support.air. That ABI returns neither flags nor the certificate, so
+// only result bits are compared on that path.
 
 private struct TranscendentalCase {
     let argument: UInt64
@@ -58,19 +63,28 @@ private let transcendentalKernels: [String: String] = [
 
 private let binaryTranscendentals: Set<String> = ["f64_hypot", "f64_atan2", "f64_pow"]
 
-func runTranscendentalConformance(
-    _ harness: MetalHarness,
-    function: String,
-    rounding: String,
-    batchSize: Int = 65_536,
-    inputLine: () -> String? = { readLine() }
-) throws {
+/// Kernel for `function`, either the soft campaign kernel or, when the support
+/// path is selected, the linked support-ABI kernel built by
+/// scripts/build-vf64-m9-support-kernels.sh.
+private func transcendentalKernel(_ function: String, support: Bool) throws -> String {
     guard let kernel = transcendentalKernels[function] else {
         throw HarnessError.validation(
             "transcendental function \(function) is not implemented; supported: " +
             transcendentalKernels.keys.sorted().joined(separator: ", ")
         )
     }
+    return support ? "vf64_\(function.dropFirst(4))_support_kernel" : kernel
+}
+
+func runTranscendentalConformance(
+    _ harness: MetalHarness,
+    function: String,
+    rounding: String,
+    support: Bool = false,
+    batchSize: Int = 65_536,
+    inputLine: () -> String? = { readLine() }
+) throws {
+    let kernel = try transcendentalKernel(function, support: support)
     guard let roundingMode = transcendentalRoundingModes[rounding] else {
         throw HarnessError.validation(
             "unknown rounding mode \(rounding); supported: " +
@@ -109,10 +123,14 @@ func runTranscendentalConformance(
             certified, count: cases.count
         )
         for index in cases.indices {
-            if observedCertification[index] == 0 { uncertified += 1 }
-            guard observed[index] != cases[index].expected ||
-                    observedFlags[index] != UInt32(cases[index].expectedFlags) ||
-                    observedCertification[index] == 0 else { continue }
+            if support {
+                guard observed[index] != cases[index].expected else { continue }
+            } else {
+                if observedCertification[index] == 0 { uncertified += 1 }
+                guard observed[index] != cases[index].expected ||
+                        observedFlags[index] != UInt32(cases[index].expectedFlags) ||
+                        observedCertification[index] == 0 else { continue }
+            }
             if mismatches.count < 20 {
                 mismatches.append(String(
                     format: "case %d: a=%016llx b=%016llx got=%016llx " +
@@ -158,6 +176,7 @@ func runTranscendentalConformance(
     let mismatchCount = mismatches.count
     print(
         "{\"function\":\"\(function)\",\"rounding\":\"\(rounding)\"," +
+        "\"path\":\"\(support ? "support" : "soft")\"," +
         "\"cases\":\(total),\"mismatches\":\(mismatchCount)," +
         "\"uncertified\":\(uncertified),\"oracle_flagged\":\(flagged)," +
         "\"malformed\":\(malformed)}"
@@ -177,6 +196,14 @@ func runTranscendentalConformance(
             mismatches.joined(separator: "\n")
         )
     }
+    if support {
+        print(
+            "\(function) \(rounding) MPFR conformance through the support ABI " +
+            "passed over \(total) cases; result bits compared exactly; flags " +
+            "and certification are not returned by this ABI"
+        )
+        return
+    }
     print(
         "\(function) \(rounding) MPFR conformance passed over \(total) cases; " +
         "result bits and exception flags compared exactly; " +
@@ -189,9 +216,12 @@ func runTranscendentalConformance(
 // without the external oracle. These vectors were produced by the same pinned
 // MPFR generator; they are a self-check, not the M9 gate, which remains
 // scripts/run-mpfr-m9.sh.
-func validateTranscendental(_ harness: MetalHarness) throws {
+//
+// With `support`, the vectors drive the linked support-ABI kernels instead and
+// compare result bits only.
+func validateTranscendental(_ harness: MetalHarness, support: Bool = false) throws {
     for (function, modes) in m9SmokeVectors.sorted(by: { $0.key < $1.key }) {
-        let kernel = transcendentalKernels[function]!
+        let kernel = try transcendentalKernel(function, support: support)
         var total = 0
         for (rounding, vectors) in modes.sorted(by: { $0.key < $1.key }) {
             let roundingBuffer = try harness.buffer([transcendentalRoundingModes[rounding]!])
@@ -216,8 +246,8 @@ func validateTranscendental(_ harness: MetalHarness) throws {
             for index in vectors.indices {
                 let (a, b, expected, expectedFlags) = vectors[index]
                 guard observed[index] == expected,
-                      observedFlags[index] == UInt32(expectedFlags),
-                      observedCertification[index] == 1 else {
+                      support || observedFlags[index] == UInt32(expectedFlags),
+                      support || observedCertification[index] == 1 else {
                     throw HarnessError.validation(String(
                         format: "%@ %@ mismatch: a=%016llx b=%016llx got=%016llx " +
                                 "want=%016llx flags=%02x wantFlags=%02x certified=%u",
@@ -233,7 +263,9 @@ func validateTranscendental(_ harness: MetalHarness) throws {
         print(
             "\(name.padding(toLength: 12, withPad: " ", startingAt: 0))" +
             "\(total) pinned MPFR vectors across five rounding modes " +
-            "passed with bitwise results, flags, and certification"
+            (support
+                ? "passed through the support ABI with bitwise results"
+                : "passed with bitwise results, flags, and certification")
         )
     }
 }

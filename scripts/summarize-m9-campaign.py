@@ -202,7 +202,9 @@ def main() -> int:
     parser.add_argument("--cases", type=int, required=True)
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--function", required=True)
+    parser.add_argument("--path", choices=("soft", "support"), default="soft")
     arguments = parser.parse_args()
+    support = arguments.path == "support"
 
     policy = FUNCTIONS.get(arguments.function)
     if policy is None:
@@ -216,6 +218,9 @@ def main() -> int:
         for line in (work / "summaries.jsonl").read_text().splitlines()
         if line.strip()
     ]
+    if any(entry.get("path", "soft") != arguments.path for entry in summaries):
+        print(f"summaries do not all come from the {arguments.path} path", file=sys.stderr)
+        return 1
     if len(summaries) != 5:
         print(f"expected 5 rounding modes, found {len(summaries)}", file=sys.stderr)
         return 1
@@ -287,8 +292,32 @@ def main() -> int:
         "limitations": limitations(policy),
     }
 
-    destination = repo / "results" / "m9" / (
-        f"{stamp}-{device['name'].lower().replace(' ', '-')}-{policy['short']}-level1.json"
+    if support:
+        # The support ABI returns neither flags nor the certificate, so this
+        # path compares result bits only and cannot count uncertified cases.
+        artifact["result_scope"] = (
+            "binary64 result bits through the linkable support ABI "
+            f"(vf64_{policy['short']}_rne for rnear_even, "
+            f"vf64_{policy['short']}_round otherwise)"
+        )
+        artifact["uncertified_results"] = None
+        artifact["command"] = "VF64_M9_PATH=support scripts/run-mpfr-m9.sh"
+        artifact["policy"]["exception_flags_checked"] = False
+        for entry in artifact["rounding_modes"].values():
+            entry["uncertified"] = None
+        artifact["limitations"] = [
+            "The support ABI is flag-free: exception flags and the per-call "
+            "certificate are discarded, so neither is compared here; the soft "
+            "path artifact for the same function gates both",
+            "The kernels call the symbols as unresolved externals statically "
+            "linked against vf64-support.air with air-link, as a source-language "
+            "backend does",
+        ] + artifact["limitations"]
+
+    name = f"{policy['short']}-support" if support else policy["short"]
+    subdirectory = ("m9", "support") if support else ("m9",)
+    destination = repo.joinpath("results", *subdirectory) / (
+        f"{stamp}-{device['name'].lower().replace(' ', '-')}-{name}-level1.json"
     )
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(json.dumps(artifact, indent=2) + "\n")

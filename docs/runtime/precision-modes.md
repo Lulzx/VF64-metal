@@ -60,8 +60,10 @@ Its resident representation is one 64-bit `ulong`.
 
 The M9 correctly rounded functions (`exp` through `atanh`, listed in
 [`ieee64.md`](ieee64.md#explicitly-unsupported-surface)) have an `ieee64`
-contract only, and only as Metal source-level `soft_<name>_status` calls. They
-are not VF64 v1 operations in any mode.
+contract only: as Metal source-level `soft_<name>_status` calls, and as the
+flag-free linkable support symbols `vf64_<name>_rne` and `vf64_<name>_round`
+described in the [API/ABI contract](../release/api-abi.md#linkable-metal-support-abi).
+They are not VF64 v1 operations in any mode.
 
 `fast48` and `wide48` have no transcendental contract. A request for a
 transcendental function in a reduced mode must be refused, never satisfied by
