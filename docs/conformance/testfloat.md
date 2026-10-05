@@ -48,3 +48,25 @@ divide-by-zero, overflow, underflow-after-rounding, and inexact flags in every
 rounding mode. Floating results now compare NaN sign, quiet bit, and payload
 bitwise under the pinned ARM-VFPv2 policy. The original M1 artifact remains
 result-only; separate M2 evidence records the stronger conformance runs.
+
+## M9 transcendental conformance
+
+Berkeley TestFloat has no transcendental generators, so the M9 functions use a
+separate oracle: GNU MPFR, pinned and built by `scripts/bootstrap-mpfr.sh`
+(which the run script calls), through the generator in `tools/m9/m9_ref.c`.
+One campaign covers one function in all five rounding modes:
+
+```bash
+VF64_M9_FUNCTION=f64_sin scripts/run-mpfr-m9.sh
+```
+
+A campaign compares result bits, exception flags, and the per-call
+certificate (flag bit 5). It fails closed: if any case mismatches or fails to
+certify, no artifact is written. Each function's artifact lands in
+`results/m9/`. The checked
+[M9 function matrix](../../results/conformance/2026-10-05-m4-pro-m9-function-matrix.json)
+indexes all 22 artifacts, and `scripts/check-conformance-data.sh` checks that
+its 22 functions, 110 policy cells, and 440,402,485 comparisons agree, row by
+row, with the per-function artifacts and one clean source commit. The proof
+state each function reaches, and what that state does and does not claim, is
+in [M9](../milestones/M9-transcendentals.md).

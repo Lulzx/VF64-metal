@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "title": "VF64 M9 correctly rounded transcendental function-by-function conformance matrix",
+  "date": "2026-10-05",
+  "status": "pass",
+  "scope": "GNU MPFR binary64 result-bit, exception-flag, and per-call certification comparisons on the ieee64 Metal source-level functions",
+  "oracle": {
+    "name": "GNU MPFR",
+    "mpfr_version": "4.2.2",
+    "generator": "tools/m9/m9_ref.c",
+    "seed": 1,
+    "random_cases_per_mode": 4000000
+  },
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "metal": "Metal 4",
+    "os": "macOS 27.0.1",
+    "os_build": "26A434"
+  },
+  "evidence": {
+    "source_commit": "1c84069",
+    "command": "scripts/run-mpfr-m9.sh"
+  },
+  "policy_dimensions": {
+    "rounding_modes": [
+      "rnear_even",
+      "rminMag",
+      "rmin",
+      "rmax",
+      "rnear_maxMag"
+    ],
+    "tininess": "after_rounding",
+    "nan_comparison": "bitwise",
+    "exception_flags_checked": true
+  },
+  "totals": {
+    "functions": 22,
+    "policy_cells": 110,
+    "result_comparisons": 440402485,
+    "mismatches": 0,
+    "uncertified_results": 0,
+    "proven_functions": 2,
+    "certified_functions": 20
+  },
+  "functions": [
+    {
+      "function": "f64_acos",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-acos-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20002170,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_acosh",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-acosh-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120.5",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20008075,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_asin",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-asin-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20002170,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_asinh",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-asinh-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120.5",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20008075,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_atan",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-atan-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20004455,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_atan2",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-atan2-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20010315,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_atanh",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-atanh-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120.5",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20008075,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_cbrt",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-cbrt-level1.json",
+      "proof_obligation_state": "proven-correctly-rounded",
+      "evaluation_error_bound_relative": "exact rounding decision",
+      "certification_margin_relative": null,
+      "policy_cells": 5,
+      "result_comparisons": 20111100,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_cos",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-cos-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-124.3",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20030030,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_cosh",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-cosh-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-119.9",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20003895,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_exp",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-exp-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-120",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20008875,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_exp2",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-exp2-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-119.9",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20016930,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_expm1",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-expm1-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-118.6",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20005650,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_hypot",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-hypot-level1.json",
+      "proof_obligation_state": "proven-correctly-rounded",
+      "evaluation_error_bound_relative": "exact rounding decision",
+      "certification_margin_relative": null,
+      "policy_cells": 5,
+      "result_comparisons": 20008600,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_log",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-log-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-121",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20018410,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_log1p",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-log1p-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-121",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20002730,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_log2",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-log2-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-121",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20018410,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_pow",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-pow-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-119.8",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20066670,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_sin",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-sin-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-124.3",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20030030,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_sinh",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-sinh-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-118.8",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20003895,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_tan",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-tan-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-122.8",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20030030,
+      "mismatches": 0,
+      "uncertified_results": 0
+    },
+    {
+      "function": "f64_tanh",
+      "artifact": "results/m9/2026-10-05-apple-m4-pro-tanh-level1.json",
+      "proof_obligation_state": "certified-correctly-rounded",
+      "evaluation_error_bound_relative": "2^-119",
+      "certification_margin_relative": "2^-116",
+      "policy_cells": 5,
+      "result_comparisons": 20003895,
+      "mismatches": 0,
+      "uncertified_results": 0
+    }
+  ],
+  "comparison_contract": {
+    "result_bits": "exact, including ARM-VFPv2 NaN sign, quiet bit, and payload",
+    "exception_flags": "exact sticky invalid, divide-by-zero, overflow, underflow, and inexact bits",
+    "certification": "flag bit 5 must be clear; an uncertified case fails the run"
+  },
+  "limitations": [
+    "This matrix indexes the 22 published per-function artifacts; it does not represent a new execution",
+    "Certified functions are correctly rounded per call under the certification test, not by a published hardest-to-round search over the whole domain",
+    "Each corpus is seeded and stratified, not exhaustive",
+    "Reduced-precision fast48 and wide48 modes have no transcendental contract and refuse rather than downgrade",
+    "The functions are ieee64 Metal source-level calls, not VF64 v1 opcodes and not in the frozen C ABI"
+  ]
+}

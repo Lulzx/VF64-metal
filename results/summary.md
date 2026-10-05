@@ -227,8 +227,8 @@ M7 remains open for energy and cross-device reproduction.
 
 ## M9 correctly rounded transcendentals
 
-Status: **P1 (`exp`), P2 (tranche A), P3 (tranche B), and P4 (tranche C)
-complete.** Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`,
+Status: **P1 (`exp`), P2 (tranche A), P3 (tranche B), P4 (tranche C), and
+P5 (surface reconciliation) complete.** Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`,
 and `hypot`; tranche B adds `pow`, `atan`, `atan2`, `asin`, and `acos`;
 tranche C adds `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`,
 and `atanh`.
@@ -320,3 +320,11 @@ the fix, the thirteen earlier campaigns were re-run at `1c84069` and
 reproduced their published comparison counts with zero mismatches and zero
 uncertified results; the tranche A and B artifacts listed above now record
 that commit, and the original runs remain in git history.
+
+P5 indexes the 22 artifacts in a checked
+[function matrix](conformance/2026-10-05-m4-pro-m9-function-matrix.json):
+22 functions, 110 policy cells, and 440,402,485 comparisons, reconciled row by
+row against each artifact and its source commit by
+`scripts/check-conformance-data.sh`. `vf64-compile` refuses every M9 function
+in `fast48`, `wide48`, `ieee64`, and `auto`, because VF64 v1 has no
+transcendental opcode; `scripts/check-cli-api.sh` gates that refusal.

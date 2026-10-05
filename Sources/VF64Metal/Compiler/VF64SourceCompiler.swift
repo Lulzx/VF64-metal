@@ -511,6 +511,18 @@ struct VF64SourceCompiler {
                 type: conversion.2
             )
         }
+        // M9 functions are ieee64 Metal source-level calls with no VF64 v1
+        // opcode; no mode, including fast48 and wide48, may lower them.
+        let m9Transcendentals: Set<String> = [
+            "exp", "exp2", "expm1", "log", "log2", "log1p", "cbrt", "hypot",
+            "pow", "atan", "atan2", "asin", "acos", "sin", "cos", "tan",
+            "sinh", "cosh", "tanh", "asinh", "acosh", "atanh",
+        ]
+        if m9Transcendentals.contains(name) {
+            throw VF64CompilerError.invalid(
+                "transcendental '\(name)' has no VF64 v1 opcode; M9 supplies it only as an ieee64 Metal source-level function"
+            )
+        }
         throw VF64CompilerError.invalid("unknown source function '\(name)'")
     }
 

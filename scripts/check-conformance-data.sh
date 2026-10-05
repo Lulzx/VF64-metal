@@ -28,4 +28,45 @@ test "$matrix_total" = "$m2_total"
 test "$matrix_total" = "$m4_total"
 test "$m4_cells" = "119"
 
-printf 'conformance_data=pass operations=26 cells=119 comparisons_per_path=%s\n' "$matrix_total"
+m9_matrix="$repo_dir/results/conformance/2026-10-05-m4-pro-m9-function-matrix.json"
+
+jq -e '
+  (.functions | length) == .totals.functions and
+  ([.functions[].function] | unique | length) == .totals.functions and
+  ([.functions[].policy_cells] | add) == .totals.policy_cells and
+  ([.functions[].result_comparisons] | add) == .totals.result_comparisons and
+  (all(.functions[]; .mismatches == 0 and .uncertified_results == 0 and .policy_cells == 5)) and
+  ([.functions[] | select(.proof_obligation_state == "proven-correctly-rounded")] | length) == .totals.proven_functions and
+  ([.functions[] | select(.proof_obligation_state == "certified-correctly-rounded")] | length) == .totals.certified_functions and
+  (.evidence.source_commit | test("dirty") | not) and
+  .totals.functions == 22 and
+  .totals.policy_cells == 110 and
+  .totals.result_comparisons == 440402485 and
+  .totals.mismatches == 0 and
+  .totals.uncertified_results == 0
+' "$m9_matrix" >/dev/null
+
+# Every matrix row must agree with the per-function artifact it cites.
+m9_commit=$(jq -r '.evidence.source_commit' "$m9_matrix")
+jq -c '.functions[]' "$m9_matrix" | while IFS= read -r row; do
+    artifact="$repo_dir/$(printf '%s' "$row" | jq -r '.artifact')"
+    jq -e --argjson row "$row" --arg commit "$m9_commit" '
+      .milestone == "M9" and
+      .status == "pass" and
+      .source_commit == $commit and
+      .policy.function == $row.function and
+      .policy.proof_obligation_state == $row.proof_obligation_state and
+      .policy.evaluation_error_bound_relative == $row.evaluation_error_bound_relative and
+      .policy.certification_margin_relative == $row.certification_margin_relative and
+      (.policy.rounding_modes | length) == $row.policy_cells and
+      .total_result_comparisons == $row.result_comparisons and
+      .unexplained_mismatches == $row.mismatches and
+      .uncertified_results == $row.uncertified_results and
+      ([.rounding_modes[] | .mismatches] | add) == 0 and
+      ([.rounding_modes[] | .uncertified] | add) == 0
+    ' "$artifact" >/dev/null
+done
+
+m9_total=$(jq -r '.totals.result_comparisons' "$m9_matrix")
+
+printf 'conformance_data=pass operations=26 cells=119 comparisons_per_path=%s m9_functions=22 m9_cells=110 m9_comparisons=%s\n' "$matrix_total" "$m9_total"

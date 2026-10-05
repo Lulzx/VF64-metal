@@ -56,6 +56,23 @@ the complete M2 surface, all five rounding modes, sticky exceptions,
 after-rounding tininess, bitwise ARM-VFPv2 NaN behavior, and true fused FMA.
 Its resident representation is one 64-bit `ulong`.
 
+## Transcendental functions
+
+The M9 correctly rounded functions (`exp` through `atanh`, listed in
+[`ieee64.md`](ieee64.md#explicitly-unsupported-surface)) have an `ieee64`
+contract only, and only as Metal source-level `soft_<name>_status` calls. They
+are not VF64 v1 operations in any mode.
+
+`fast48` and `wide48` have no transcendental contract. A request for a
+transcendental function in a reduced mode must be refused, never satisfied by
+a reduced-precision evaluation or by quietly switching to the `ieee64` call.
+`vf64-compile` refuses every M9 function name under `--fp64=fast48`, `wide48`,
+`ieee64`, and `auto` with a dedicated diagnostic, since VF64 v1 has no opcode
+to lower it to, and `scripts/check-cli-api.sh` gates that refusal. CuMetal
+does not meet this contract yet: it evaluates CUDA double transcendentals at
+binary32 precision in every mode (see the
+[support matrix](../release/support-matrix.md)).
+
 ## Materialization and finite-only rules
 
 A reduced value must be packed before global or externally visible storage,

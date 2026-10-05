@@ -1,7 +1,7 @@
 # M9 — Correctly rounded transcendental layer
 
-Status: **P1 complete for `exp`; P2 (tranche A), P3 (tranche B), and P4
-(tranche C) complete.**
+Status: **P1 complete for `exp`; P2 (tranche A), P3 (tranche B), P4
+(tranche C), and P5 (surface reconciliation) complete.**
 
 What exists: a wide evaluation core, a correctly rounded `exp`, a pinned MPFR
 oracle, and one published campaign of 20,008,875 result and exception-flag
@@ -509,8 +509,13 @@ public surface checked by `check-vf64-abi.sh`.
 
 - **Option A, recommended for the first tranche.** Metal source-level functions
   only — `soft_exp64_status` and siblings, following the M2 naming and
-  signature convention. No new opcodes, no ABI change, no version bump. The
-  compiler and CuMetal paths fail closed on transcendental source constructs.
+  signature convention. No new opcodes, no ABI change, no version bump.
+  `vf64-compile` fails closed on transcendental source constructs. CuMetal
+  does not: as of CuMetal `f4bbc8a`, its PTX lowering evaluates the libdevice
+  double transcendentals (`__nv_exp`, `__nv_sin`, `__nv_pow`, and the rest)
+  through binary32 `air.fast_*` calls in every fp64 mode, `ieee64` included.
+  That is a silent downgrade, which the precision-mode contract forbids, and
+  it is an open CuMetal gap, not an M9 surface.
 - **Option B, deferred.** A `VF64_FEATURE_TRANSCENDENTAL` feature bit plus an
   opcode range, which is a VF64 v2 surface with its own ISA JSON, interpreter,
   ABI-freeze, and conformance work. Do not start this before Option A has
@@ -544,10 +549,22 @@ public surface checked by `check-vf64-abi.sh`.
   180,126,000 comparisons across the nine functions, zero mismatches, zero
   uncertified, one artifact per function. All nine are certified per call
   (state 3).
-- **P5 — surface reconciliation.** Update the `ieee64` operation surface, the
-  support matrix row, the conformance guide, the precision-mode contracts
-  (reduced modes refuse), and the operation-matrix reconciliation checked by
-  `check-conformance-data.sh`.
+- **P5 — surface reconciliation. Complete.** The `ieee64` operation surface
+  ([`runtime/ieee64.md`](../runtime/ieee64.md)) and the
+  [support matrix](../release/support-matrix.md) list all 22 functions with
+  their proof states. The [conformance guide](../conformance/testfloat.md)
+  documents the MPFR campaign. The
+  [precision-mode contracts](../runtime/precision-modes.md#transcendental-functions)
+  state that `fast48` and `wide48` refuse. `vf64-compile` now rejects every M9
+  name in all four `--fp64` modes with a dedicated diagnostic, gated by
+  `check-cli-api.sh`. The checked
+  [M9 function matrix](../../results/conformance/2026-10-05-m4-pro-m9-function-matrix.json)
+  (22 functions, 110 policy cells, 440,402,485 comparisons) is reconciled row
+  by row against the per-function artifacts by `check-conformance-data.sh`.
+  CuMetal is not reconciled: it still evaluates CUDA double transcendentals
+  at binary32 precision in every mode (see
+  [ISA and ABI impact](#isa-and-abi-impact)). That is an input to P6, not a
+  P5 exit.
 - **P6 — ISA and ABI decision.** Evaluate Option B against measured P1–P4 cost.
 
 ## Open questions
