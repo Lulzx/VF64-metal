@@ -2,7 +2,9 @@
 # Regenerate Sources/VF64Metal/Validation/M9SmokeVectors.swift from the pinned
 # MPFR oracle. The selection is deterministic: for each function and each of
 # the five rounding modes, every special value and then every 37th boundary
-# case (every 11th for hypot, whose boundary corpus is mostly special pairs).
+# case (every 11th for the binary functions hypot and atan2, whose boundary
+# corpora are mostly special pairs, and every 67th for pow, whose boundary
+# corpus is six times larger).
 set -eu
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -15,21 +17,27 @@ output="$repo_dir/Sources/VF64Metal/Validation/M9SmokeVectors.swift"
     printf '// oracle. Do not edit by hand. Each vector is (a, b, result, flags);\n'
     printf '// b is zero for unary functions.\n\n'
     printf 'let m9SmokeVectors: [String: [String: [(UInt64, UInt64, UInt64, UInt8)]]] = [\n'
-    for function in f64_exp f64_exp2 f64_expm1 f64_log f64_log2 f64_log1p f64_cbrt f64_hypot; do
+    for function in f64_exp f64_exp2 f64_expm1 f64_log f64_log2 f64_log1p f64_cbrt f64_hypot \
+            f64_atan f64_asin f64_acos f64_atan2 f64_pow; do
         printf '    "%s": [\n' "$function"
         for rounding in rnear_even rminMag rmin rmax rnear_maxMag; do
             printf '        "%s": [\n' "$rounding"
-            if [ "$function" = f64_hypot ]; then
+            case "$function" in
+            f64_hypot | f64_atan2 | f64_pow)
+                stride=11
+                [ "$function" = f64_pow ] && stride=67
                 "$generator" "$function" "$rounding" boundary |
-                    awk 'NR % 11 == 0 {
+                    awk -v stride="$stride" 'NR % stride == 0 {
                         printf "            (0x%s, 0x%s, 0x%s, 0x%s),\n", $1, $2, $3, $4
                     }'
-            else
+                ;;
+            *)
                 "$generator" "$function" "$rounding" boundary |
                     awk 'NR <= 14 || (NR - 14) % 37 == 0 {
                         printf "            (0x%s, 0x0, 0x%s, 0x%s),\n", $1, $2, $3
                     }'
-            fi
+                ;;
+            esac
             printf '        ],\n'
         done
         printf '    ],\n'

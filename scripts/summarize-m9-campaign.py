@@ -84,6 +84,39 @@ FUNCTIONS = {
                 "54-bit Pythagorean hypotenuses, which are real binary64 "
                 "midpoints",
     },
+    "f64_atan": {
+        "short": "atan", "mpfr": "mpfr_atan", "state": CERTIFIED,
+        "bound": "2^-120",
+        "ties": NO_TIES.format(name="atan", exception=""),
+    },
+    "f64_asin": {
+        "short": "asin", "mpfr": "mpfr_asin", "state": CERTIFIED,
+        "bound": "2^-120",
+        "ties": NO_TIES.format(name="asin", exception=""),
+    },
+    "f64_acos": {
+        "short": "acos", "mpfr": "mpfr_acos", "state": CERTIFIED,
+        "bound": "2^-120",
+        "ties": NO_TIES.format(name="acos", exception=""),
+    },
+    "f64_atan2": {
+        "short": "atan2", "mpfr": "mpfr_atan2", "state": CERTIFIED,
+        "bound": "2^-120",
+        "ties": NO_TIES.format(
+            name="atan2", exception=" (for |y/x| < 2^-55 with x > 0 the exact "
+            "quotient is rounded by exact integer division, which also settles "
+            "every subnormal result)"),
+    },
+    "f64_pow": {
+        "short": "pow", "mpfr": "mpfr_pow", "state": CERTIFIED,
+        "bound": "2^-119.8",
+        "ties": "Ties-away-from-zero vectors are derived from MPFR_RNDN plus an "
+                "exact midpoint test at 256 bits; pow reaches real binary64 "
+                "midpoints and exactly representable results (perfect powers "
+                "with dyadic y), which are computed and rounded exactly in "
+                "integers; every other result is irrational or a non-dyadic "
+                "rational and is certified per call",
+    },
 }
 
 

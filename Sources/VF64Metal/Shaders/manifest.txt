@@ -5,10 +5,13 @@ Pair/Codec.metal
 IEEE/Arithmetic.metal
 Wide/Arithmetic.metal
 Math/WideFloat.metal
+Math/Wide3.metal
 Math/Exp.metal
 Math/Log.metal
 Math/ExpVariants.metal
 Math/Algebraic.metal
+Math/Atan.metal
+Math/Pow.metal
 ISA/Interpreter.metal
 Kernels/Exact.metal
 Kernels/BoundaryPair.metal

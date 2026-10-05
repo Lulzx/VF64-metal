@@ -21,8 +21,8 @@
  * is derived: the MPFR_RNDN result is used unless the exact value is a
  * binary64 midpoint, in which case the away-from-zero neighbour is taken.
  * Midpoints are detected by evaluating at 256 bits: a midpoint is exactly
- * representable there, and the evaluation is then exact. Only hypot reaches
- * real midpoints; for the other functions this path never fires.
+ * representable there, and the evaluation is then exact. Only hypot and pow
+ * reach real midpoints; for the other functions this path never fires.
  *
  * Special values are decided here rather than by MPFR, so that the NaN
  * payload, default NaN, and flag policy are stated once and match the M2
@@ -271,6 +271,89 @@ static int special_hypot(uint64_t a, uint64_t b, uint64_t *result, unsigned *fla
     return 0;
 }
 
+/* atan: only NaNs are decided here; MPFR rounds atan(+-inf) = +-pi/2. */
+static int special_atan(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_zero(x)) { *result = x; return 1; }
+    return 0;
+}
+
+/* asin, acos: |x| > 1 is invalid. */
+static int special_asin(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if (is_zero(x)) { *result = x; return 1; }
+    if ((x & 0x7fffffffffffffffull) > ONE) {
+        *result = DEFAULT_NAN; *flags |= FLAG_INVALID; return 1;
+    }
+    return 0;
+}
+
+static int special_acos(uint64_t x, uint64_t *result, unsigned *flags) {
+    if (quiet_nan(x, result, flags)) return 1;
+    if ((x & 0x7fffffffffffffffull) > ONE) {
+        *result = DEFAULT_NAN; *flags |= FLAG_INVALID; return 1;
+    }
+    if (x == ONE) { *result = 0ull; return 1; }
+    return 0;
+}
+
+/* atan2: NaNs propagate as in the M2 binary operations; zeros and infinities
+ * follow C99 Annex F / IEEE 754-2019 9.2.1, which MPFR implements, so only
+ * the NaN policy is decided here. */
+static int special_atan2(uint64_t y, uint64_t x, uint64_t *result, unsigned *flags) {
+    if (is_nan(y) || is_nan(x)) {
+        if (is_signaling(y) || is_signaling(x)) *flags |= FLAG_INVALID;
+        *result = propagate_nan(y, x);
+        return 1;
+    }
+    return 0;
+}
+
+/* pow: IEEE 754-2019 9.2.1, decided here in full so that the policy is
+ * stated next to the NaN rules. A signaling NaN raises invalid and propagates
+ * even where a quiet NaN would not, as in pow(sNaN, 0) and pow(1, sNaN). */
+static int pow_integer_kind(uint64_t y) { /* 0 not an integer, 1 even, 2 odd */
+    double value = value_of(y);
+    if (is_inf(y)) return 1;
+    if (floor(value) != value) return 0;
+    if (fabs(value) >= 9007199254740992.0) return 1;
+    return fmod(fabs(value), 2.0) == 1.0 ? 2 : 1;
+}
+
+static int special_pow(uint64_t x, uint64_t y, uint64_t *result, unsigned *flags) {
+    if (is_signaling(x) || is_signaling(y)) {
+        *flags |= FLAG_INVALID;
+        *result = propagate_nan(x, y);
+        return 1;
+    }
+    if (is_zero(y) || x == ONE) { *result = ONE; return 1; }
+    if (is_nan(x) || is_nan(y)) { *result = propagate_nan(x, y); return 1; }
+    uint64_t xMagnitude = x & 0x7fffffffffffffffull;
+    int kind = pow_integer_kind(y);
+    uint64_t oddSign = (is_negative(x) && kind == 2) ? 0x8000000000000000ull : 0ull;
+    if (is_inf(y)) {
+        if (xMagnitude == ONE) { *result = ONE; return 1; }
+        *result = ((xMagnitude > ONE) != is_negative(y)) ? POS_INF : 0ull;
+        return 1;
+    }
+    if (is_zero(x)) {
+        if (is_negative(y)) { *result = oddSign | POS_INF; *flags |= FLAG_INFINITE; }
+        else *result = oddSign;
+        return 1;
+    }
+    if (is_inf(x)) {
+        *result = oddSign | (is_negative(y) ? 0ull : POS_INF);
+        return 1;
+    }
+    if (is_negative(x) && kind == 0) {
+        *result = DEFAULT_NAN; *flags |= FLAG_INVALID; return 1;
+    }
+    return 0;
+}
+
+/* MPFR's pow with a negative finite x and integer y already applies the sign
+ * rule; the special cases above leave it only finite nonzero operands. */
+
 /* ---------------------------------------------------------------------- */
 
 struct unary_function {
@@ -287,6 +370,9 @@ static const struct unary_function unary_functions[] = {
     {"f64_log2", mpfr_log2, special_log},
     {"f64_log1p", mpfr_log1p, special_log1p},
     {"f64_cbrt", mpfr_cbrt, special_cbrt},
+    {"f64_atan", mpfr_atan, special_atan},
+    {"f64_asin", mpfr_asin, special_asin},
+    {"f64_acos", mpfr_acos, special_acos},
 };
 
 static const struct unary_function *active = NULL;
@@ -304,11 +390,14 @@ static void emit(uint64_t argument) {
            (unsigned long long)result, flags);
 }
 
+static binary_fn active_binary = mpfr_hypot;
+static int (*active_binary_special)(uint64_t, uint64_t, uint64_t *, unsigned *) = special_hypot;
+
 static void emit2(uint64_t a, uint64_t b) {
     uint64_t result;
     unsigned flags = 0;
-    if (!special_hypot(a, b, &result, &flags)) {
-        struct binary_context context = {mpfr_hypot, value_of(a), value_of(b)};
+    if (!active_binary_special(a, b, &result, &flags)) {
+        struct binary_context context = {active_binary, value_of(a), value_of(b)};
         result = rounded_reference(evaluate_binary, &context, active_rounding, &flags);
     }
     printf("%016llx %016llx %016llx %02x\n", (unsigned long long)a,
@@ -780,6 +869,309 @@ static void random_hypot(long count, uint64_t seed) {
     }
 }
 
+
+/* ---------------------------------------------------------------------- */
+/* atan                                                                    */
+
+static void boundary_atan(void) {
+    emit_unary_specials();
+    for (int j = 1; j <= 33; ++j) {
+        emit_near((double)j / 32.0, 2);
+        emit_near(-(double)j / 32.0, 1);
+        emit_near(32.0 / (double)j, 1);
+    }
+    for (int exponent = -80; exponent <= -20; ++exponent) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.0, exponent)));
+        emit(bits_of(ldexp(1.9999999999999998, exponent)));
+    }
+    for (int exponent = 20; exponent <= 1023; exponent += 7) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.5, exponent)));
+    }
+    emit_near(1.0, 8);
+    emit_near(-1.0, 8);
+    emit_near(1.5574077246549023, 4); /* tan(1) */
+}
+
+/*   0-49: |x| exponents in [-27, 27], both signs (table reduction range);
+ *  50-64: closed-form tiny range, including subnormals;
+ *  65-79: |x| exponents in [27, 1023] (reciprocal path);
+ *  80-89: near table points j/16 and their reciprocals;
+ *  90-99: arbitrary bit patterns.
+ */
+static void random_atan(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        int sign = (int)(splitmix64(&state) & 1ull);
+        uint64_t bits;
+        if (stratum < 50u) {
+            bits = bits_of(random_magnitude(&state, -27, 27));
+        } else if (stratum < 65u) {
+            bits = (splitmix64(&state) % 4u == 0u) ? random_subnormal(&state)
+                                                   : bits_of(random_magnitude(&state, -1022, -28));
+        } else if (stratum < 80u) {
+            bits = bits_of(random_magnitude(&state, 27, 1023));
+        } else if (stratum < 90u) {
+            double centre = (double)(1 + splitmix64(&state) % 16ull) / 16.0;
+            if (splitmix64(&state) & 1ull) centre = 1.0 / centre;
+            int64_t delta = (int64_t)(splitmix64(&state) % 2049ull) - 1024;
+            bits = (uint64_t)((int64_t)bits_of(centre) + delta);
+        } else {
+            bits = splitmix64(&state);
+        }
+        emit(sign ? bits ^ 0x8000000000000000ull : bits);
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* asin and acos                                                           */
+
+static void boundary_asin(void) {
+    emit_unary_specials();
+    emit_near(1.0, 16);
+    emit_near(-1.0, 16);
+    emit_near(0.5, 4);
+    emit_near(-0.5, 4);
+    emit_near(0.7071067811865476, 4);
+    emit_near(-0.7071067811865476, 4);
+    emit_near(0.8660254037844386, 4);
+    for (int e = 1; e <= 60; ++e) {
+        emit(bits_of(1.0 - ldexp(1.0, -e)));
+        emit(bits_of(-1.0 + ldexp(1.0, -e)));
+    }
+    for (int exponent = -80; exponent <= -20; ++exponent) {
+        emit(bits_of(ldexp(1.0, exponent)));
+        emit(bits_of(-ldexp(1.0, exponent)));
+        emit(bits_of(ldexp(1.9999999999999998, exponent)));
+    }
+    emit_near(2.0, 1);
+    emit_near(-2.0, 1);
+}
+
+/*   0-49: |x| uniform in [0, 1], both signs;
+ *  50-64: |x| exponents in [-27, -1];
+ *  65-74: closed-form tiny range, including subnormals;
+ *  75-89: |x| = 1 - small, where sqrt(1 - x^2) is tiny;
+ *  90-99: arbitrary bit patterns, mostly out of range.
+ */
+static void random_asin(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        int sign = (int)(splitmix64(&state) & 1ull);
+        uint64_t bits;
+        if (stratum < 50u) {
+            bits = bits_of((double)(splitmix64(&state) >> 11) / 9007199254740992.0);
+        } else if (stratum < 65u) {
+            bits = bits_of(random_magnitude(&state, -27, -1));
+        } else if (stratum < 75u) {
+            bits = (splitmix64(&state) % 4u == 0u) ? random_subnormal(&state)
+                                                   : bits_of(random_magnitude(&state, -1022, -28));
+        } else if (stratum < 90u) {
+            bits = bits_of(1.0 - random_magnitude(&state, -53, -2));
+        } else {
+            bits = splitmix64(&state);
+        }
+        emit(sign ? bits ^ 0x8000000000000000ull : bits);
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* atan2(y, x)                                                             */
+
+static void boundary_atan2(void) {
+    static const uint64_t values[] = {
+        0x0000000000000000ull, 0x8000000000000000ull, 0x7ff0000000000000ull,
+        0xfff0000000000000ull, 0x7ff8000000000000ull, 0x7ff4000000000000ull,
+        0x0000000000000001ull, 0x8000000000000001ull, 0x7fefffffffffffffull,
+        0xffefffffffffffffull, 0x3ff0000000000000ull, 0xbff0000000000000ull,
+        0x4000000000000000ull, 0xc008000000000000ull,
+    };
+    size_t count = sizeof values / sizeof values[0];
+    for (size_t i = 0; i < count; ++i) {
+        for (size_t j = 0; j < count; ++j) emit2(values[i], values[j]);
+    }
+    /* Quotients that are exact binary64 values, including subnormal ones and
+     * exact subnormal midpoints, on both sides of the closed-form edge. */
+    for (int k = 20; k <= 1100; k += 3) {
+        emit2(bits_of(ldexp(3.0, -k / 2)), bits_of(ldexp(1.0, k - k / 2)));
+        emit2(bits_of(-ldexp(1.5, -1000)), bits_of(ldexp(1.0, k / 16)));
+        emit2(bits_of(ldexp(1.0000000000000002, -k)), bits_of(1.0));
+        emit2(bits_of(ldexp(5.0, -1000)), bits_of(ldexp(1.0, 75)));
+    }
+    for (int gap = -70; gap <= 70; ++gap) {
+        emit2(bits_of(ldexp(1.25, gap)), bits_of(1.5));
+        emit2(bits_of(ldexp(1.25, gap)), bits_of(-1.5));
+        emit2(bits_of(-ldexp(1.75, gap)), bits_of(-1.0));
+    }
+}
+
+/*   0-49: exponent gap in [-60, 60], all four quadrants;
+ *  50-64: |y/x| below 2^-55 with x > 0 (exact rational rounding path);
+ *  65-74: exactly representable quotients y = q x with x a power of two;
+ *  75-84: subnormal operands;
+ *  85-99: arbitrary bit patterns.
+ */
+static void random_atan2(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        double y, x;
+        if (stratum < 50u) {
+            int gap = (int)(splitmix64(&state) % 121ull) - 60;
+            int base = -900 + (int)(splitmix64(&state) % 1800ull);
+            y = ldexp(random_significand(&state), base + gap);
+            x = ldexp(random_significand(&state), base);
+            if (splitmix64(&state) & 1ull) x = -x;
+        } else if (stratum < 65u) {
+            int gap = 56 + (int)(splitmix64(&state) % 900ull);
+            int base = -1000 + gap + (int)(splitmix64(&state) % (uint64_t)(2000 - gap));
+            y = ldexp(random_significand(&state), base - gap);
+            x = ldexp(random_significand(&state), base);
+        } else if (stratum < 75u) {
+            int shift = (int)(splitmix64(&state) % 1100ull);
+            y = ldexp(random_significand(&state), -40 - (int)(splitmix64(&state) % 960ull));
+            x = ldexp(1.0, shift % 200);
+        } else if (stratum < 85u) {
+            y = value_of(random_subnormal(&state));
+            x = (splitmix64(&state) & 1ull) ? value_of(random_subnormal(&state))
+                                           : random_magnitude(&state, -1022, 10);
+            if (splitmix64(&state) & 1ull) x = -x;
+        } else {
+            y = value_of(splitmix64(&state));
+            x = value_of(splitmix64(&state));
+        }
+        if (splitmix64(&state) & 1ull) y = -y;
+        emit2(bits_of(y), bits_of(x));
+    }
+}
+
+/* ---------------------------------------------------------------------- */
+/* pow(x, y)                                                               */
+
+static void boundary_pow(void) {
+    static const uint64_t values[] = {
+        0x0000000000000000ull, 0x8000000000000000ull, 0x7ff0000000000000ull,
+        0xfff0000000000000ull, 0x7ff8000000000000ull, 0x7ff4000000000000ull,
+        0xfff8000000000000ull, 0x0000000000000001ull, 0x8000000000000001ull,
+        0x7fefffffffffffffull, 0xffefffffffffffffull, 0x3ff0000000000000ull,
+        0xbff0000000000000ull, 0x4000000000000000ull, 0xc000000000000000ull,
+        0x4008000000000000ull, 0xc008000000000000ull, 0x3fe0000000000000ull,
+        0xbfe0000000000000ull, 0x3ff0000000000001ull, 0x3fefffffffffffffull,
+        0x4340000000000000ull, 0xc340000000000001ull, 0x3ff8000000000000ull,
+    };
+    size_t count = sizeof values / sizeof values[0];
+    for (size_t i = 0; i < count; ++i) {
+        for (size_t j = 0; j < count; ++j) emit2(values[i], values[j]);
+    }
+    /* Exact results and exact midpoints: perfect powers with dyadic y. */
+    static const double bases[] = {3.0, 5.0, 7.0, 9.0, 25.0, 81.0, 6561.0,
+                                   43046721.0, 1853020188851841.0, 0.75,
+                                   1.5, 2.25, 0.5625, 9007199254740991.0,
+                                   94906267.0, 94906265.0, 3.0517578125e-05};
+    static const double exponents[] = {2.0, 3.0, 4.0, 0.5, 0.25, 0.125, 1.5,
+                                       2.5, 0.75, 33.0, 34.0, 35.0, 40.0,
+                                       -1.0, -2.0, -0.5, 1.0, 0.0625, 0.03125};
+    for (size_t i = 0; i < sizeof bases / sizeof bases[0]; ++i) {
+        for (size_t j = 0; j < sizeof exponents / sizeof exponents[0]; ++j) {
+            emit2(bits_of(bases[i]), bits_of(exponents[j]));
+            emit2(bits_of(-bases[i]), bits_of(exponents[j]));
+            emit2(bits_of(ldexp(bases[i], 64)), bits_of(exponents[j]));
+            emit2(bits_of(ldexp(bases[i], -1024)), bits_of(exponents[j]));
+        }
+    }
+    /* Powers of two: overflow, underflow, subnormal results and the
+     * 2^-1075 midpoint, with integer and dyadic exponents. */
+    for (int e = -1074; e <= 1023; e += 7) {
+        for (int n = -6; n <= 6; ++n) {
+            if (n == 0) continue;
+            emit2(bits_of(ldexp(1.0, e)), bits_of((double)n));
+            emit2(bits_of(ldexp(1.0, e)), bits_of(1.0 / (double)n));
+            emit2(bits_of(-ldexp(1.0, e)), bits_of((double)n));
+        }
+        emit2(bits_of(ldexp(1.0, e)), bits_of(1075.0 / (double)e));
+    }
+    emit2(bits_of(2.0), bits_of(-1075.0));
+    emit2(bits_of(4.0), bits_of(-537.5));
+    emit2(bits_of(0.5), bits_of(1075.0));
+    emit2(bits_of(2.0), bits_of(1024.0));
+    emit2(bits_of(2.0), bits_of(1023.9999999999999));
+    emit2(bits_of(2.0), bits_of(-1074.0000000000002));
+    /* x near 1 with huge |y|, and the overflow/underflow edges in z. */
+    for (int k = 1; k <= 60; ++k) {
+        double nearOne = 1.0 + ldexp(1.0, -52) * (double)k;
+        double belowOne = 1.0 - ldexp(1.0, -53) * (double)k;
+        emit2(bits_of(nearOne), bits_of(ldexp(1.0, 40 + k)));
+        emit2(bits_of(belowOne), bits_of(-ldexp(1.0, 40 + k)));
+        emit2(bits_of(nearOne), bits_of(ldexp(1.0, k - 60)));
+        emit2(bits_of(10.0), bits_of(308.0 + (double)k / 64.0));
+        emit2(bits_of(10.0), bits_of(-323.0 - (double)k / 64.0));
+        emit2(bits_of(-10.0), bits_of(309.0 + (double)k));
+    }
+}
+
+/*   0-34: x and y moderate, |y log2 x| up to about 1100;
+ *  35-49: x within 2^-20 of 1, |y| up to 2^60;
+ *  50-59: integer y, x of any magnitude and sign;
+ *  60-69: perfect squares and fourth powers with dyadic y (exact cases);
+ *  70-79: |y log2 x| near the overflow and underflow thresholds;
+ *  80-89: tiny y or x near 1 (results within 2^-60 of 1);
+ *  90-99: arbitrary bit patterns.
+ */
+static void random_pow(long count, uint64_t seed) {
+    uint64_t state = seed;
+    for (long i = 0; i < count; ++i) {
+        unsigned stratum = (unsigned)(splitmix64(&state) % 100ull);
+        double x, y;
+        if (stratum < 35u) {
+            x = random_magnitude(&state, -1074 + 52, 1023);
+            double limit = 1100.0 / fmax(fabs(log2(x)), 1e-3);
+            y = (2.0 * value_of(0x3ff0000000000000ull | (splitmix64(&state) >> 12)) - 3.0)
+                * fmin(limit, ldexp(1.0, 40));
+        } else if (stratum < 50u) {
+            x = 1.0 + ldexp(random_significand(&state) - 1.0, -(int)(splitmix64(&state) % 40ull) - 13);
+            if (splitmix64(&state) & 1ull) x = 2.0 - x;
+            y = random_magnitude(&state, 0, 60);
+            if (splitmix64(&state) & 1ull) y = -y;
+        } else if (stratum < 60u) {
+            x = random_magnitude(&state, -1022, 1023);
+            if (splitmix64(&state) & 1ull) x = -x;
+            y = (double)((int64_t)(splitmix64(&state) % 2001ull) - 1000);
+            y = ldexp(y, -(int)(splitmix64(&state) % 4ull));
+            if (fabs(y) > 0.0 && floor(y) != y && x < 0.0) x = -x;
+            if (fabs(log2(fabs(x)) * y) > 1200.0) x = ldexp(random_significand(&state), (int)(splitmix64(&state) % 8ull));
+        } else if (stratum < 70u) {
+            uint64_t root = 3ull + 2ull * (splitmix64(&state) % 2000ull);
+            int fourth = (int)(splitmix64(&state) & 1ull);
+            double base = (double)(root * root);
+            if (fourth) base *= base;
+            int power = (int)(splitmix64(&state) % 41ull) - 20;
+            x = ldexp(base, (fourth ? 4 : 2) * power);
+            int numerator = 1 + (int)(splitmix64(&state) % 12ull);
+            y = ldexp((double)numerator, fourth ? -2 : -1);
+            if (splitmix64(&state) & 1ull) y = -y;
+            if (splitmix64(&state) & 1ull) x = -x;
+        } else if (stratum < 80u) {
+            x = random_magnitude(&state, -1074 + 52, 1023);
+            double lg = log2(x);
+            if (fabs(lg) < 1e-3) lg = 1.0, x = 2.0;
+            double target = (splitmix64(&state) & 1ull) ? 1024.0 : -1074.0;
+            target += (random_significand(&state) - 1.5) * 4.0;
+            y = target / lg;
+        } else if (stratum < 90u) {
+            x = random_magnitude(&state, -1022, 1023);
+            y = ldexp(random_significand(&state), -60 - (int)(splitmix64(&state) % 1000ull));
+            if (splitmix64(&state) & 1ull) y = -y;
+        } else {
+            x = value_of(splitmix64(&state));
+            y = value_of(splitmix64(&state));
+        }
+        emit2(bits_of(x), bits_of(y));
+    }
+}
+
 /* ---------------------------------------------------------------------- */
 
 struct corpus {
@@ -797,13 +1189,18 @@ static const struct corpus corpora[] = {
     {"f64_log1p", boundary_log1p, random_log1p},
     {"f64_cbrt", boundary_cbrt, random_cbrt},
     {"f64_hypot", boundary_hypot, random_hypot},
+    {"f64_atan", boundary_atan, random_atan},
+    {"f64_asin", boundary_asin, random_asin},
+    {"f64_acos", boundary_asin, random_asin},
+    {"f64_atan2", boundary_atan2, random_atan2},
+    {"f64_pow", boundary_pow, random_pow},
 };
 
 static int usage(void) {
     fprintf(stderr,
             "usage: m9_ref <function> <rounding> boundary|random <count> <seed>\n"
             "functions: f64_exp f64_exp2 f64_expm1 f64_log f64_log2 f64_log1p "
-            "f64_cbrt f64_hypot\n");
+            "f64_cbrt f64_hypot f64_atan f64_asin f64_acos f64_atan2 f64_pow\n");
     return 2;
 }
 
@@ -817,7 +1214,17 @@ int main(int argc, char **argv) {
         if (strcmp(corpora[i].name, functionName) == 0) selected = &corpora[i];
     }
     if (selected == NULL) return usage();
-    binary = strcmp(functionName, "f64_hypot") == 0;
+    binary = strcmp(functionName, "f64_hypot") == 0 ||
+             strcmp(functionName, "f64_atan2") == 0 ||
+             strcmp(functionName, "f64_pow") == 0;
+    if (strcmp(functionName, "f64_atan2") == 0) {
+        active_binary = mpfr_atan2;
+        active_binary_special = special_atan2;
+    }
+    if (strcmp(functionName, "f64_pow") == 0) {
+        active_binary = mpfr_pow;
+        active_binary_special = special_pow;
+    }
     for (size_t i = 0; i < sizeof unary_functions / sizeof unary_functions[0]; ++i) {
         if (strcmp(unary_functions[i].name, functionName) == 0) active = &unary_functions[i];
     }

@@ -7,7 +7,7 @@ import Foundation
 // same as the TestFloat vectors the runner already accepts:
 //
 //     <argument bits> <result bits> <exception flags>
-//     <first bits> <second bits> <result bits> <exception flags>   (hypot)
+//     <first bits> <second bits> <result bits> <exception flags>   (hypot, atan2, pow)
 //
 // Two things are checked per case: the delivered bits and flags against the
 // oracle, and the per-call certification the kernel reports. An uncertified
@@ -40,9 +40,14 @@ private let transcendentalKernels: [String: String] = [
     "f64_log1p": "soft_log1p64_round_kernel",
     "f64_cbrt": "soft_cbrt64_round_kernel",
     "f64_hypot": "soft_hypot64_round_kernel",
+    "f64_atan": "soft_atan64_round_kernel",
+    "f64_asin": "soft_asin64_round_kernel",
+    "f64_acos": "soft_acos64_round_kernel",
+    "f64_atan2": "soft_atan2_64_round_kernel",
+    "f64_pow": "soft_pow64_round_kernel",
 ]
 
-private let binaryTranscendentals: Set<String> = ["f64_hypot"]
+private let binaryTranscendentals: Set<String> = ["f64_hypot", "f64_atan2", "f64_pow"]
 
 func runTranscendentalConformance(
     _ harness: MetalHarness,
