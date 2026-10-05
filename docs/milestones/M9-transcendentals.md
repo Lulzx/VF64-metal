@@ -1,7 +1,8 @@
 # M9 — Correctly rounded transcendental layer
 
 Status: **P1 complete for `exp`; P2 (tranche A), P3 (tranche B), P4
-(tranche C), and P5 (surface reconciliation) complete.**
+(tranche C), P5 (surface reconciliation), and P6 (ISA and ABI decision)
+complete.**
 
 What exists: a wide evaluation core, a correctly rounded `exp`, a pinned MPFR
 oracle, and one published campaign of 20,008,875 result and exception-flag
@@ -514,12 +515,73 @@ public surface checked by `check-vf64-abi.sh`.
   does not: as of CuMetal `f4bbc8a`, its PTX lowering evaluates the libdevice
   double transcendentals (`__nv_exp`, `__nv_sin`, `__nv_pow`, and the rest)
   through binary32 `air.fast_*` calls in every fp64 mode, `ieee64` included.
-  That is a silent downgrade, which the precision-mode contract forbids, and
-  it is an open CuMetal gap, not an M9 surface.
+  CuMetal documents this in its `docs/fp64-policy.md` and records a module
+  caveat, but the caveat reaches only a comment in the generated MSL, and the
+  call is not refused. The precision-mode contract forbids that downgrade, so
+  this is an open CuMetal gap, not an M9 surface.
 - **Option B, deferred.** A `VF64_FEATURE_TRANSCENDENTAL` feature bit plus an
   opcode range, which is a VF64 v2 surface with its own ISA JSON, interpreter,
   ABI-freeze, and conformance work. Do not start this before Option A has
   published evidence for at least one function.
+
+### P6 decision
+
+**Option B is rejected for now. Option A stands, and the next surface step is
+an additive extension of the linkable Metal support ABI, not the bytecode.**
+
+The decision rests on who consumes each surface, because the cost P6 was meant
+to weigh has still not been measured (see [Open questions](#open-questions)):
+
+- **No bytecode consumer needs a transcendental opcode.** The VF64 v1 bytecode
+  is reached through `vf64-compile`, `vf64-run`, and the TestFloat ISA
+  harness. CuMetal, the only integration with a real demand for CUDA `double`
+  transcendentals, lowers through the [linkable support
+  module](../release/api-abi.md#linkable-metal-support-abi) by AIR static
+  link and never executes VF64 bytecode. Opcodes would serve no caller that
+  exists today.
+- **Option B taxes every interpreted program.** The interpreter is one Metal
+  function that dispatches every opcode. Twenty-two transcendentals in that
+  dispatch put the wide 128- and 192-bit evaluation state, and the 160-byte
+  2/π table, in the same function as straight-line `add` and `mul`. M3
+  already has labeled trace evidence of interpreter-only 560-byte compiler
+  spill events with today's 36 opcodes. Public Metal reflection cannot show
+  what the larger function would cost (every pipeline here reports 1024
+  maximum threads per threadgroup, and spill bytes are not exposed), so that
+  risk cannot be bounded, and P6 does not take it on unmeasured.
+- **Option B is a new major surface.** It needs a new version or a feature bit,
+  a v2 ISA JSON, interpreter and validator changes, a C header change behind
+  `check-vf64-abi.sh`, and a TestFloat-ISA-style conformance campaign per
+  opcode. Nothing above would justify that cost yet.
+
+The support ABI is where demand exists, and an addition there is additive:
+existing symbols and their meaning do not change, the bytecode version and C
+header are untouched, and a consumer built against a module without the new
+symbols fails at `air-link` rather than silently falling back. The planned
+shape, which P6 records but does not implement:
+
+- `vf64_<name>_rne(ulong ...)` and `vf64_<name>_round(ulong ..., uint
+  rounding)` for each of the 22 functions, over raw binary64 bits, following
+  the existing core-operation pair. The `_round` forms take the VF64 v1
+  rounding encoding.
+- Flag-free, like the rest of the support ABI, because CUDA exposes no
+  per-thread IEEE status. That discards the certificate, so the support-ABI
+  contract must be stated per proof state. `cbrt` and `hypot` are correctly
+  rounded for every argument. The other twenty are correctly rounded wherever
+  the certificate holds, which covers every one of the 440,402,485 published
+  comparisons. Where it does not hold, the derived error bound (no worse than
+  2^-116 relative) still places the delivered result on one of the two
+  binary64 neighbours of the exact value, so it is faithfully rounded. That
+  last statement follows from the bound alone. It is untested, because no
+  campaign has produced an uncertified case.
+- `scripts/build-vf64-support.sh` and `scripts/check-vf64-support.sh` extend
+  their symbol lists and GPU probes, and the support module's symbol count
+  rises from 38. The MPFR campaign gains a lane that drives the linked symbols,
+  so the support path is gated directly, not by inference from the
+  `soft_*_status` path.
+
+Reopen Option B only if a bytecode consumer appears that needs these
+functions, and only after an idle-host cost capture and an interpreter-pressure
+comparison exist.
 
 ## Phases
 
@@ -563,9 +625,13 @@ public surface checked by `check-vf64-abi.sh`.
   by row against the per-function artifacts by `check-conformance-data.sh`.
   CuMetal is not reconciled: it still evaluates CUDA double transcendentals
   at binary32 precision in every mode (see
-  [ISA and ABI impact](#isa-and-abi-impact)). That is an input to P6, not a
+  [ISA and ABI impact](#isa-and-abi-impact)). That fed into P6 and is not a
   P5 exit.
-- **P6 — ISA and ABI decision.** Evaluate Option B against measured P1–P4 cost.
+- **P6 — ISA and ABI decision. Complete.** Option B is rejected for now on
+  consumer and interpreter-pressure grounds, without a measured cost, which
+  still does not exist. The next step is additive `vf64_<name>_rne` and
+  `vf64_<name>_round` support-ABI symbols for CuMetal (see
+  [P6 decision](#p6-decision)).
 
 ## Open questions
 

@@ -227,8 +227,10 @@ M7 remains open for energy and cross-device reproduction.
 
 ## M9 correctly rounded transcendentals
 
-Status: **P1 (`exp`), P2 (tranche A), P3 (tranche B), P4 (tranche C), and
-P5 (surface reconciliation) complete.** Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`,
+Status: **P1 (`exp`), P2 (tranche A), P3 (tranche B), P4 (tranche C), P5
+(surface reconciliation), and P6 (ISA and ABI decision) complete.** P6 adds
+no evidence: it rejects transcendental opcodes for now and plans additive
+linkable support symbols instead. Tranche A adds `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`,
 and `hypot`; tranche B adds `pow`, `atan`, `atan2`, `asin`, and `acos`;
 tranche C adds `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`, `acosh`,
 and `atanh`.
