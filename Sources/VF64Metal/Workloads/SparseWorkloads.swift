@@ -112,6 +112,9 @@ private func grid2DWorkload(
     )
 }
 
+/// Average nonzeros per row at which a reduced-mode row gets a SIMD group.
+private let longRowThreshold = 64
+
 private func runCSRWorkload(
     _ harness: MetalHarness, workload: CSRWorkload
 ) throws {
@@ -131,19 +134,25 @@ private func runCSRWorkload(
     print("\n\(workload.name): \(workload.rows) rows, \(workload.columns) columns, \(workload.nonzeros) nonzeros")
     print(String(format: "cpu-fp64    %8.3f ms", cpuSeconds * 1.0e3))
 
-    let modes: [(String, String)] = [
-        ("fp32", "spmv_fp32_kernel"),
-        ("fast48", "spmv_fast48_kernel"),
-        ("wide48", "spmv_wide48_kernel"),
-        ("ieee64", "spmv_ieee64_kernel"),
+    // Rows long enough to fill a SIMD group use the coalesced row kernels in
+    // the reduced modes; ieee64 always keeps the sequential row order.
+    let longRows = workload.nonzeros >= workload.rows * longRowThreshold
+    let reduced = longRows ? "spmv_rows_simd_" : "spmv_"
+    let modes: [(String, String, Bool)] = [
+        ("fp32", reduced + "fp32_kernel", longRows),
+        ("fast48", reduced + "fast48_kernel", longRows),
+        ("wide48", reduced + "wide48_kernel", longRows),
+        ("ieee64", "spmv_ieee64_kernel", false),
     ]
-    for (name, kernel) in modes {
+    for (name, kernel, simd) in modes {
         _ = try harness.run(
-            kernel, count: workload.rows, buffers: buffers, countIndex: 5
+            kernel, count: workload.rows, buffers: buffers, countIndex: 5,
+            simdGroupPerElement: simd
         )
         let seconds = try medianTime(trials: 5) {
             try harness.run(
-                kernel, count: workload.rows, buffers: buffers, countIndex: 5
+                kernel, count: workload.rows, buffers: buffers, countIndex: 5,
+                simdGroupPerElement: simd
             )
         }
         let observedBits: [UInt64] = harness.read(output, count: workload.rows)

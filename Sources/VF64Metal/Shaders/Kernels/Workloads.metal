@@ -80,6 +80,104 @@ kernel void spmv_ieee64_kernel(
     output[row] = accumulator;
 }
 
+// Long-row SpMV/GEMV for the reduced-precision modes: one SIMD group per row,
+// lanes stride the row so consecutive lanes read consecutive entries, and the
+// lane partials are combined by a butterfly. The summation order therefore
+// differs from the sequential row kernels; these modes carry accuracy
+// contracts rather than a bitwise order contract. ieee64 keeps the
+// sequential kernel, whose results are bit-identical to sequential FP64.
+
+#define SPMV_SIMD_PARAMETERS \
+    uint group [[threadgroup_position_in_grid]], \
+    uint threads [[threads_per_threadgroup]], \
+    uint simdIndex [[simdgroup_index_in_threadgroup]], \
+    uint lane [[thread_index_in_simdgroup]], \
+    uint width [[threads_per_simdgroup]]
+
+kernel void spmv_rows_simd_fp32_kernel(
+    device const uint *rowOffsets [[buffer(0)]],
+    device const uint *columns [[buffer(1)]],
+    device const ulong *values [[buffer(2)]],
+    device const ulong *x [[buffer(3)]],
+    device ulong *output [[buffer(4)]],
+    constant uint &rowCount [[buffer(5)]],
+    SPMV_SIMD_PARAMETERS)
+{
+    uint row = group * (threads / width) + simdIndex;
+    if (row >= rowCount) return;
+    float accumulator = 0.0f;
+    bool ignored;
+    for (uint entry = rowOffsets[row] + lane; entry < rowOffsets[row + 1u]; entry += width) {
+        accumulator = fma(
+            unpack_binary64(values[entry], ignored).hi,
+            unpack_binary64(x[columns[entry]], ignored).hi, accumulator
+        );
+    }
+    for (ushort offset = ushort(width >> 1); offset > 0; offset >>= 1) {
+        accumulator += simd_shuffle_xor(accumulator, offset);
+    }
+    if (lane == 0) output[row] = pack_binary64(make_emu(accumulator, 0.0f));
+}
+
+kernel void spmv_rows_simd_fast48_kernel(
+    device const uint *rowOffsets [[buffer(0)]],
+    device const uint *columns [[buffer(1)]],
+    device const ulong *values [[buffer(2)]],
+    device const ulong *x [[buffer(3)]],
+    device ulong *output [[buffer(4)]],
+    constant uint &rowCount [[buffer(5)]],
+    SPMV_SIMD_PARAMETERS)
+{
+    uint row = group * (threads / width) + simdIndex;
+    if (row >= rowCount) return;
+    emu_f64 accumulator = make_emu(0.0f, 0.0f);
+    bool ignored;
+    for (uint entry = rowOffsets[row] + lane; entry < rowOffsets[row + 1u]; entry += width) {
+        accumulator = fma_ff(
+            unpack_binary64(values[entry], ignored),
+            unpack_binary64(x[columns[entry]], ignored), accumulator
+        );
+    }
+    for (ushort offset = ushort(width >> 1); offset > 0; offset >>= 1) {
+        accumulator = add_ff(accumulator, make_emu(
+            simd_shuffle_xor(accumulator.hi, offset),
+            simd_shuffle_xor(accumulator.lo, offset)
+        ));
+    }
+    if (lane == 0) output[row] = pack_binary64(accumulator);
+}
+
+kernel void spmv_rows_simd_wide48_kernel(
+    device const uint *rowOffsets [[buffer(0)]],
+    device const uint *columns [[buffer(1)]],
+    device const ulong *values [[buffer(2)]],
+    device const ulong *x [[buffer(3)]],
+    device ulong *output [[buffer(4)]],
+    constant uint &rowCount [[buffer(5)]],
+    SPMV_SIMD_PARAMETERS)
+{
+    uint row = group * (threads / width) + simdIndex;
+    if (row >= rowCount) return;
+    wide_f64 accumulator = wide_unpack64(0ul);
+    for (uint entry = rowOffsets[row] + lane; entry < rowOffsets[row + 1u]; entry += width) {
+        accumulator = wide_fma(
+            wide_unpack64(values[entry]),
+            wide_unpack64(x[columns[entry]]), accumulator
+        );
+    }
+    for (ushort offset = ushort(width >> 1); offset > 0; offset >>= 1) {
+        wide_f64 other;
+        other.significand = make_emu(
+            simd_shuffle_xor(accumulator.significand.hi, offset),
+            simd_shuffle_xor(accumulator.significand.lo, offset)
+        );
+        other.exponent = simd_shuffle_xor(accumulator.exponent, offset);
+        other.reserved = simd_shuffle_xor(accumulator.reserved, offset);
+        accumulator = wide_add(accumulator, other);
+    }
+    if (lane == 0) output[row] = wide_pack64(accumulator);
+}
+
 kernel void cg_update_x_r_fast48_kernel(
     device const ulong *alpha [[buffer(0)]],
     device const ulong *p [[buffer(1)]],
