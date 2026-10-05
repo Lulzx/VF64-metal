@@ -39,17 +39,32 @@ The device-resident scheduling follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-scheduling.json`](../../results/m7/2026-08-29-m4-pro-device-resident-scheduling.json).
 The current CG follow-up removes the CPU-reference iteration count. Metal
 selects convergence at iteration 11 and snapshots the solution with a
-1.453e-12 true residual. All 200 candidate iterations remain pre-encoded, so
-this proves device-side convergence selection but not dispatch cancellation:
+1.453e-12 true residual. In that artifact all 200 candidate iterations were pre-encoded, so
+it proves device-side convergence selection but not dispatch cancellation:
 [`results/m7/2026-08-29-m4-pro-device-selected-cg.json`](../../results/m7/2026-08-29-m4-pro-device-selected-cg.json).
 The device-resident GMRES follow-up is
 [`results/m7/2026-08-29-m4-pro-device-resident-gmres.json`](../../results/m7/2026-08-29-m4-pro-device-resident-gmres.json).
 A second GMRES follow-up removes the CPU-reference iteration count: Metal
 selects convergence at iteration 10, stores the matching 2.712e-11 residual,
-and drives back-substitution and solution assembly. All 32 candidate columns
-remain pre-encoded, so this proves device-side convergence selection but not
+and drives back-substitution and solution assembly. In that artifact all 32 candidate
+columns were pre-encoded, so it proves device-side convergence selection but not
 dispatch cancellation:
 [`results/m7/2026-08-29-m4-pro-device-selected-gmres.json`](../../results/m7/2026-08-29-m4-pro-device-selected-gmres.json).
+A 2026-10-05 follow-up removes the remaining scheduling and codec costs.
+CG and GMRES now submit candidate iterations in short command-buffer chunks
+and stop once a finished chunk carries the device-written convergence word,
+so 15 of 200 CG iterations and 11 of 32 GMRES columns are encoded. The host
+still never supplies an iteration count. Both solvers decode the matrix once
+and keep solver-internal vectors as decoded shadows of their binary64 storage
+values; solution bits, selected iterations, and residual bits are identical to
+the earlier fused kernels. N-body force kernels give each body a SIMD group
+and stay bitwise identical in every mode, and long-row reduced-mode SpMV/GEMV
+use coalesced SIMD-per-row kernels. An interleaved A/B on the same host
+measured 8.65x for device-selected CG, 6.26x for device-selected GMRES,
+8.18x for `fast48` GEMV, and 3.22x for `ieee64` N-body force. The host was
+heavily loaded by unrelated work, so these are relative results, not a new
+baseline:
+[`results/m7/2026-10-05-m4-pro-dispatch-and-codec-ab.json`](../../results/m7/2026-10-05-m4-pro-dispatch-and-codec-ab.json).
 The cross-mode CSR corpus adds periodic, symmetric positive-definite, and
 nonsymmetric matrix structures:
 [`results/m7/2026-08-29-m4-pro-sparse-corpus.json`](../../results/m7/2026-08-29-m4-pro-sparse-corpus.json).

@@ -160,8 +160,8 @@ GMRES scheduling evidence:
 The current CG follow-up also removes the CPU-reference iteration count. The
 GPU selects convergence at iteration 11 and snapshots a solution with the
 same 1.453e-12 true residual. Its five-run median is 9.002 ms versus 16.183 ms
-for the synchronized path and 1.107 ms for CPU. All 200 candidate iterations
-remain encoded and execute, so the earlier CPU-count-guided 0.989 ms result is
+for the synchronized path and 1.107 ms for CPU. In that run all 200 candidate
+iterations were encoded and executed, so the earlier CPU-count-guided 0.989 ms result is
 retained separately rather than conflated with device-selected convergence.
 Evidence:
 [`m7/2026-08-29-m4-pro-device-selected-cg.json`](m7/2026-08-29-m4-pro-device-selected-cg.json).
@@ -170,9 +170,21 @@ The current GMRES follow-up removes the CPU-reference iteration count. The GPU
 selects convergence at iteration 10, captures a 2.712e-11 residual estimate,
 and performs the matching back-substitution and solution assembly. Its five-run
 median is 10.850 ms versus 32.455 ms for the synchronized path and 1.120 ms for
-CPU. All 32 candidate columns remain encoded and execute, so this is
+CPU. In that run all 32 candidate columns were encoded and executed, so it is
 device-selected convergence, not dispatch-level early termination. Evidence:
 [`m7/2026-08-29-m4-pro-device-selected-gmres.json`](m7/2026-08-29-m4-pro-device-selected-gmres.json).
+
+A 2026-10-05 interleaved A/B against commit `bec1629` stops CG/GMRES
+submission after the device-selected convergence (15 of 200 CG iterations and
+11 of 32 GMRES columns encoded), decodes each matrix and solver vector once,
+assigns one SIMD group per N-body body, and uses coalesced SIMD-per-row
+kernels for long reduced-mode rows. Device-selected CG ran 8.65x faster,
+device-selected GMRES 6.26x, `fast48` GEMV 8.18x, and `ieee64` N-body force
+3.22x. CG, GMRES, and N-body results are bitwise identical to the earlier
+kernels; reduced-mode GEMV changes summation order and measured 45.00 p01 bits
+for `fast48` (previously 40.66). The host carried a load average of 18 from
+unrelated work, so absolute medians await an idle re-capture. Evidence:
+[`m7/2026-10-05-m4-pro-dispatch-and-codec-ab.json`](m7/2026-10-05-m4-pro-dispatch-and-codec-ab.json).
 
 The CSR SpMV corpus now covers a periodic nine-point stencil, a symmetric
 shifted 2D Poisson operator, and a nonsymmetric 2D convection-diffusion

@@ -1,0 +1,390 @@
+{
+  "schema_version": 1,
+  "milestone": "M7",
+  "status": "relative_ab_under_contention",
+  "baseline_commit": "bec1629b65a1dfad4fec60945d61c67b57b913c6",
+  "candidate": "the commit that adds this artifact",
+  "command": "five interleaved rounds of `vf64-metal workloads`, baseline then candidate, on the same host",
+  "date": "2026-10-05",
+  "device": {
+    "name": "Apple M4 Pro",
+    "gpu_cores": 16,
+    "os": "macOS 27.0.1",
+    "os_build": "26A434"
+  },
+  "host_conditions": "load average 18 from unrelated processes, including one using about seven CPU cores and a JAX job; absolute times are not a baseline and do not replace the 2026-08-29 artifacts",
+  "changes": {
+    "device_selected_cg": "chunked command buffers stop submission once a finished chunk carries the device-written convergence word; matrix decoded once; r, p, Ap kept as decoded shadows; alpha, convergence, and beta folded into the final reduction stages",
+    "device_selected_gmres": "chunked per-column submission with the same stop rule; matrix and Krylov basis kept as decoded shadows; one assembly dispatch over the device-selected columns",
+    "nbody_force": "one SIMD group per body; per-pair terms evaluated in parallel; lanes 0-2 accumulate x, y, z in source order",
+    "long_row_spmv": "reduced modes use one SIMD group per row with coalesced lane-strided reads and a butterfly reduction when rows average at least 64 nonzeros; ieee64 keeps the sequential row kernel"
+  },
+  "bitwise_checks": {
+    "device_selected_cg": "solution bits, device-selected iteration, and converged residual bits equal the previous fused kernels",
+    "device_selected_gmres": "solution bits, device-selected iteration, and residual-estimate bits equal the previous fused kernels",
+    "nbody_force": "fp32, fast48, wide48, and ieee64 outputs equal the previous one-thread-per-body kernels",
+    "long_row_spmv": "not bitwise: summation order changes in reduced modes; fast48 GEMV p01 accuracy rose from 40.66 to 45.00 bits"
+  },
+  "timing_notes": [
+    "Baseline device-selected CG/GMRES times exclude encoding and pipeline creation; candidate times include encoding after one warm-up solve, so the solver speedups are conservative.",
+    "Candidate CG encodes 15 of 200 candidate iterations and GMRES 11 of 32 candidate columns; the host never supplies an iteration count."
+  ],
+  "workloads": {
+    "gemv-dense-1024x2048": {
+      "cpu-fp64": {
+        "base_samples_ms": [
+          2.816,
+          3.348,
+          3.462,
+          3.432,
+          3.793
+        ],
+        "base_median_ms": 3.432,
+        "new_samples_ms": [
+          2.693,
+          3.908,
+          3.981,
+          3.628,
+          3.753
+        ],
+        "new_median_ms": 3.753,
+        "speedup": 0.91
+      },
+      "fp32": {
+        "base_samples_ms": [
+          2.751,
+          1.245,
+          2.333,
+          1.56,
+          0.991
+        ],
+        "base_median_ms": 1.56,
+        "new_samples_ms": [
+          0.142,
+          0.122,
+          0.125,
+          0.125,
+          0.13
+        ],
+        "new_median_ms": 0.125,
+        "speedup": 12.48
+      },
+      "fast48": {
+        "base_samples_ms": [
+          1.503,
+          1.907,
+          2.723,
+          2.262,
+          1.474
+        ],
+        "base_median_ms": 1.907,
+        "new_samples_ms": [
+          0.233,
+          0.232,
+          0.233,
+          0.232,
+          0.25
+        ],
+        "new_median_ms": 0.233,
+        "speedup": 8.18
+      },
+      "wide48": {
+        "base_samples_ms": [
+          1.509,
+          1.742,
+          2.327,
+          1.897,
+          1.475
+        ],
+        "base_median_ms": 1.742,
+        "new_samples_ms": [
+          0.225,
+          0.224,
+          0.225,
+          0.224,
+          0.241
+        ],
+        "new_median_ms": 0.225,
+        "speedup": 7.74
+      },
+      "ieee64": {
+        "base_samples_ms": [
+          1.376,
+          1.508,
+          1.794,
+          1.656,
+          1.365
+        ],
+        "base_median_ms": 1.508,
+        "new_samples_ms": [
+          1.374,
+          1.367,
+          1.372,
+          1.364,
+          1.369
+        ],
+        "new_median_ms": 1.369,
+        "speedup": 1.1
+      }
+    },
+    "cg-cyclic-9 (16384 unknowns)": {
+      "cpu-fp64": {
+        "base_samples_ms": [
+          1.536,
+          2.976,
+          3.321,
+          3.081,
+          2.845
+        ],
+        "base_median_ms": 2.976,
+        "new_samples_ms": [
+          1.586,
+          2.656,
+          3.215,
+          2.89,
+          2.024
+        ],
+        "new_median_ms": 2.656,
+        "speedup": 1.12
+      },
+      "fast48-gpu": {
+        "base_samples_ms": [
+          14.792,
+          15.073,
+          18.395,
+          17.229,
+          13.868
+        ],
+        "base_median_ms": 15.073,
+        "new_samples_ms": [
+          19.843,
+          16.581,
+          16.703,
+          16.786,
+          22.208
+        ],
+        "new_median_ms": 16.786,
+        "speedup": 0.9
+      },
+      "fast48-device": {
+        "base_samples_ms": [
+          9.747,
+          9.627,
+          9.441,
+          10.306,
+          9.504
+        ],
+        "base_median_ms": 9.627,
+        "new_samples_ms": [
+          1.833,
+          1.113,
+          1.112,
+          1.037,
+          1.245
+        ],
+        "new_median_ms": 1.113,
+        "speedup": 8.65
+      }
+    },
+    "gmres-cyclic-9 (8192 unknowns, restart 32)": {
+      "cpu-fp64": {
+        "base_samples_ms": [
+          1.194,
+          1.607,
+          2.019,
+          1.989,
+          1.886
+        ],
+        "base_median_ms": 1.886,
+        "new_samples_ms": [
+          1.533,
+          2.005,
+          1.822,
+          1.594,
+          2.123
+        ],
+        "new_median_ms": 1.822,
+        "speedup": 1.04
+      },
+      "fast48-gpu": {
+        "base_samples_ms": [
+          45.407,
+          43.057,
+          56.451,
+          49.359,
+          40.192
+        ],
+        "base_median_ms": 45.407,
+        "new_samples_ms": [
+          33.987,
+          47.902,
+          74.057,
+          61.821,
+          43.259
+        ],
+        "new_median_ms": 47.902,
+        "speedup": 0.95
+      },
+      "fast48-device": {
+        "base_samples_ms": [
+          12.141,
+          11.942,
+          11.331,
+          11.645,
+          11.062
+        ],
+        "base_median_ms": 11.645,
+        "new_samples_ms": [
+          1.86,
+          1.738,
+          3.391,
+          2.002,
+          1.839
+        ],
+        "new_median_ms": 1.86,
+        "speedup": 6.26
+      }
+    },
+    "nbody-force-512": {
+      "cpu-fp64": {
+        "base_samples_ms": [
+          1.509,
+          0.797,
+          1.537,
+          0.79,
+          1.641
+        ],
+        "base_median_ms": 1.509,
+        "new_samples_ms": [
+          0.938,
+          1.226,
+          1.057,
+          1.13,
+          1.299
+        ],
+        "new_median_ms": 1.13,
+        "speedup": 1.34
+      },
+      "fp32": {
+        "base_samples_ms": [
+          0.386,
+          0.432,
+          0.379,
+          0.379,
+          0.405
+        ],
+        "base_median_ms": 0.386,
+        "new_samples_ms": [
+          0.323,
+          0.283,
+          0.374,
+          0.321,
+          0.2
+        ],
+        "new_median_ms": 0.321,
+        "speedup": 1.2
+      },
+      "fast48": {
+        "base_samples_ms": [
+          0.901,
+          1.017,
+          0.894,
+          0.944,
+          0.902
+        ],
+        "base_median_ms": 0.902,
+        "new_samples_ms": [
+          0.812,
+          0.718,
+          0.95,
+          0.813,
+          0.533
+        ],
+        "new_median_ms": 0.812,
+        "speedup": 1.11
+      },
+      "wide48": {
+        "base_samples_ms": [
+          2.283,
+          2.425,
+          2.23,
+          2.231,
+          2.226
+        ],
+        "base_median_ms": 2.231,
+        "new_samples_ms": [
+          1.748,
+          1.573,
+          2.082,
+          1.797,
+          1.132
+        ],
+        "new_median_ms": 1.748,
+        "speedup": 1.28
+      },
+      "ieee64": {
+        "base_samples_ms": [
+          9.24,
+          9.068,
+          9.058,
+          9.047,
+          9.064
+        ],
+        "base_median_ms": 9.064,
+        "new_samples_ms": [
+          2.818,
+          2.808,
+          3.187,
+          3.01,
+          2.318
+        ],
+        "new_median_ms": 2.818,
+        "speedup": 3.22
+      }
+    },
+    "nbody-simulation-256 (16 steps)": {
+      "cpu-fp64": {
+        "base_samples_ms": [
+          2.629,
+          6.48,
+          5.255,
+          3.162,
+          3.642
+        ],
+        "base_median_ms": 3.642,
+        "new_samples_ms": [
+          6.28,
+          6.261,
+          5.063,
+          6.421,
+          4.294
+        ],
+        "new_median_ms": 6.261,
+        "speedup": 0.58
+      },
+      "fast48-gpu": {
+        "base_samples_ms": [
+          8.153,
+          7.893,
+          8.055,
+          7.631,
+          7.832
+        ],
+        "base_median_ms": 7.893,
+        "new_samples_ms": [
+          3.04,
+          3.246,
+          3.53,
+          3.264,
+          2.616
+        ],
+        "new_median_ms": 3.246,
+        "speedup": 2.43
+      }
+    }
+  },
+  "limitations": [
+    "Measured under heavy unrelated host load; re-capture absolute medians on an idle host before updating published tables.",
+    "Results are from one Apple GPU generation."
+  ]
+}

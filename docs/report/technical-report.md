@@ -17,8 +17,9 @@ On one 16-core Apple M4 Pro, the documented M1/M2 runtime and VF64 backend pass
 31,982,976 Berkeley TestFloat result-and-flag comparisons. A mixed automatic
 region satisfies a 40-bit accuracy contract at 1.18x the pure `ieee64` rate.
 Scientific pilots show large wins for some dense and batched workloads, while
-synchronous Krylov solvers and division-heavy N-body kernels remain slower than
-the scalar CPU baseline. The evidence remains single-generation and has no
+synchronous Krylov solvers remain slower than the scalar CPU baseline. A
+2026-10-05 follow-up removes most of the device-selected Krylov, N-body, and
+long-row SpMV overhead without changing their results. The evidence remains single-generation and has no
 authorized power measurement.
 
 ## Architecture
@@ -90,8 +91,8 @@ The current GMRES follow-up removes the CPU-reference iteration count. A GPU
 state selects the first converged column at iteration 10, preserves its
 2.712e-11 residual estimate, and controls back-substitution and solution
 assembly. Its five-run median is 10.850 ms, 2.99x faster than the synchronized
-GPU path but 0.10x CPU. Metal still executes all 32 pre-encoded candidate
-columns, so dispatch-level early termination is not claimed.
+GPU path but 0.10x CPU. In that measurement Metal executed all 32 pre-encoded
+candidate columns.
 
 | Workload and mode | Accuracy or convergence | Speed versus CPU FP64 |
 | --- | --- | ---: |
@@ -115,8 +116,24 @@ vector updates. The original 1.06x result uses the CPU baseline's fixed
 iteration count. A current follow-up selects convergence at iteration 11 and
 snapshots the 1.453e-12-residual solution on the GPU; its five-run median is
 9.002 ms, 1.80x faster than synchronized GPU but 0.12x CPU because all 200
-candidate iterations still execute. GMRES likewise selects convergence on the
-GPU but does not cancel later pre-encoded columns.
+candidate iterations still execute. GMRES likewise selected convergence on the
+GPU without cancelling later pre-encoded columns.
+
+The 2026-10-05 follow-up submits candidate iterations in short command-buffer
+chunks and stops once a finished chunk carries the device-written convergence
+word: 15 of 200 CG iterations and 11 of 32 GMRES columns are encoded, and the
+host never supplies an iteration count. Profiling showed binary64 decoding,
+not dispatch count, dominated the remaining iteration cost. The solvers now
+decode the matrix once and keep solver-internal vectors as decoded shadows,
+meaning the FP32 pair a later kernel would have decoded from the stored word.
+Solution bits, selected iterations, and residual bits are unchanged. N-body
+force kernels assign one SIMD group per body and accumulate in source order,
+so they stay bitwise identical in every mode, and reduced-mode GEMV uses
+coalesced SIMD-per-row kernels. An interleaved A/B against the previous commit
+measured 8.65x for device-selected CG, 6.26x for device-selected GMRES, 8.18x
+for `fast48` GEMV (now 45.00 p01 bits), and 3.22x for `ieee64` N-body force.
+The host was heavily loaded by unrelated work, so the table above keeps the
+2026-08-29 absolute ratios until an idle re-capture.
 
 CuMetal now executes the unchanged CUDA contract probe through `fast48`,
 `wide48`, and `ieee64`. The gate covers arithmetic, true fused FMA, square root,
