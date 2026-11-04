@@ -103,6 +103,9 @@ inline wide_f64 wide_add(wide_f64 a, wide_f64 b) {
     if (wide_is_special(a) || wide_is_special(b)) {
         return wide_special_binary(a, b, 0);
     }
+    if (wide_is_zero(a) && wide_is_zero(b)) {
+        return wide_special_binary(a, b, 0);
+    }
     if (wide_is_zero(a)) return b;
     if (wide_is_zero(b)) return a;
     if (a.exponent < b.exponent) {
