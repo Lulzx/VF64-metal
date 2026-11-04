@@ -433,13 +433,43 @@ inline ulong soft_div64_status(
     );
 }
 
+#ifndef VF64_CERTIFIED_DIVISION_INCLUDED
+#include "CertifiedDivision.metal"
+#endif
+
+// The leaf is certified for normalized operands and RNE values only.
+// Observable flags and directed rounding retain soft_div64_status.
+inline ulong soft_div64_rne(ulong a, ulong b) {
+    const uint ea = uint((a >> 52) & 0x7fful);
+    const uint eb = uint((b >> 52) & 0x7fful);
+    uint ignoredFlags = 0;
+    if (ea == 0u || ea == 2047u || eb == 0u || eb == 2047u)
+        return soft_div64_status(a, b, soft_round_near_even, ignoredFlags);
+    const ulong A = (a & 0x000ffffffffffffful) | (1ul << 52);
+    const ulong B = (b & 0x000ffffffffffffful) | (1ul << 52);
+    const bool below = A < B;
+    const ulong V = B << 11;
+    const ulong U = below ? A << 11 : A << 10;
+    const uint b32 = uint(V >> 32);
+    const float estimate = metal::fast::divide(
+        1.0f, float(b32) * 0x1p-31f) * 0x1p32f;
+    ulong proxy;
+    bool accepted, boundary;
+    soft_certified_division_leaf(U, V, estimate, &proxy, &accepted, &boundary);
+    if (!accepted)
+        return soft_div64_status(a, b, soft_round_near_even, ignoredFlags);
+    const int exponent = int(ea) - int(eb) + 1023 - (below ? 1 : 0);
+    return soft_round_pack_status(((a ^ b) >> 63) != 0, exponent,
+        shift_right_jam(proxy, 7u), soft_round_near_even, ignoredFlags);
+}
+
 inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
     uint ignoredFlags = 0;
     return soft_div64_status(a, b, roundingMode, ignoredFlags);
 }
 
 inline ulong soft_div64(ulong a, ulong b) {
-    return soft_div64_mode(a, b, soft_round_near_even);
+    return soft_div64_rne(a, b);
 }
 
 inline ulong soft_sqrt64_status(

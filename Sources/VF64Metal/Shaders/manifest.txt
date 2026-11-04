@@ -2,6 +2,7 @@
 Core/Preamble.metal
 Pair/Arithmetic.metal
 Pair/Codec.metal
+IEEE/CertifiedDivision.metal
 IEEE/Arithmetic.metal
 Wide/Arithmetic.metal
 Math/WideFloat.metal
