@@ -21,6 +21,32 @@ private func wideAccuracySummary(
 }
 
 func validateWideMode(_ harness: MetalHarness) throws {
+    let zerosA = [0.0, 0.0, -0.0, -0.0]
+    let zerosB = [0.0, -0.0, 0.0, -0.0]
+    let zeroA = try harness.buffer(bitsOf(zerosA))
+    let zeroB = try harness.buffer(bitsOf(zerosB))
+    let zeroOutput = try harness.emptyBuffer(count: 4, of: UInt64.self)
+    let zeroOperations: [(String, (Double, Double) -> Double)] = [
+        ("wide_add_kernel", +), ("wide_sub_kernel", -),
+    ]
+    for (kernel, reference) in zeroOperations {
+        try harness.run(
+            kernel, count: 4,
+            buffers: [(0, zeroA), (1, zeroB), (2, zeroOutput)], countIndex: 3
+        )
+        let observed: [UInt64] = harness.read(zeroOutput, count: 4)
+        for index in zerosA.indices {
+            let expected = reference(zerosA[index], zerosB[index]).bitPattern
+            guard observed[index] == expected else {
+                throw HarnessError.validation(String(
+                    format: "%@ zero pair %d got=%016llx want=%016llx",
+                    kernel, index, observed[index], expected
+                ))
+            }
+        }
+    }
+    print("wide-zero: 8 add/sub signed-zero checks passed")
+
     var rng = SplitMix64(state: 0x5749444534384d33)
     let count = 16_384
     var roundtrip = [
