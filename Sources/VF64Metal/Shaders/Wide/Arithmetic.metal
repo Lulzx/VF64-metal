@@ -161,3 +161,22 @@ inline wide_f64 wide_sqrt(wide_f64 a) {
 inline wide_f64 wide_fma(wide_f64 a, wide_f64 b, wide_f64 c) {
     return wide_add(wide_mul(a, b), c);
 }
+
+// Keep squared exponents resident until the final pack, including values
+// outside the binary64 range. Positive summands avoid cancellation.
+inline wide_f64 wide_hypot(wide_f64 a, wide_f64 b) {
+    if (isinf(a.significand.hi) || isinf(b.significand.hi)) {
+        return make_wide(make_emu(INFINITY, 0.0f), 0);
+    }
+    if (wide_is_special(a) || wide_is_special(b)) {
+        return make_wide(make_emu(a.significand.hi + b.significand.hi, 0.0f), 0);
+    }
+    if (signbit(a.significand.hi)) a.significand = neg_ff(a.significand);
+    if (signbit(b.significand.hi)) b.significand = neg_ff(b.significand);
+    if (wide_is_zero(a) && wide_is_zero(b)) {
+        return make_wide(make_emu(0.0f, 0.0f), 0);
+    }
+    if (wide_is_zero(a)) return b;
+    if (wide_is_zero(b)) return a;
+    return wide_sqrt(wide_add(wide_mul(a, a), wide_mul(b, b)));
+}

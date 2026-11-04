@@ -228,6 +228,10 @@
     return wide_pack64(wide_sqrt(wide_unpack64(a)));
 }
 
+[[visible]] ulong vf64_wide_hypot(ulong a, ulong b) {
+    return wide_pack64(wide_hypot(wide_unpack64(a), wide_unpack64(b)));
+}
+
 [[visible]] ulong vf64_wide_fma(ulong a, ulong b, ulong c) {
     return wide_pack64(wide_fma(
         wide_unpack64(a), wide_unpack64(b), wide_unpack64(c)
