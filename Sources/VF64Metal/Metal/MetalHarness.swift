@@ -14,6 +14,7 @@ final class MetalHarness {
         }
         let options = MTLCompileOptions()
         options.languageVersion = .version3_2
+        options.mathMode = .safe
         self.device = device
         self.queue = queue
         self.library = try device.makeLibrary(

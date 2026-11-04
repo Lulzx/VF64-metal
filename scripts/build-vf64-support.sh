@@ -7,7 +7,7 @@ source_file="$repo_dir/Sources/VF64Metal/Shaders/Interop/VF64Support.metal"
 output=${1:-"$repo_dir/.build/vf64/vf64-support.air"}
 
 mkdir -p "$(dirname -- "$output")"
-xcrun metal -std=metal3.2 -c "$source_file" -o "$output"
+xcrun metal -std=metal3.2 -fno-fast-math -ffp-contract=off -c "$source_file" -o "$output"
 
 symbols=$(xcrun metal-nm "$output")
 for symbol in \

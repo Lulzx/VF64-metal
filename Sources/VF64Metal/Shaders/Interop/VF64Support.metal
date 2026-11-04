@@ -34,8 +34,7 @@
 }
 
 [[visible]] ulong vf64_div_rne(ulong a, ulong b) {
-    uint flags = 0;
-    return soft_div64_status(a, b, soft_round_near_even, flags);
+    return soft_div64_rne(a, b);
 }
 
 [[visible]] ulong vf64_sqrt_rne(ulong a) {
