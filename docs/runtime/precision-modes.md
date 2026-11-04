@@ -65,7 +65,8 @@ flag-free linkable support symbols `vf64_<name>_rne` and `vf64_<name>_round`
 described in the [API/ABI contract](../release/api-abi.md#linkable-metal-support-abi).
 They are not VF64 v1 operations in any mode.
 
-`fast48` and `wide48` have no transcendental contract. A request for a
+Apart from the explicit `wide48` hypot helper below, `fast48` and `wide48`
+have no transcendental contract. A request for another
 transcendental function in a reduced mode must be refused, never satisfied by
 a reduced-precision evaluation or by quietly switching to the `ieee64` call.
 `vf64-compile` refuses every M9 function name under `--fp64=fast48`, `wide48`,
@@ -87,3 +88,51 @@ A finite-only kernel may omit special-value branches only when its interface or
 compiler guard proves finite, in-range inputs and defines overflow behavior.
 The finite-only property must be visible in its name or metadata; it cannot be
 silently substituted for a general mode operation.
+
+## Reduced hypot support helper
+
+`wide_hypot` and the linkable `vf64_wide_hypot(ulong, ulong)` compute an
+reduced-precision Euclidean norm, `sqrt(x*x + y*y)`, from two `wide48`
+operands. This helper adds no VF64 bytecode opcode or source-compiler lowering.
+`fast48` has no hypot helper.
+
+Both squares, their sum and the square root retain the explicit integer
+exponent until the final binary64 pack. A finite binary64 input has a scale
+between -1074 and 1023 (normalization can increase the latter by one). Squaring
+therefore needs scales only between -2148 and 2049; addition can increase the
+scale once more. These fit in the signed 32-bit exponent. The significands
+remain normalized floating-point expansions, so intermediate binary64 overflow
+or underflow cannot occur. Very small summands can be discarded by `wide_add`:
+when its scale difference exceeds 60, the squared contribution is less than
+2^-60 of the larger square, changing the exact norm by less than 2^-61 relative.
+This range argument does not prove a total rounding-error bound.
+
+Infinity takes precedence over NaN, both zero inputs produce positive zero,
+and other finite inputs produce a nonnegative result. NaN payload preservation
+and IEEE exception flags are not provided. Final subnormal and overflow
+behavior follows `wide_pack64`, including the existing reduced-precision
+uncertainty at the overflow edge.
+
+The accuracy validation accepts the existing pinned MPFR hypot vectors through
+`vf64-metal wide-hypot`. It compares against MPFR nearest-even binary64 results
+for the original binary64 inputs, so this gate includes input decoding error
+as well as arithmetic and output packing error. It uses a relative tolerance
+of 2^-44, allowing one binary64 ulp where larger,
+and treats results within that tolerance of the overflow boundary separately.
+This is a corpus validation threshold, not a proven worst-case error bound or
+a correct-rounding claim. The normal `validate` command includes the committed
+MPFR smoke vectors. A full seeded run can reuse the oracle generator:
+
+```sh
+generator=$(scripts/bootstrap-mpfr.sh)
+"$generator" f64_hypot rnear_even boundary | .build/release/vf64-metal wide-hypot
+"$generator" f64_hypot rnear_even random 1000000 1 | .build/release/vf64-metal wide-hypot
+```
+
+The arithmetic uses the project's existing expansion primitives; no external
+implementation is incorporated. The mathematical background is the
+[double-word arithmetic analysis of Joldes, Muller and Popescu (2017)](https://doi.org/10.1145/3121432)
+and the [Euclidean norm and double-word square-root analysis of Lefèvre,
+Louvet, Muller, Picot and Rideau (2023)](https://doi.org/10.1145/3568672).
+Their bounds are not asserted for this implementation without checking their
+algorithmic and floating-point assumptions.

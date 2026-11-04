@@ -38,12 +38,18 @@ rounding-independent widening conversions. Six `vf64_wide_*` symbols expose
 the frozen `wide48` core-arithmetic contract with full binary64 input range.
 Those 38 symbols are the 1.0 support surface.
 
+An additional reduced helper, `vf64_wide_hypot(ulong, ulong)`, exposes the
+[`wide48` Euclidean norm contract](../runtime/precision-modes.md#reduced-hypot-support-helper).
+It returns packed binary64 bits, has no rounding-mode argument or flags, and
+adds no bytecode opcode. Backends must link this symbol explicitly; older
+support modules do not provide it.
+
 An additive M9 extension exports the 22 correctly rounded transcendentals as
 `vf64_<name>_rne` and `vf64_<name>_round` over raw binary64 bits, for `exp`,
 `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, `hypot`, `pow`, `atan`,
 `atan2`, `asin`, `acos`, `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`,
 `acosh`, and `atanh`. `hypot`, `pow`, and `atan2` take two operands. That
-makes 44 symbols, for 82 in total. They change no existing symbol, VF64
+adds the paired entry points to the 1.0 surface. They change no existing symbol, VF64
 bytecode version, or C header, and a backend that needs one fails at
 `air-link` against an older module rather than falling back. These symbols
 carry an `ieee64` contract only.

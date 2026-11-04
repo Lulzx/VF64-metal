@@ -66,3 +66,13 @@ kernel void wide_mul_chain_kernel(
     for (uint i = 0; i < 32; ++i) value = wide_mul(value, factor);
     output[gid] = wide_pack64(value);
 }
+
+kernel void wide_hypot_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device ulong *output [[buffer(2)]], constant uint &count [[buffer(3)]],
+    uint gid [[thread_position_in_grid]])
+{
+    if (gid < count) output[gid] = wide_pack64(
+        wide_hypot(wide_unpack64(a[gid]), wide_unpack64(b[gid]))
+    );
+}

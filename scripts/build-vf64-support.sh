@@ -19,7 +19,7 @@ for symbol in \
     vf64_i32_to_f64 vf64_i64_to_f64 vf64_f64_to_ui32 vf64_f64_to_ui64 \
     vf64_f64_to_i32 vf64_f64_to_i64 vf64_f64_to_f32 vf64_f64_to_f16 \
     vf64_f32_to_f64 vf64_f16_to_f64 vf64_wide_add vf64_wide_sub \
-    vf64_wide_mul vf64_wide_div vf64_wide_sqrt vf64_wide_fma \
+    vf64_wide_mul vf64_wide_div vf64_wide_sqrt vf64_wide_fma vf64_wide_hypot \
     vf64_exp_rne vf64_exp_round vf64_exp2_rne vf64_exp2_round \
     vf64_expm1_rne vf64_expm1_round vf64_log_rne vf64_log_round \
     vf64_log2_rne vf64_log2_round vf64_log1p_rne vf64_log1p_round \
@@ -35,4 +35,4 @@ do
     printf '%s\n' "$symbols" | grep -q " T $symbol\$"
 done
 
-printf 'vf64_support=pass symbols=82 output=%s\n' "$output"
+printf 'vf64_support=pass output=%s\n' "$output"
