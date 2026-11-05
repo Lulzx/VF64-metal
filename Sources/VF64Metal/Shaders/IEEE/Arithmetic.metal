@@ -437,9 +437,10 @@ inline ulong soft_div64_status(
 #include "CertifiedDivision.metal"
 #endif
 
-// The leaf is certified for normalized operands and RNE values only.
-// Observable flags and directed rounding retain soft_div64_status.
-inline ulong soft_div64_rne(ulong a, ulong b) {
+// Coefficients are explicit so validation can exercise the production leaf.
+inline ulong soft_div64_rne_coefficients(ulong a, ulong b, uint k0, uint k1,
+    thread bool &accepted, thread bool &boundary, thread bool &repaired) {
+    accepted = false; boundary = false; repaired = false;
     const uint ea = uint((a >> 52) & 0x7fful);
     const uint eb = uint((b >> 52) & 0x7fful);
     uint ignoredFlags = 0;
@@ -450,17 +451,26 @@ inline ulong soft_div64_rne(ulong a, ulong b) {
     const bool below = A < B;
     const ulong V = B << 11;
     const ulong U = below ? A << 11 : A << 10;
-    const uint b32 = uint(V >> 32);
-    const float estimate = metal::fast::divide(
-        1.0f, float(b32) * 0x1p-31f) * 0x1p32f;
     ulong proxy;
-    bool accepted, boundary;
-    soft_certified_division_leaf(U, V, estimate, &proxy, &accepted, &boundary);
+    soft_certified_division_leaf(U, V, k0, k1, &proxy, &accepted, &boundary, &repaired);
     if (!accepted)
         return soft_div64_status(a, b, soft_round_near_even, ignoredFlags);
     const int exponent = int(ea) - int(eb) + 1023 - (below ? 1 : 0);
     return soft_round_pack_status(((a ^ b) >> 63) != 0, exponent,
         shift_right_jam(proxy, 7u), soft_round_near_even, ignoredFlags);
+}
+
+inline uint2 soft_reciprocal_coefficients(ulong b) {
+    const uint index = uint(b >> 48) & 15u;
+    return uint2(soft_reciprocal_k0[index], soft_reciprocal_k1[index]);
+}
+
+inline ulong soft_div64_rne(ulong a, ulong b) {
+    const uint2 coefficients = soft_reciprocal_coefficients(b);
+    bool accepted, boundary, repaired;
+    return soft_div64_rne_coefficients(a, b,
+        coefficients.x, coefficients.y,
+        accepted, boundary, repaired);
 }
 
 inline ulong soft_div64_mode(ulong a, ulong b, uint roundingMode) {
