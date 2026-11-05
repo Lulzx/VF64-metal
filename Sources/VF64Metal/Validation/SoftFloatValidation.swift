@@ -45,6 +45,7 @@ private func softFloatInputs() -> ([UInt64], [UInt64]) {
 }
 
 func validateExactHostOracle(_ harness: MetalHarness) throws {
+    try validateReciprocalCoefficients(harness)
     let (aBits, bBits) = softFloatInputs()
     let aBuffer = try harness.buffer(aBits)
     let bBuffer = try harness.buffer(bBits)
@@ -79,5 +80,43 @@ func validateExactHostOracle(_ harness: MetalHarness) throws {
             "\(label.padding(toLength: 11, withPad: " ", startingAt: 0)) " +
             "bit-exact RNE over \(aBits.count) cases"
         )
+    }
+}
+
+private func validateReciprocalCoefficients(_ harness: MetalHarness) throws {
+    let count = 4096
+    var rng = SplitMix64(state: 0xc371f1ed)
+    var a = [UInt64](), b = [UInt64](), injected = [SIMD4<UInt32>]()
+    for i in 0..<count {
+        a.append((UInt64(1 + (17 * i) % 2046) << 52)
+            | (rng.next() & 0x000fffffffffffff) | (UInt64(i & 1) << 63))
+        b.append((UInt64(1 + i % 2046) << 52)
+            | (UInt64(i & 15) << 48) | (rng.next() & 0x0000ffffffffffff))
+        if i % 31 == 0 { b[i] &= 0x7ff0000000000000 }
+        injected.append(SIMD4(UInt32(truncatingIfNeeded: rng.next()),
+                              UInt32(truncatingIfNeeded: rng.next()), 0, 0))
+    }
+    for mode in UInt32(0)...UInt32(2) {
+        for i in 0..<count { injected[i].z = mode }
+        let output = try harness.emptyBuffer(count: count, of: SIMD2<UInt64>.self)
+        let status = try harness.emptyBuffer(count: count, of: UInt32.self)
+        _ = try harness.run("soft_div_coefficients_kernel", count: count,
+            buffers: [(0, try harness.buffer(a)), (1, try harness.buffer(b)),
+                      (2, try harness.buffer(injected)), (3, output), (4, status)], countIndex: 5)
+        let values: [SIMD2<UInt64>] = harness.read(output, count: count)
+        let flags: [UInt32] = harness.read(status, count: count)
+        var accepted = 0, repaired = 0
+        for i in 0..<count {
+            let expected = (Double(bitPattern: a[i]) / Double(bitPattern: b[i])).bitPattern
+            guard values[i].x == expected && values[i].y == expected && flags[i] <= 3 else {
+                throw HarnessError.validation("reciprocal coefficients: mode \(mode), case \(i)")
+            }
+            accepted += Int(flags[i] & 1)
+            repaired += Int((flags[i] >> 1) & 1)
+        }
+        guard mode == 0 ? (accepted == count && repaired > 0) : accepted < count else {
+            throw HarnessError.validation("reciprocal certificate path: mode=\(mode) accepted=\(accepted) repaired=\(repaired)")
+        }
+        print("reciprocal-coefficients mode=\(mode) cases=\(count) accepted=\(accepted) repairs=\(repaired)")
     }
 }

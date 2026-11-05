@@ -438,3 +438,20 @@ kernel void soft_mul_chain_kernel(
     for (uint i = 0; i < 32; ++i) value = soft_mul64(value, factor);
     output[gid] = value;
 }
+
+// Explicit coefficients exercise certificate rejection without replacing the fallback.
+kernel void soft_div_coefficients_kernel(
+    device const ulong *a [[buffer(0)]], device const ulong *b [[buffer(1)]],
+    device const uint4 *injected [[buffer(2)]], device ulong2 *output [[buffer(3)]],
+    device uint *status [[buffer(4)]], constant uint &count [[buffer(5)]],
+    uint tid [[thread_position_in_grid]]) {
+    if (tid >= count) return;
+    uint2 coefficients = soft_reciprocal_coefficients(b[tid]);
+    if (injected[tid].z == 1u) coefficients = injected[tid].xy;
+    if (injected[tid].z == 2u) coefficients ^= injected[tid].xy;
+    bool accepted, boundary, repaired;
+    output[tid] = ulong2(soft_div64_rne(a[tid], b[tid]),
+        soft_div64_rne_coefficients(a[tid], b[tid], coefficients.x, coefficients.y,
+            accepted, boundary, repaired));
+    status[tid] = uint(accepted) | (uint(repaired) << 1);
+}
