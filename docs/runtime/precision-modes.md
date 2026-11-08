@@ -91,7 +91,7 @@ silently substituted for a general mode operation.
 
 ## Reduced hypot support helper
 
-`wide_hypot` and the linkable `vf64_wide_hypot(ulong, ulong)` compute an
+`wide_hypot` and the linkable `vf64_wide_hypot(ulong, ulong)` compute a
 reduced-precision Euclidean norm, `sqrt(x*x + y*y)`, from two `wide48`
 operands. This helper adds no VF64 bytecode opcode or source-compiler lowering.
 `fast48` has no hypot helper.

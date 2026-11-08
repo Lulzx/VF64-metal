@@ -10,6 +10,7 @@ mkdir -p "$(dirname -- "$output")"
 xcrun metal -std=metal3.2 -fno-fast-math -ffp-contract=off -c "$source_file" -o "$output"
 
 symbols=$(xcrun metal-nm "$output")
+count=0
 for symbol in \
     vf64_add_rne vf64_sub_rne vf64_mul_rne vf64_div_rne vf64_sqrt_rne \
     vf64_fma_rne vf64_add_round vf64_sub_round vf64_mul_round \
@@ -33,6 +34,7 @@ for symbol in \
     vf64_acosh_round vf64_atanh_rne vf64_atanh_round
 do
     printf '%s\n' "$symbols" | grep -q " T $symbol\$"
+    count=$((count + 1))
 done
 
-printf 'vf64_support=pass output=%s\n' "$output"
+printf 'vf64_support=pass symbols=%s output=%s\n' "$count" "$output"

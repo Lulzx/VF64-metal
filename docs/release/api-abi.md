@@ -49,7 +49,7 @@ An additive M9 extension exports the 22 correctly rounded transcendentals as
 `exp2`, `expm1`, `log`, `log2`, `log1p`, `cbrt`, `hypot`, `pow`, `atan`,
 `atan2`, `asin`, `acos`, `sin`, `cos`, `tan`, `sinh`, `cosh`, `tanh`, `asinh`,
 `acosh`, and `atanh`. `hypot`, `pow`, and `atan2` take two operands. That
-adds the paired entry points to the 1.0 surface. They change no existing symbol, VF64
+makes 44 symbols; with the reduced hypot helper, 83 in total. They change no existing symbol, VF64
 bytecode version, or C header, and a backend that needs one fails at
 `air-link` against an older module rather than falling back. These symbols
 carry an `ieee64` contract only.
@@ -77,7 +77,7 @@ continues to provide the complete sticky-flag ABI.
 
 The support ABI accepts rounding values from the VF64 v1 C ABI and returns
 integer or raw-bit results. Storage remains ordinary eight-byte IEEE binary64
-at every observable boundary. `scripts/check-vf64-support.sh` verifies all 82
+at every observable boundary. `scripts/check-vf64-support.sh` verifies all 83
 symbols, performs an AIR static link, creates a Metal pipeline, and executes
 arithmetic, comparison, and conversion probes on the GPU.
 `scripts/check-vf64-m9-support.sh` links conformance kernels that reach the
